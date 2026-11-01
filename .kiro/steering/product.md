@@ -4,7 +4,7 @@ A browser game. "Every trick is a ghost. Name it to set the page free."
 
 A haunted website where every ghost is a real dark pattern: the player spots the trick, names it, and the page turns honest beside its haunted twin. Audience: everyone online; UX students second.
 
-Why: people sense manipulation but can't name it (63.8% noticed, 38.2% named it; Wang 2025, Drexel); dark patterns are common (1,818 instances on ~11,000 shopping sites; Mathur et al. 2019); regulators act on them (FTC "Bringing Dark Patterns to Light", 2022; EU DSA Art. 25). 10-15 min, 12 rooms, ~1 min each.
+Why: people often sense manipulation but can't name it (in one small study, 63.8% judged correctly whether a screen was manipulative, but only 38.2% named the exact pattern; Wang 2025, Drexel master's thesis); dark patterns are common (1,818 instances on ~11,000 shopping sites; Mathur et al. 2019); regulators act on them (FTC "Bringing Dark Patterns to Light", 2022; EU DSA Art. 25). 10-15 min, 12 rooms, ~1 min each.
 
 ## Core loop per room
 
