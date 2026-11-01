@@ -25,83 +25,16 @@
 .room-wall {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, var(--manor-wood-2) 0%, var(--manor-night) 100%);
-}
-
-.room-wainscot {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 26%;
-  display: flex;
-  flex-direction: row;
-  gap: 20px;
-  padding: 20px;
-  align-items: flex-end;
-}
-
-.room-wainscot::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 10px;
-  background: var(--manor-line);
-  border-top: 1px solid rgba(207, 166, 100, 0.5);
-}
-
-.panel {
-  flex: 1;
-  height: 100%;
-  background: linear-gradient(180deg, var(--manor-wood-2), var(--manor-night));
-  border: 1px solid rgba(207, 166, 100, 0.3);
-  border-radius: 4px;
-  box-shadow: 
-    inset 0 0 0 6px var(--manor-wood),
-    inset 0 0 18px rgba(0, 0, 0, 0.5);
-}
-
-/* Sconces */
-.sconce {
-  position: absolute;
-  width: 80px;
-  height: 160px;
-  top: 30%;
-}
-
-.sconce-left {
-  left: calc(50% - 720px);
-}
-
-.sconce-right {
-  right: calc(50% - 720px);
-}
-
-@media (max-width: 1399px) {
-  .sconce {
-    display: none;
-  }
-}
-
-.light-pool {
-  position: absolute;
-  width: 560px;
-  height: 560px;
-  border-radius: 50%;
-  pointer-events: none;
-  background: radial-gradient(circle at center, rgba(240, 190, 119, 0.18) 0%, transparent 70%);
-}
-
-.light-pool-left {
-  top: calc(30% - 220px);
-  left: calc(50% - 1000px);
-}
-
-.light-pool-right {
-  top: calc(30% - 220px);
-  right: calc(50% - 1000px);
+  /* The painted foyer: the page's one raster image (README › Assets). No text ever sits on it; the task bar, the
+     framed page and the cards carry their own solid backgrounds. The night scrim keeps the frame in front. */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--manor-night) 25%, transparent) 0%,
+      color-mix(in srgb, var(--manor-night) 60%, transparent) 100%
+    ),
+    url('../assets/foyer.webp') center top / cover no-repeat,
+    var(--manor-night);
 }
 
 /* Full page look-page wrapper */

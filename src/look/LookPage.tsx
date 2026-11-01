@@ -64,28 +64,6 @@ export default function LookPage() {
       <div class="room-scene">
         <div class="room" aria-hidden="true">
           <div class="room-wall"></div>
-          <div class="room-wainscot">
-            {Array.from({ length: 12 }).map(() => (
-              <div class="panel"></div>
-            ))}
-            <div class="top-rail"></div>
-          </div>
-          <svg class="sconce sconce-left" viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="40" cy="20" rx="16" ry="12" fill="none" stroke="var(--gold)" strokeWidth="2"/>
-            <path d="M 40 32 Q 35 50 20 80" fill="none" stroke="var(--gold)" strokeWidth="4"/>
-            <rect x="15" y="75" width="10" height="20" fill="var(--parchment-2)"/>
-            <line x1="20" y1="70" x2="20" y2="75" stroke="var(--ink-soft)" strokeWidth="2"/>
-            <path d="M 20 70 Q 18 65 20 60 Q 22 65 20 70" fill="var(--candle)"/>
-            <div class="light-pool light-pool-left"></div>
-          </svg>
-          <svg class="sconce sconce-right" viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg">
-            <ellipse cx="40" cy="20" rx="16" ry="12" fill="none" stroke="var(--gold)" strokeWidth="2"/>
-            <path d="M 40 32 Q 45 50 60 80" fill="none" stroke="var(--gold)" strokeWidth="4"/>
-            <rect x="55" y="75" width="10" height="20" fill="var(--parchment-2)"/>
-            <line x1="60" y1="70" x2="60" y2="75" stroke="var(--ink-soft)" strokeWidth="2"/>
-            <path d="M 60 70 Q 58 65 60 60 Q 62 65 60 70" fill="var(--candle)"/>
-            <div class="light-pool light-pool-right"></div>
-          </svg>
         </div>
 
         <div class="task-bar">
