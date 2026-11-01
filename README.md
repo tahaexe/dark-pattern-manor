@@ -21,9 +21,8 @@ This project is built with Kiro, an AI-powered development environment. Steering
 
 ## Assets
 
-- The foyer behind the room was painted with a local image model (FLUX.2 [klein] 4B, Apache-2.0); it is the only raster image.
 - Fonts: Cormorant Garamond and Atkinson Hyperlegible Next, SIL Open Font License 1.1, self-hosted through Fontsource.
-- Everything else (the frame, the ghost, the spell-card symbols, the candles) is CSS and inline SVG written for this project.
+- The frame, the ghost, the spell-card symbols and the candles are CSS and inline SVG written for this project.
 
 ## License
 

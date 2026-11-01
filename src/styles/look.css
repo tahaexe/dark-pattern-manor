@@ -25,7 +25,7 @@
 .room-wall {
   position: absolute;
   inset: 0;
-  /* The painted foyer: the page's one raster image (README › Assets). No text ever sits on it; the task bar, the
+  /* The painted foyer: the page's one raster image. No text ever sits on it; the task bar, the
      framed page and the cards carry their own solid backgrounds. The night scrim keeps the frame in front. */
   background:
     linear-gradient(

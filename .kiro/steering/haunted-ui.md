@@ -34,4 +34,4 @@ When the ghost flees, the page splits into the haunted version and its honest tw
 
 **Motion:** Hover 120ms, card turn 200ms, ghost flee 600ms, honest split 400ms, ease-out. The flicker changes opacity between 1 and 0.85 at most twice a second. With prefers-reduced-motion: reduce, every animation and transition is off and the possessed element shows a static dashed candle outline and a small visible label "Something stirs here".
 
-**One raster image:** the room's painted backdrop (README › Assets); no text ever sits on it. Frames, ghosts, card symbols, candles and every text are CSS and inline SVG.
+**One raster image:** the room's painted backdrop; no text ever sits on it. Frames, ghosts, card symbols, candles and every text are CSS and inline SVG.
