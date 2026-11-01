@@ -1,0 +1,17 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "command-guard",
+      "description": "Blocks shell commands outside the repository's allow-list",
+      "trigger": "PreToolUse",
+      "matcher": "^run_command$",
+      "action": {
+        "type": "command",
+        "command": "node scripts/hooks/guard-command.mjs"
+      },
+      "timeout": 10,
+      "enabled": true
+    }
+  ]
+}
