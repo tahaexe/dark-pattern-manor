@@ -1,0 +1,555 @@
+@import './tokens.css';
+
+/* Manor frame with gilded borders and candle glows */
+.manor-frame {
+  position: relative;
+  background-color: var(--parchment);
+  border: 2px solid var(--gold);
+  border-radius: var(--radius-sm);
+  box-shadow:
+    inset 0 0 0 1px var(--parchment-edge),
+    inset 0 2px 4px rgba(0, 0, 0, 0.1),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: var(--spacing-2xl);
+  margin: var(--spacing-xl) auto;
+  max-width: 900px;
+}
+
+.manor-frame::before,
+.manor-frame::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.manor-frame::before {
+  left: -40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, var(--candle), transparent);
+}
+
+.manor-frame::after {
+  right: -40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 120px;
+  height: 120px;
+  background: radial-gradient(circle, var(--candle), transparent);
+}
+
+/* Task bar */
+.task-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-xl);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.task-bar-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--candle);
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+.task-bar-task {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--ghost);
+  margin: 0 var(--spacing-lg);
+  flex: 1 1 auto;
+  text-align: center;
+}
+
+.task-bar-lantern {
+  background: linear-gradient(135deg, var(--gold), var(--candle));
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.task-bar-lantern:hover,
+.task-bar-lantern:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px var(--candle);
+}
+
+.task-bar-lantern svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--ink);
+  stroke-width: 2;
+  fill: none;
+}
+
+.task-bar-hint {
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity var(--duration-hover) var(--easing);
+}
+
+.task-bar-lantern:hover .task-bar-hint,
+.task-bar-lantern:focus .task-bar-hint {
+  opacity: 1;
+}
+
+/* Spell cards container */
+.spell-cards {
+  display: flex;
+  gap: var(--spacing-lg);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: var(--spacing-2xl) 0;
+}
+
+@media (max-width: 900px) {
+  .spell-cards {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+
+/* Individual spell card */
+.spell-card {
+  background-color: var(--parchment);
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-lg);
+  min-width: 120px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  cursor: pointer;
+  transition: all var(--duration-card-turn) var(--easing);
+  position: relative;
+  box-shadow: inset 0 0 0 1px var(--parchment-edge);
+}
+
+.spell-card svg {
+  width: 40px;
+  height: 40px;
+  stroke: var(--ink);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+.spell-card-name {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
+  line-height: var(--line-height-tight);
+}
+
+.spell-card:hover:not(.is-wrong),
+.spell-card:focus:not(.is-wrong) {
+  transform: translateY(-2px);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.spell-card.is-focused {
+  transform: translateY(-2px);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 1px var(--parchment-edge),
+    0 0 12px var(--candle);
+}
+
+.spell-card.is-right {
+  background: linear-gradient(135deg, var(--parchment), var(--parchment-2));
+  box-shadow:
+    inset 0 0 0 1px var(--parchment-edge),
+    0 0 20px var(--gold);
+  position: relative;
+}
+
+.spell-card.is-right::after {
+  content: '✦';
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  color: var(--gold);
+  font-size: 1.5rem;
+}
+
+.spell-card.is-wrong {
+  opacity: 0.7;
+}
+
+.spell-card-whisper {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  text-align: center;
+  font-style: italic;
+  line-height: var(--line-height-tight);
+  margin-top: var(--spacing-sm);
+}
+
+/* Ghost inline SVG */
+.ghost {
+  fill: none;
+  stroke: var(--ghost);
+  stroke-width: 1.5;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 8px rgba(244, 239, 230, 0.3));
+}
+
+/* Possessed element effects */
+.possessed {
+  position: relative;
+  animation: flicker 0.5s ease-in-out;
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+
+.possessed::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: rgba(240, 190, 119, 0.3);
+  border-radius: 50%;
+  animation: mist-puff 4s ease-out infinite;
+}
+
+@keyframes mist-puff {
+  0% {
+    opacity: 0.5;
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+}
+
+.possessed svg {
+  position: relative;
+  filter: drop-shadow(0 0 4px rgba(240, 190, 119, 0.4));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .possessed {
+    animation: none;
+    outline: 2px dashed var(--candle);
+    outline-offset: 2px;
+    position: relative;
+  }
+
+  .possessed::after {
+    content: 'Something stirs here';
+    position: absolute;
+    font-size: 0.75rem;
+    color: var(--candle);
+    white-space: nowrap;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .possessed::before {
+    display: none;
+  }
+}
+
+/* Ghost Guide card */
+.guide-card {
+  background-color: var(--parchment);
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-2xl);
+  max-width: 500px;
+  margin: var(--spacing-2xl) auto;
+  box-shadow: inset 0 0 0 1px var(--parchment-edge);
+  position: relative;
+}
+
+.guide-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--spacing-lg);
+}
+
+.guide-definition {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  color: var(--ink);
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--spacing-lg);
+}
+
+.guide-section {
+  margin: var(--spacing-lg) 0;
+}
+
+.guide-label {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--spacing-sm);
+}
+
+.guide-source {
+  font-size: 0.875rem;
+  color: var(--ink);
+  line-height: var(--line-height-relaxed);
+}
+
+.guide-source a {
+  color: var(--ink);
+  text-decoration: underline;
+  border-bottom: 1px solid var(--ink);
+}
+
+.guide-source a:hover,
+.guide-source a:focus {
+  color: var(--bronze);
+}
+
+.guide-tip {
+  border-top: 1px solid var(--bronze);
+  padding-top: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  font-size: 0.875rem;
+  color: var(--ink);
+  line-height: var(--line-height-relaxed);
+  font-style: italic;
+}
+
+.guide-close {
+  position: absolute;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  background: transparent;
+  border: 2px solid var(--ink);
+  border-radius: var(--radius-md);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+  color: var(--ink);
+  font-size: 1.5rem;
+  padding: 0;
+  font-weight: 700;
+}
+
+.guide-close:hover,
+.guide-close:focus {
+  background-color: var(--candle);
+  color: var(--ink);
+  outline: 2px solid var(--ink);
+  outline-offset: 1px;
+}
+
+/* Split view (Before/After) */
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin: var(--spacing-2xl) auto;
+  max-width: 1000px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.split-side {
+  padding: var(--spacing-xl);
+  position: relative;
+}
+
+.split-side.haunted {
+  background: linear-gradient(135deg, var(--manor-wood), var(--manor-wood-2));
+  color: var(--ghost);
+}
+
+.split-side.honest {
+  background-color: var(--parchment);
+  color: var(--ink);
+  box-shadow: inset 0 0 20px rgba(240, 190, 119, 0.1);
+}
+
+.split-label {
+  position: absolute;
+  top: var(--spacing-md);
+  left: var(--spacing-md);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+
+.split-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin: var(--spacing-xl) auto;
+  flex-wrap: wrap;
+}
+
+.split-label-text {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.split-range {
+  width: 200px;
+  height: 8px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, var(--manor-wood-2) 0%, var(--candle) 50%, var(--parchment) 100%);
+  border-radius: 4px;
+  outline: none;
+}
+
+.split-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--gold), var(--candle));
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.split-range::-webkit-slider-thumb:hover,
+.split-range::-webkit-slider-thumb:focus {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px var(--candle);
+}
+
+.split-range::-moz-range-thumb {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--gold), var(--candle));
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.split-range::-moz-range-thumb:hover,
+.split-range::-moz-range-thumb:focus {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px var(--candle);
+}
+
+/* Progress candles */
+.candles {
+  display: flex;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin: var(--spacing-2xl) 0;
+  flex-wrap: wrap;
+}
+
+.candle {
+  width: 24px;
+  height: 36px;
+  background-color: var(--manor-wood);
+  border: 1px solid var(--manor-line);
+  border-radius: 2px;
+  position: relative;
+  opacity: 0.5;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.candle.lit {
+  opacity: 1;
+  box-shadow: 0 0 12px var(--candle), inset 0 0 8px var(--candle);
+}
+
+.candle::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 8px;
+  background: linear-gradient(to top, var(--candle), transparent);
+  border-radius: 50% 50% 0 0;
+}
+
+.candle.lit::before {
+  animation: candle-flicker 2s ease-in-out infinite;
+}
+
+@keyframes candle-flicker {
+  0%, 100% {
+    height: 8px;
+    opacity: 1;
+  }
+  50% {
+    height: 6px;
+    opacity: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .candle.lit::before {
+    animation: none;
+  }
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'preact/hooks';
+import LookPage from '../look/LookPage';
 
-type Route = 'title' | 'room';
+type Route = 'title' | 'room' | 'look';
 type RoomNumber = number;
 
 export default function App() {
@@ -12,6 +13,8 @@ export default function App() {
       const hash = window.location.hash.slice(1) || '';
       if (hash === '' || hash === '/') {
         setRoute('title');
+      } else if (hash === '/look') {
+        setRoute('look');
       } else if (hash.startsWith('/room/')) {
         const roomNum = parseInt(hash.split('/')[2], 10);
         if (!isNaN(roomNum) && roomNum >= 1 && roomNum <= 12) {
@@ -58,6 +61,8 @@ export default function App() {
             Start
           </button>
         </div>
+      ) : route === 'look' ? (
+        <LookPage />
       ) : (
         <div class="room">
           <h1 tabindex={-1}>The Foyer</h1>

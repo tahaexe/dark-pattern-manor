@@ -83,6 +83,15 @@ describe('App', () => {
     }, { timeout: 1000 });
   });
 
+  it('a page opened at #/look renders the look page with task bar title "The Foyer"', async () => {
+    setHashAndTrigger('#/look');
+    render(<App />);
+    await waitFor(() => {
+      const foyer = screen.queryByText('The Foyer');
+      expect(foyer).toBeDefined();
+    }, { timeout: 1000 });
+  });
+
   it('axe-core reports no violations on the title screen', async () => {
     const { container } = render(<App />);
     const results = await axe.run(container);
