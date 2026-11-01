@@ -5,7 +5,7 @@
       "name": "command-guard",
       "description": "Blocks shell commands outside the repository's allow-list",
       "trigger": "PreToolUse",
-      "matcher": "^run_command$",
+      "matcher": "^(execute_pwsh|execute_bash|execute_cmd|run_command)$",
       "action": {
         "type": "command",
         "command": "node scripts/hooks/guard-command.mjs"
