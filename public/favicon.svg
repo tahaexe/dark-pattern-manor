@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Ghost body -->
+  <ellipse cx="50" cy="55" rx="35" ry="40" fill="#ffffff" />
+  <!-- Ghost head -->
+  <circle cx="50" cy="35" r="30" fill="#ffffff" />
+  <!-- Left eye -->
+  <circle cx="40" cy="30" r="6" fill="#1a1a1a" />
+  <!-- Right eye -->
+  <circle cx="60" cy="30" r="6" fill="#1a1a1a" />
+  <!-- Mouth -->
+  <path d="M 45 40 Q 50 43 55 40" stroke="#1a1a1a" stroke-width="2" fill="none" stroke-linecap="round" />
+  <!-- Ghost bottom waves -->
+  <path d="M 20 90 Q 25 85 30 90 Q 35 85 40 90 Q 45 85 50 90 Q 55 85 60 90 Q 65 85 70 90 Q 75 85 80 90" stroke="#ffffff" stroke-width="3" fill="none" stroke-linecap="round" />
+</svg>

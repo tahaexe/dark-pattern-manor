@@ -1,0 +1,28 @@
+{
+  "name": "dark-pattern-manor",
+  "version": "1.0.0",
+  "description": "A browser game about dark patterns",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:guard": "node --test scripts/hooks/guard-command.test.mjs"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@testing-library/preact": "^3.2.6",
+    "axe-core": "^4.14.0",
+    "fast-check": "^3.23.2",
+    "jsdom": "^23.2.0",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.21",
+    "vitest": "^1.6.1"
+  }
+}
