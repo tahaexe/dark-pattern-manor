@@ -70,4 +70,14 @@ describe('LookPage', () => {
     }
     expect(results.violations).toHaveLength(0);
   });
+
+  it('Ghost Guide card is open on first render with title and source links visible', () => {
+    render(<LookPage />);
+    const guideTitle = screen.getByRole('heading', { level: 2, name: 'Visual interference' });
+    expect(guideTitle).toBeDefined();
+    const ftcLink = screen.getByRole('link', { name: /FTC, Bringing Dark Patterns to Light/ });
+    expect(ftcLink).toBeDefined();
+    const edpbLink = screen.getByRole('link', { name: /EDPB cookie banner taskforce report/ });
+    expect(edpbLink).toBeDefined();
+  });
 });

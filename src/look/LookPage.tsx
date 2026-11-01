@@ -4,22 +4,19 @@ import '../styles/manor.css';
 export default function LookPage() {
   const [sliderValue, setSliderValue] = useState(50);
   const [selectedCard, setSelectedCard] = useState<'correct' | 'wrong' | 'different' | null>(null);
-  const [showGuide, setShowGuide] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
 
   // Ghost SVG: sheet ghost with eyes, smile, wavy hem (64 x 72)
   const ghostSvg = (
-    <svg viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg" className="ghost-peek" aria-hidden="true">
+    <svg viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg" className="ghost" aria-hidden="true">
       {/* Main sheet body */}
-      <path d="M32 2C20 2 10 8 10 18L10 52C10 58 15 62 20 68L20 70Q32 72 32 72Q32 72 44 70L44 68C49 62 54 58 54 52L54 18C54 8 44 2 32 2Z" 
-        fill="rgba(244, 239, 230, 0.12)" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-      {/* Left eye */}
-      <circle cx="24" cy="26" r="2.5" fill="none" stroke="currentColor" strokeWidth="1.5"/>
-      {/* Right eye - half-closed */}
-      <path d="M42 28 Q43 26 44 28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-      {/* Wry smile */}
-      <path d="M28 36 Q32 38 38 36" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <ellipse cx="32" cy="36" rx="22" ry="28" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      {/* Left eye - filled dot */}
+      <circle cx="26" cy="30" r="2" fill="currentColor"/>
+      {/* Right eye - filled dot */}
+      <circle cx="38" cy="30" r="2" fill="currentColor"/>
       {/* Wavy hem */}
-      <path d="M20 68 Q24 64 28 68 Q32 64 36 68 Q40 64 44 68" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M 20 58 Q 24 54 28 58 Q 32 54 36 58 Q 40 54 44 58" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 
@@ -63,7 +60,33 @@ export default function LookPage() {
   );
 
   return (
-    <div class="look-page">
+    <div class="room-scene">
+      <div class="room" aria-hidden="true">
+        <div class="room-wall"></div>
+        <div class="room-wainscot">
+          {Array.from({ length: 12 }).map(() => (
+            <div class="panel"></div>
+          ))}
+          <div class="top-rail"></div>
+        </div>
+        <svg class="sconce sconce-left" viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="40" cy="20" rx="16" ry="12" fill="none" stroke="var(--gold)" strokeWidth="2"/>
+          <path d="M 40 32 Q 35 50 20 80" fill="none" stroke="var(--gold)" strokeWidth="4"/>
+          <rect x="15" y="75" width="10" height="20" fill="var(--parchment-2)"/>
+          <line x1="20" y1="70" x2="20" y2="75" stroke="var(--ink-soft)" strokeWidth="2"/>
+          <path d="M 20 70 Q 18 65 20 60 Q 22 65 20 70" fill="var(--candle)"/>
+          <div class="light-pool light-pool-left"></div>
+        </svg>
+        <svg class="sconce sconce-right" viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="40" cy="20" rx="16" ry="12" fill="none" stroke="var(--gold)" strokeWidth="2"/>
+          <path d="M 40 32 Q 45 50 60 80" fill="none" stroke="var(--gold)" strokeWidth="4"/>
+          <rect x="55" y="75" width="10" height="20" fill="var(--parchment-2)"/>
+          <line x1="60" y1="70" x2="60" y2="75" stroke="var(--ink-soft)" strokeWidth="2"/>
+          <path d="M 60 70 Q 58 65 60 60 Q 62 65 60 70" fill="var(--candle)"/>
+          <div class="light-pool light-pool-right"></div>
+        </svg>
+      </div>
+
       <div class="task-bar">
         <h1 class="task-bar-title">The Foyer</h1>
         <span class="task-bar-task">Reject the cookies</span>
@@ -95,7 +118,12 @@ export default function LookPage() {
             <button class="cookie-accept">Accept all</button>
             <button class="cookie-reject possessed" aria-label="Reject all">
               <span>Reject all</span>
-              {ghostSvg}
+              <span class="mist mist-left" aria-hidden="true"></span>
+              <span class="mist mist-above" aria-hidden="true"></span>
+              <span class="mist mist-below" aria-hidden="true"></span>
+              <div style="position: absolute; right: -44px; bottom: 55%; z-index: 2; width: 64px; height: 72px;">
+                {ghostSvg}
+              </div>
             </button>
           </div>
         </div>
@@ -235,12 +263,15 @@ export default function LookPage() {
 
       <div class="candles" role="status" aria-label="Progress: 0 of 12 rooms completed">
         {Array.from({ length: 12 }).map((_, i) => (
-          <svg key={i} class="candle-svg" viewBox="0 0 16 32" xmlns="http://www.w3.org/2000/svg">
+          <svg key={i} class="candle-svg" viewBox="0 0 24 48" xmlns="http://www.w3.org/2000/svg">
             {/* Wax body */}
-            <rect x="3" y="8" width="10" height="16" fill="none" stroke="var(--parchment-2)" strokeWidth="1" rx="1"/>
+            <rect x="7" y="16" width="10" height="28" rx="2" fill="none" stroke="var(--parchment-2)" strokeWidth="1.5"/>
+            {/* Wax drip down the side */}
+            <path d="M 17 22 Q 19 24 18 28" fill="none" stroke="var(--parchment-2)" strokeWidth="1"/>
             {/* Wick */}
-            <line x1="8" y1="6" x2="8" y2="8" stroke="var(--parchment-2)" strokeWidth="0.5"/>
-            {/* Unlit state - no flame */}
+            <line x1="12" y1="10" x2="12" y2="16" stroke="var(--parchment-edge)" strokeWidth="2"/>
+            {/* Brass holder (unlit) */}
+            <ellipse cx="12" cy="46" rx="6" ry="3" fill="none" stroke="var(--gold)" strokeWidth="1.5"/>
           </svg>
         ))}
       </div>

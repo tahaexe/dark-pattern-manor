@@ -16,37 +16,34 @@
   border-radius: var(--radius-sm);
 }
 
-/* Corner flourishes - top left */
+/* Corner flourish - top left */
 .manor-frame::before {
   content: '';
   position: absolute;
-  top: -8px;
-  left: -8px;
-  width: 32px;
-  height: 32px;
-  background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="%23cfa664" stroke-width="1.5"><path d="M8 8 L16 2 L24 8"/><path d="M16 2 L20 10 L16 14 L12 10 Z"/></g></svg>');
-  background-size: 32px 32px;
+  top: -16px;
+  left: -16px;
+  width: 28px;
+  height: 28px;
+  background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="%23cfa664" stroke-width="1.5" stroke-linecap="round"><path d="M 4 24 L 8 12 L 14 8 L 20 12 L 24 24"/><path d="M 8 12 L 14 8 L 20 12"/><path d="M 8 12 L 12 6"/><path d="M 20 12 L 16 6"/></g></svg>');
+  background-size: 28px 28px;
   background-repeat: no-repeat;
   pointer-events: none;
+  z-index: 3;
 }
 
-/* Corner flourishes - top right */
+/* Corner flourish - top right */
 .manor-frame::after {
   content: '';
   position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 32px;
-  height: 32px;
-  background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="%23cfa664" stroke-width="1.5"><path d="M24 8 L16 2 L8 8"/><path d="M16 2 L20 10 L16 14 L12 10 Z"/></g></svg>');
-  background-size: 32px 32px;
+  top: -16px;
+  right: -16px;
+  width: 28px;
+  height: 28px;
+  background-image: url('data:image/svg+xml;utf8,<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="%23cfa664" stroke-width="1.5" stroke-linecap="round"><path d="M 24 24 L 20 12 L 14 8 L 8 12 L 4 24"/><path d="M 20 12 L 14 8 L 8 12"/><path d="M 20 12 L 16 6"/><path d="M 8 12 L 12 6"/></g></svg>');
+  background-size: 28px 28px;
   background-repeat: no-repeat;
   pointer-events: none;
-}
-
-/* Bottom left and right corner flourishes using ::before and ::after on a pseudo-element wrapper */
-.manor-frame {
-  position: relative;
+  z-index: 3;
 }
 
 /* Task bar */
@@ -526,7 +523,7 @@
 .candles {
   display: flex;
   justify-content: center;
-  gap: var(--spacing-md);
+  gap: 10px;
   margin: var(--spacing-2xl) 0;
   flex-wrap: wrap;
   position: relative;
@@ -534,8 +531,8 @@
 }
 
 .candle-svg {
-  width: 16px;
-  height: 32px;
+  width: 24px;
+  height: 48px;
 }
 
 .candle-svg:first-child {
