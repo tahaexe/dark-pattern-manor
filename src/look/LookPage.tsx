@@ -60,113 +60,113 @@ export default function LookPage() {
   );
 
   return (
-    <div class="room-scene">
-      <div class="room" aria-hidden="true">
-        <div class="room-wall"></div>
-        <div class="room-wainscot">
-          {Array.from({ length: 12 }).map(() => (
-            <div class="panel"></div>
-          ))}
-          <div class="top-rail"></div>
-        </div>
-        <svg class="sconce sconce-left" viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="40" cy="20" rx="16" ry="12" fill="none" stroke="var(--gold)" strokeWidth="2"/>
-          <path d="M 40 32 Q 35 50 20 80" fill="none" stroke="var(--gold)" strokeWidth="4"/>
-          <rect x="15" y="75" width="10" height="20" fill="var(--parchment-2)"/>
-          <line x1="20" y1="70" x2="20" y2="75" stroke="var(--ink-soft)" strokeWidth="2"/>
-          <path d="M 20 70 Q 18 65 20 60 Q 22 65 20 70" fill="var(--candle)"/>
-          <div class="light-pool light-pool-left"></div>
-        </svg>
-        <svg class="sconce sconce-right" viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="40" cy="20" rx="16" ry="12" fill="none" stroke="var(--gold)" strokeWidth="2"/>
-          <path d="M 40 32 Q 45 50 60 80" fill="none" stroke="var(--gold)" strokeWidth="4"/>
-          <rect x="55" y="75" width="10" height="20" fill="var(--parchment-2)"/>
-          <line x1="60" y1="70" x2="60" y2="75" stroke="var(--ink-soft)" strokeWidth="2"/>
-          <path d="M 60 70 Q 58 65 60 60 Q 62 65 60 70" fill="var(--candle)"/>
-          <div class="light-pool light-pool-right"></div>
-        </svg>
-      </div>
-
-      <div class="task-bar">
-        <h1 class="task-bar-title">The Foyer</h1>
-        <span class="task-bar-task">Reject the cookies</span>
-        <button class="task-bar-lantern" aria-label="Lantern (L)">
-          {candleIcon}
-          <span class="task-bar-hint">L</span>
-        </button>
-      </div>
-
-      <div class="manor-frame">
-        <div class="gazette-header">
-          <p class="gazette-address">gravemoor-gazette.manor</p>
-          <h2 class="gazette-masthead">The Gravemoor Gazette</h2>
-        </div>
-
-        <article class="gazette-content">
-          <h3>Fog rolls in over the moor</h3>
-          <p>
-            Lamplighters report the thickest fog in forty years. The ferry to Hollow Point will run at half speed until Thursday, and the night editor asks readers to keep a candle in the window.
-          </p>
-        </article>
-
-        <div class="cookie-banner">
-          <div class="cookie-text">
-            <p class="cookie-title">We value your privacy</p>
-            <p class="cookie-description">We and our 1,312 partners use cookies to personalise your experience.</p>
+    <>
+      <div class="room-scene">
+        <div class="room" aria-hidden="true">
+          <div class="room-wall"></div>
+          <div class="room-wainscot">
+            {Array.from({ length: 12 }).map(() => (
+              <div class="panel"></div>
+            ))}
+            <div class="top-rail"></div>
           </div>
-          <div class="cookie-buttons">
-            <button class="cookie-accept">Accept all</button>
-            <button class="cookie-reject possessed" aria-label="Reject all">
-              <span>Reject all</span>
-              <span class="mist mist-left" aria-hidden="true"></span>
-              <span class="mist mist-above" aria-hidden="true"></span>
-              <span class="mist mist-below" aria-hidden="true"></span>
-              <div style="position: absolute; right: -44px; bottom: 55%; z-index: 2; width: 64px; height: 72px;">
-                {ghostSvg}
-              </div>
-            </button>
+          <svg class="sconce sconce-left" viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="40" cy="20" rx="16" ry="12" fill="none" stroke="var(--gold)" strokeWidth="2"/>
+            <path d="M 40 32 Q 35 50 20 80" fill="none" stroke="var(--gold)" strokeWidth="4"/>
+            <rect x="15" y="75" width="10" height="20" fill="var(--parchment-2)"/>
+            <line x1="20" y1="70" x2="20" y2="75" stroke="var(--ink-soft)" strokeWidth="2"/>
+            <path d="M 20 70 Q 18 65 20 60 Q 22 65 20 70" fill="var(--candle)"/>
+            <div class="light-pool light-pool-left"></div>
+          </svg>
+          <svg class="sconce sconce-right" viewBox="0 0 80 160" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="40" cy="20" rx="16" ry="12" fill="none" stroke="var(--gold)" strokeWidth="2"/>
+            <path d="M 40 32 Q 45 50 60 80" fill="none" stroke="var(--gold)" strokeWidth="4"/>
+            <rect x="55" y="75" width="10" height="20" fill="var(--parchment-2)"/>
+            <line x1="60" y1="70" x2="60" y2="75" stroke="var(--ink-soft)" strokeWidth="2"/>
+            <path d="M 60 70 Q 58 65 60 60 Q 62 65 60 70" fill="var(--candle)"/>
+            <div class="light-pool light-pool-right"></div>
+          </svg>
+        </div>
+
+        <div class="task-bar">
+          <h1 class="task-bar-title">The Foyer</h1>
+          <span class="task-bar-task">Reject the cookies</span>
+          <button class="task-bar-lantern" aria-label="Lantern (L)">
+            {candleIcon}
+            <span class="task-bar-hint">L</span>
+          </button>
+        </div>
+
+        <div class="manor-frame">
+          <div class="gazette-header">
+            <p class="gazette-address">gravemoor-gazette.manor</p>
+            <h2 class="gazette-masthead">The Gravemoor Gazette</h2>
+          </div>
+
+          <article class="gazette-content">
+            <h3>Fog rolls in over the moor</h3>
+            <p>
+              Lamplighters report the thickest fog in forty years. The ferry to Hollow Point will run at half speed until Thursday, and the night editor asks readers to keep a candle in the window.
+            </p>
+          </article>
+
+          <div class="cookie-banner">
+            <div class="cookie-text">
+              <p class="cookie-title">We value your privacy</p>
+              <p class="cookie-description">We and our 1,312 partners use cookies to personalise your experience.</p>
+            </div>
+            <div class="cookie-buttons">
+              <button class="cookie-accept">Accept all</button>
+              <button class="cookie-reject possessed" aria-label="Reject all">
+                <span>Reject all</span>
+                <span class="mist mist-left" aria-hidden="true"></span>
+                <span class="mist mist-above" aria-hidden="true"></span>
+                <span class="mist mist-below" aria-hidden="true"></span>
+                <div style="position: absolute; right: -44px; bottom: 55%; z-index: 2; width: 64px; height: 72px;">
+                  {ghostSvg}
+                </div>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="spell-cards">
-        <button 
-          class={`spell-card ${selectedCard === 'correct' ? 'is-focused' : ''} is-right`}
-          onClick={() => setSelectedCard('correct')}
-          aria-pressed={selectedCard === 'correct'}
+        <div class="spell-cards">
+          <button 
+            class={`spell-card ${selectedCard === 'correct' ? 'is-focused' : ''} is-right`}
+            onClick={() => setSelectedCard('correct')}
+            aria-pressed={selectedCard === 'correct'}
+          >
+            {eyeIcon}
+            <p class="spell-card-name">Visual interference</p>
+          </button>
+
+          <button 
+            class={`spell-card ${selectedCard === 'wrong' ? 'is-focused' : ''} is-wrong`}
+            onClick={() => setSelectedCard('wrong')}
+            aria-pressed={selectedCard === 'wrong'}
+          >
+            {quillIcon}
+            <p class="spell-card-name">Trick wording</p>
+          </button>
+
+          <button 
+            class={`spell-card ${selectedCard === 'different' ? 'is-focused' : ''}`}
+            onClick={() => setSelectedCard('different')}
+            aria-pressed={selectedCard === 'different'}
+          >
+            {bellIcon}
+            <p class="spell-card-name">Nagging</p>
+          </button>
+        </div>
+
+        <div 
+          role="status" 
+          aria-live="polite" 
+          className="spell-card-whisper-region"
+          aria-label="Spell card feedback"
         >
-          {eyeIcon}
-          <p class="spell-card-name">Visual interference</p>
-        </button>
-
-        <button 
-          class={`spell-card ${selectedCard === 'wrong' ? 'is-focused' : ''} is-wrong`}
-          onClick={() => setSelectedCard('wrong')}
-          aria-pressed={selectedCard === 'wrong'}
-        >
-          {quillIcon}
-          <p class="spell-card-name">Trick wording</p>
-        </button>
-
-        <button 
-          class={`spell-card ${selectedCard === 'different' ? 'is-focused' : ''}`}
-          onClick={() => setSelectedCard('different')}
-          aria-pressed={selectedCard === 'different'}
-        >
-          {bellIcon}
-          <p class="spell-card-name">Nagging</p>
-        </button>
-      </div>
-
-      <div 
-        role="status" 
-        aria-live="polite" 
-        className="spell-card-whisper-region"
-        aria-label="Spell card feedback"
-      >
-        {selectedCard === 'wrong' && (
           <p class="spell-card-whisper">Close, but the words here are plain. It's the look that lies.</p>
-        )}
+        </div>
       </div>
 
       <div class="split">
@@ -275,6 +275,6 @@ export default function LookPage() {
           </svg>
         ))}
       </div>
-    </div>
+    </>
   );
 }

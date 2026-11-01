@@ -9,6 +9,10 @@
   flex-direction: column;
   align-items: center;
   padding: var(--spacing-2xl) var(--spacing-xl);
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  box-sizing: border-box;
 }
 
 /* Room backdrop (absolute, behind everything) */
@@ -29,7 +33,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  height: 30%;
+  height: 26%;
   display: flex;
   flex-direction: row;
   gap: 20px;
@@ -91,13 +95,13 @@
 }
 
 .light-pool-left {
-  bottom: 80px;
-  left: calc(50% - 920px);
+  top: calc(30% - 220px);
+  left: calc(50% - 1000px);
 }
 
 .light-pool-right {
-  bottom: 80px;
-  right: calc(50% - 920px);
+  top: calc(30% - 220px);
+  right: calc(50% - 1000px);
 }
 
 /* Full page look-page wrapper */
