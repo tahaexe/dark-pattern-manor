@@ -1,0 +1,13 @@
+# Dependencies and builds
+node_modules/
+dist/
+coverage/
+
+# Local environment
+.env
+.env.*
+*.log
+.DS_Store
+Thumbs.db
+
+# Note: /.kiro is part of the project and is always committed.
