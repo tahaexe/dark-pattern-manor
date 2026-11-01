@@ -3,32 +3,62 @@ import '../styles/manor.css';
 
 export default function LookPage() {
   const [sliderValue, setSliderValue] = useState(50);
-  const [selectedCard, setSelectedCard] = useState<'correct' | 'wrong' | 'different' | null>('correct');
-  const [showGuide, setShowGuide] = useState(true);
+  const [selectedCard, setSelectedCard] = useState<'correct' | 'wrong' | 'different' | null>(null);
+  const [showGuide, setShowGuide] = useState(false);
 
+  // Ghost SVG: sheet ghost with eyes, smile, wavy hem (64 x 72)
+  const ghostSvg = (
+    <svg viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg" className="ghost-peek" aria-hidden="true">
+      {/* Main sheet body */}
+      <path d="M32 2C20 2 10 8 10 18L10 52C10 58 15 62 20 68L20 70Q32 72 32 72Q32 72 44 70L44 68C49 62 54 58 54 52L54 18C54 8 44 2 32 2Z" 
+        fill="rgba(244, 239, 230, 0.12)" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      {/* Left eye */}
+      <circle cx="24" cy="26" r="2.5" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      {/* Right eye - half-closed */}
+      <path d="M42 28 Q43 26 44 28" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      {/* Wry smile */}
+      <path d="M28 36 Q32 38 38 36" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      {/* Wavy hem */}
+      <path d="M20 68 Q24 64 28 68 Q32 64 36 68 Q40 64 44 68" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+
+  // Candle flame SVG for lantern button (24 x 24)
   const candleIcon = (
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2v6M12 8c1.5 0 2.5 1 2.5 2.5v3c0 1-0.5 2-1.5 2h-2c-1 0-1.5-1-1.5-2v-3c0-1.5 1-2.5 2.5-2.5Z" />
-      <ellipse cx="12" cy="15.5" rx="2.5" ry="2" />
+      {/* Candle body */}
+      <rect x="9" y="12" width="6" height="10" stroke="currentColor" strokeWidth="2" fill="none"/>
+      {/* Wick */}
+      <line x1="12" y1="10" x2="12" y2="12" stroke="currentColor" strokeWidth="1.5"/>
+      {/* Flame */}
+      <path d="M12 4 Q10 8 12 10 Q14 8 12 4" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round"/>
     </svg>
   );
 
+  // Half-closed eye icon for Visual interference card
   const eyeIcon = (
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 5C7 5 2.73 8.11 1 12.46c1.73 4.35 6 7.54 11 7.54s9.27-3.19 11-7.54C21.27 8.11 17 5 12 5Zm0 10c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3Zm0-5c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2Z" />
+      <path d="M12 7 Q6 7 2 12 Q6 17 12 17 Q18 17 22 12 Q18 7 12 7Z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx="12" cy="12" r="2.5" fill="none" stroke="currentColor" strokeWidth="1.5"/>
+      <path d="M6 12 L18 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity="0.6"/>
     </svg>
   );
 
+  // Quill/feather icon for Trick wording card
   const quillIcon = (
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25Z" />
-      <path d="M20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z" />
+      <path d="M4 20 L8 6 L12 4 L16 6 L20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M6 18 L18 18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="12" cy="10" r="1" fill="currentColor"/>
     </svg>
   );
 
+  // Bell icon for Nagging card
   const bellIcon = (
     <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2Zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8Zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5Zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11Zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5Z" />
+      <path d="M12 2 C9 2 7 4 7 7 L7 14 C7 15 6 16 5 17 L19 17 C18 16 17 15 17 14 L17 7 C17 4 15 2 12 2Z" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      <path d="M9 17 Q9 20 12 20 Q15 20 15 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      <circle cx="12" cy="20" r="0.5" fill="currentColor"/>
     </svg>
   );
 
@@ -37,7 +67,7 @@ export default function LookPage() {
       <div class="task-bar">
         <h1 class="task-bar-title">The Foyer</h1>
         <span class="task-bar-task">Reject the cookies</span>
-        <button class="task-bar-lantern" aria-label="Lantern">
+        <button class="task-bar-lantern" aria-label="Lantern (L)">
           {candleIcon}
           <span class="task-bar-hint">L</span>
         </button>
@@ -63,70 +93,52 @@ export default function LookPage() {
           </div>
           <div class="cookie-buttons">
             <button class="cookie-accept">Accept all</button>
-            <button class="cookie-reject possessed">
-              Reject all
-              <svg class="cookie-ghost" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path d="M10 2c-3 0-5 2-5 4v2c0 1.5.5 3 2 3.5m6-9.5c3 0 5 2 5 4v2c0 1.5-.5 3-2 3.5" />
-              </svg>
+            <button class="cookie-reject possessed" aria-label="Reject all">
+              <span>Reject all</span>
+              {ghostSvg}
             </button>
           </div>
         </div>
       </div>
 
       <div class="spell-cards">
-        <div 
+        <button 
           class={`spell-card ${selectedCard === 'correct' ? 'is-focused' : ''} is-right`}
           onClick={() => setSelectedCard('correct')}
-          role="button"
-          tabIndex={0}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              setSelectedCard('correct');
-            }
-          }}
+          aria-pressed={selectedCard === 'correct'}
         >
-          <svg class="spell-card-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {eyeIcon}
-          </svg>
+          {eyeIcon}
           <p class="spell-card-name">Visual interference</p>
-        </div>
+        </button>
 
-        <div 
+        <button 
           class={`spell-card ${selectedCard === 'wrong' ? 'is-focused' : ''} is-wrong`}
           onClick={() => setSelectedCard('wrong')}
-          role="button"
-          tabIndex={0}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              setSelectedCard('wrong');
-            }
-          }}
+          aria-pressed={selectedCard === 'wrong'}
         >
-          <svg class="spell-card-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {quillIcon}
-          </svg>
+          {quillIcon}
           <p class="spell-card-name">Trick wording</p>
-          {selectedCard === 'wrong' && (
-            <p class="spell-card-whisper">Close, but the words here are plain. It's the look that lies.</p>
-          )}
-        </div>
+        </button>
 
-        <div 
+        <button 
           class={`spell-card ${selectedCard === 'different' ? 'is-focused' : ''}`}
           onClick={() => setSelectedCard('different')}
-          role="button"
-          tabIndex={0}
-          onKeyPress={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              setSelectedCard('different');
-            }
-          }}
+          aria-pressed={selectedCard === 'different'}
         >
-          <svg class="spell-card-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            {bellIcon}
-          </svg>
+          {bellIcon}
           <p class="spell-card-name">Nagging</p>
-        </div>
+        </button>
+      </div>
+
+      <div 
+        role="status" 
+        aria-live="polite" 
+        className="spell-card-whisper-region"
+        aria-label="Spell card feedback"
+      >
+        {selectedCard === 'wrong' && (
+          <p class="spell-card-whisper">Close, but the words here are plain. It's the look that lies.</p>
+        )}
       </div>
 
       <div class="split">
@@ -143,13 +155,12 @@ export default function LookPage() {
         </div>
         <div class="split-side honest">
           <span class="split-label">Honest</span>
-          <div class="cookie-banner-split">
-            <p class="cookie-title">We value your privacy</p>
-            <p class="cookie-description">We and our 1,312 partners use cookies to personalise your experience.</p>
+          <div class="cookie-banner-honest">
+            <p class="cookie-title-honest">We value your privacy</p>
+            <p class="cookie-description-honest">We and our 1,312 partners use cookies to personalise your experience.</p>
             <div class="split-buttons-equal">
               <button class="cookie-button-equal">Reject all</button>
               <button class="cookie-button-equal">Accept all</button>
-              <a href="#" class="cookie-settings">Settings</a>
             </div>
           </div>
         </div>
@@ -224,7 +235,13 @@ export default function LookPage() {
 
       <div class="candles" role="status" aria-label="Progress: 0 of 12 rooms completed">
         {Array.from({ length: 12 }).map((_, i) => (
-          <div key={i} class="candle" />
+          <svg key={i} class="candle-svg" viewBox="0 0 16 32" xmlns="http://www.w3.org/2000/svg">
+            {/* Wax body */}
+            <rect x="3" y="8" width="10" height="16" fill="none" stroke="var(--parchment-2)" strokeWidth="1" rx="1"/>
+            {/* Wick */}
+            <line x1="8" y1="6" x2="8" y2="8" stroke="var(--parchment-2)" strokeWidth="0.5"/>
+            {/* Unlit state - no flame */}
+          </svg>
         ))}
       </div>
     </div>

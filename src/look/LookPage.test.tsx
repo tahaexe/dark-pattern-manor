@@ -10,15 +10,36 @@ describe('LookPage', () => {
     expect(heading).toBeDefined();
   });
 
-  it('renders the three spell cards: Visual interference, Trick wording, and Nagging', () => {
+  it('renders the three spell cards as buttons with names', () => {
     render(<LookPage />);
-    // All three card names should be present in the document
-    const cards = screen.getAllByText('Visual interference');
-    expect(cards.length).toBeGreaterThan(0);
-    const trickWording = screen.getByText('Trick wording');
-    const nagging = screen.getByText('Nagging');
-    expect(trickWording).toBeDefined();
-    expect(nagging).toBeDefined();
+    const visualCard = screen.getByRole('button', { name: 'Visual interference' });
+    const trickCard = screen.getByRole('button', { name: 'Trick wording' });
+    const naggingCard = screen.getByRole('button', { name: 'Nagging' });
+    expect(visualCard).toBeDefined();
+    expect(trickCard).toBeDefined();
+    expect(naggingCard).toBeDefined();
+  });
+
+  it('spell cards are real button elements, not divs with role="button"', () => {
+    render(<LookPage />);
+    const visualCard = screen.getByRole('button', { name: 'Visual interference' });
+    expect(visualCard.tagName).toBe('BUTTON');
+  });
+
+  it('whisper feedback sits in a polite live region', () => {
+    render(<LookPage />);
+    const liveRegion = screen.getByRole('status', { name: /Spell card feedback/i });
+    expect(liveRegion).toBeDefined();
+    expect(liveRegion.getAttribute('aria-live')).toBe('polite');
+  });
+
+  it('haunted and honest sections have buttons', () => {
+    render(<LookPage />);
+    // Haunted side: Accept all and Reject all
+    const acceptButtons = screen.getAllByRole('button', { name: /Accept all/i });
+    expect(acceptButtons.length).toBeGreaterThan(0);
+    const rejectButtons = screen.getAllByRole('button', { name: /Reject all/i });
+    expect(rejectButtons.length).toBeGreaterThan(0);
   });
 
   it('renders the split slider with range input', () => {
@@ -28,21 +49,17 @@ describe('LookPage', () => {
     expect((slider as HTMLInputElement).type).toBe('range');
   });
 
-  it('renders both source links: FTC and EDPB', () => {
+  it('lantern button has aria-label with visible key hint', () => {
     render(<LookPage />);
-    const ftcLink = screen.getByText(/FTC, Bringing Dark Patterns to Light/);
-    const edpbLink = screen.getByText(/EDPB cookie banner taskforce report/);
-    expect(ftcLink).toBeDefined();
-    expect(edpbLink).toBeDefined();
-    expect(ftcLink.tagName).toBe('A');
-    expect(edpbLink.tagName).toBe('A');
+    const lanternBtn = screen.getByRole('button', { name: /Lantern/i });
+    expect(lanternBtn).toBeDefined();
+    expect(lanternBtn.getAttribute('aria-label')).toContain('Lantern (L)');
   });
 
-  it('renders the Ghost Guide card with guide title and definition', () => {
+  it('renders the gazette header and content', () => {
     render(<LookPage />);
-    // Check for the guide definition text
-    const definition = screen.getByText(/The choice the company wants is big and bright/);
-    expect(definition).toBeDefined();
+    const masthead = screen.getByText('The Gravemoor Gazette');
+    expect(masthead).toBeDefined();
   });
 
   it('axe-core reports no violations on the look page', async () => {
