@@ -1,0 +1,633 @@
+@import '../../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * Rookery Air — Room 11, The Attic
+ * Reuses the manor look (tokens, frame, card) and the ghost / mist / flicker
+ * approach from Rooms 1-10. Confines all cracks and mist to the possessed
+ * summary line ("3 extras added for your trip"); the frame, the booking card
+ * and the honest twin stay whole.
+ * ------------------------------------------------------------------ */
+
+.rookery {
+  position: relative;
+  z-index: 1;
+}
+
+/* Masthead */
+.rookery-header {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--spacing-md);
+}
+
+.rookery-address {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.rookery-masthead {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.rookery-tagline {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  margin: var(--spacing-xs) 0 0;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------ *
+ * The booking card (haunted). Dark wood card so the trick lives in the ticked
+ * defaults, never in low contrast.
+ * ------------------------------------------------------------------ */
+.booking-card {
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.booking-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ghost);
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* The ticket the player actually wants, above the possessed summary line. */
+.ticket-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin: 0;
+  color: var(--ghost);
+  font-size: 1.0625rem;
+  line-height: var(--line-height-normal);
+}
+
+.ticket-line-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-weight: 700;
+}
+
+/* Lining, tabular figures in the UI face (Room 9's lesson: the display face's
+   old-style "1" read as "I"), so "£95" never reads as "£9I" and the price
+   column never changes width. */
+.ticket-line-price,
+.extra-price,
+.booking-total-amount {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-weight: 700;
+  color: var(--candle);
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* ------------------------------------------------------------------ *
+ * The possessed summary line (Preselection).
+ * A real <button> (the possessed element and the ghost's positioning context),
+ * keyboard-reachable with the visible summary text as its accessible name (no
+ * aria-label). It is NOT a live region. The ticked extras below are its
+ * subject but are real inputs OUTSIDE it.
+ * ------------------------------------------------------------------ */
+.preselect-summary {
+  display: block;
+  width: 100%;
+  /* A deep, warm red that still meets WCAG AA with the bright text on it. */
+  background: #7a1f1f;
+  border: 1px solid #a33a3a;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  color: var(--ghost);
+  font-family: var(--font-ui);
+  font-size: 1.0625rem;
+  line-height: var(--line-height-normal);
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  transition: background var(--duration-hover) var(--easing);
+}
+
+.preselect-summary:hover,
+.preselect-summary:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* The summary text sits above the ghost (z-index 3). */
+.preselect-summary-text {
+  position: relative;
+  z-index: 3;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------ *
+ * The three extras: real, labelled checkboxes OUTSIDE the possessed button.
+ * Each <label> wraps both the box and the text, so the whole row is clickable;
+ * each box is at least 24×24 px.
+ * ------------------------------------------------------------------ */
+.extras-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.extra-line {
+  margin: 0;
+}
+
+.extra-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  cursor: pointer;
+  color: var(--ghost);
+  font-family: var(--font-ui);
+  font-size: 1.0625rem;
+  line-height: var(--line-height-normal);
+  padding: var(--spacing-xs) 0;
+}
+
+.extra-checkbox {
+  /* At least 24×24 px, with the whole label clickable. */
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  flex: 0 0 auto;
+  accent-color: var(--candle);
+  cursor: pointer;
+}
+
+.extra-checkbox:focus-visible {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.extra-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The running total; plain text, tabular figures, NOT a live region. */
+.booking-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin: var(--spacing-xs) 0 0;
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--manor-line);
+}
+
+.booking-total-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--ghost);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.booking-total-amount {
+  font-size: 1.125rem;
+}
+
+/* The primary action: paying. Loud, bright primary. */
+.booking-pay {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1.125rem;
+  cursor: pointer;
+  align-self: flex-start;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  transition: all var(--duration-hover) var(--easing);
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.3);
+}
+
+.booking-pay:hover,
+.booking-pay:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 190, 119, 0.5);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost — hero of the haunted room.
+ * Anchored INSIDE the room's panel (Room 9's lesson: the first ghost there sat
+ * out in the frame's border; this one stays in the panel), beside the
+ * possessed summary line. The summary line's neighbours are controls — the
+ * ticket line above and the first checkbox below — so the ghost rises into the
+ * EMPTY space beside the line (the panel's right margin, past the short summary
+ * text), never over the summary text, a checkbox, a price or the Pay button
+ * (the summary text sits at z-index 3, above the ghost at z-index 1).
+ * ------------------------------------------------------------------ */
+.ghost-signs {
+  position: absolute;
+  /* Default (narrow) anchor: bottom-right of the summary; overridden ≥601px. */
+  left: 0;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ghost-wrap {
+  position: absolute;
+  left: 8px;
+  top: -70px;
+  width: 120px;
+  height: 140px;
+  z-index: 1;
+  transform-origin: 50% 100%;
+  animation: ghost-bob 4s ease-in-out infinite;
+}
+
+.ghost {
+  width: 120px;
+  height: 140px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(244, 239, 230, 0.35));
+}
+
+.ghost-body {
+  fill: color-mix(in srgb, var(--ghost) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.ghost-mouth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes ghost-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* Flicker on the possessed summary line itself — opacity 1 -> 0.85, at most
+   twice a second. */
+.preselect-summary.signs-active .preselect-summary-text {
+  animation: attic-flicker 0.6s steps(1) infinite;
+}
+
+@keyframes attic-flicker {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 90% { opacity: 0.85; }
+}
+
+/* Mist drifting around the ghost, never over text. */
+.mist {
+  position: absolute;
+  width: 130px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(244, 239, 230, 0.18) 0%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: mist-drift 10s ease-in-out infinite alternate;
+}
+
+.mist-left {
+  left: 0;
+  top: 10px;
+}
+
+.mist-above {
+  left: 30px;
+  top: -70px;
+}
+
+.mist-below {
+  left: 10px;
+  top: 70px;
+}
+
+@keyframes mist-drift {
+  0% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.5; transform: translate(6px, -4px); }
+  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* Named: the ghost unwinds upward and leaves; its mist goes with it. */
+.preselect-summary.named .ghost-wrap {
+  animation: ghost-flee var(--duration-ghost-flee) var(--easing) forwards;
+}
+
+@keyframes ghost-flee {
+  0% { transform: translateY(0) scaleY(1); opacity: 0.9; }
+  100% { transform: translateY(-120px) scaleY(1.6); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Above 600 px the ghost rises from the empty right side of the summary line,
+ * inside the panel, between the short summary text and the panel edge — never
+ * out in the frame's border (Room 9's lesson), and never over a checkbox, a
+ * price or the Pay button. The summary text is short, so the right side of the
+ * line is empty space; the ghost's hem rests above the line.
+ * ------------------------------------------------------------------ */
+@media (min-width: 601px) {
+  .ghost-signs {
+    left: auto;
+    right: 8px;
+    top: 50%;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    top: -118px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 0;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 30px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 10px;
+  }
+
+  .stirs-label {
+    left: auto;
+    right: 8px;
+    top: 74px;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: static dashed candle outline + label, no animation.
+ * ------------------------------------------------------------------ */
+/* 6 Nov (Neo): above 600 px the ghost at the line's right end rose over the
+   ticket's "£95" above it. It rises from the line's empty middle instead. */
+@media (min-width: 601px) {
+  .ghost-signs {
+    left: 55%;
+    right: auto;
+  }
+
+  .ghost-wrap {
+    left: -60px;
+    right: auto;
+    top: -70px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ghost-wrap,
+  .mist,
+  .preselect-summary.signs-active .preselect-summary-text,
+  .preselect-summary.named .ghost-wrap {
+    animation: none !important;
+  }
+}
+
+.preselect-summary.reduced-motion.signs-active {
+  outline: 2px dashed var(--candle);
+  outline-offset: 3px;
+}
+
+.preselect-summary.reduced-motion .ghost-wrap {
+  animation: none !important;
+}
+
+.preselect-summary.reduced-motion .mist {
+  animation: none !important;
+}
+
+.stirs-label {
+  position: absolute;
+  left: 8px;
+  top: 74px;
+  font-size: 0.75rem;
+  color: var(--candle);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------ *
+ * Honest twin — the same ticket and the same three extras, all unticked
+ * (opt-in), so the total is £95 and the button says "Pay £95". Light parchment
+ * card with ink text, like Rooms 1-10's honest twin.
+ * ------------------------------------------------------------------ */
+.rookery-honest .booking-card {
+  background-color: #fbfaf7;
+  border: 1px solid var(--parchment-2);
+}
+
+.rookery-honest .booking-title {
+  color: var(--ink);
+}
+
+.rookery-honest .ticket-line {
+  color: var(--ink);
+}
+
+.rookery-honest .ticket-line-price,
+.rookery-honest .extra-price,
+.rookery-honest .booking-total-amount {
+  color: var(--ink);
+}
+
+.rookery-honest .extra-label {
+  color: var(--ink);
+}
+
+.rookery-honest .booking-total {
+  border-top-color: var(--parchment-2);
+}
+
+.rookery-honest .booking-total-label {
+  color: var(--ink);
+}
+
+/* The honest summary line: a calm, plain statement that nothing was added. */
+.preselect-summary-honest {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: var(--line-height-normal);
+}
+
+/* The honest primary action — a plain, calm primary. */
+.booking-pay-honest {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  cursor: pointer;
+  align-self: flex-start;
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.booking-pay-honest:hover,
+.booking-pay-honest:focus {
+  background: var(--parchment);
+  color: var(--ink);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow screens: keep everything inside the frame at 412px wide; no
+ * horizontal overflow. Compact masthead so the title and the card land in the
+ * first screen. At 412px the label-and-price rows wrap, the Pay button goes
+ * full width, and a smaller ghost (about 72 x 84) rises from a strip reserved
+ * under the summary line, so it never covers the summary text, a checkbox, a
+ * price or the Pay button (exactly as Rooms 2-10 do).
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .rookery-masthead {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+
+  .rookery-header {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+  }
+
+  /* The ticket and total rows wrap instead of overlapping at 412px. */
+  .ticket-line,
+  .booking-total {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .ticket-line-price,
+  .booking-total-amount {
+    white-space: normal;
+    text-align: left;
+  }
+
+  /* The extra rows wrap under 600px: the price drops under the name instead of
+     overlapping. The box stays with the name. */
+  .extra-label {
+    flex-wrap: wrap;
+  }
+
+  .extra-price {
+    flex-basis: 100%;
+    padding-left: calc(24px + var(--spacing-md));
+    white-space: normal;
+    text-align: left;
+  }
+
+  .booking-pay,
+  .booking-pay-honest {
+    width: 100%;
+    text-align: center;
+    align-self: stretch;
+  }
+
+  /* At 412px the summary line reserves a strip under its text, and the smaller
+     ghost rises from that strip at its right end, so it never covers the
+     summary text, a checkbox, a price or the Pay button. */
+  .preselect-summary {
+    padding-bottom: 96px;
+  }
+
+  .ghost-signs {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 72px;
+    height: 84px;
+  }
+
+  .ghost {
+    width: 72px;
+    height: 84px;
+  }
+
+  .mist {
+    width: 80px;
+    height: 40px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 60px;
+    top: -44px;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 10px;
+    top: -84px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 20px;
+    top: -30px;
+  }
+
+  .stirs-label {
+    left: auto;
+    right: 78px;
+    top: -44px;
+    width: 64px;
+    white-space: normal;
+    text-align: right;
+  }
+}
