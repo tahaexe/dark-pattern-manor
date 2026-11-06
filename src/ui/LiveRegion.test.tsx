@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/preact';
 import LiveRegion from './LiveRegion';
 import type { RoomState } from '../engine/machine';
@@ -47,5 +47,38 @@ describe('LiveRegion', () => {
     };
     render(<LiveRegion state={state} />);
     expect(screen.queryByText(/Close/)).toBeNull();
+  });
+});
+
+describe('LiveRegion: the whisper scrolls into view', () => {
+  const proto = HTMLElement.prototype as unknown as { scrollIntoView?: unknown };
+  const original = proto.scrollIntoView;
+  afterEach(() => {
+    proto.scrollIntoView = original;
+  });
+
+  const wrong = (nonce: number): RoomState => ({
+    tag: 'picking',
+    announcement: 'Name the trick.',
+    wrongHint: 'Close, but the words are plain.',
+    flicker: true,
+    whisperNonce: nonce,
+  });
+
+  it('scrolls the whisper to the nearest edge on each wrong pick, never on mount without one', () => {
+    const spy = vi.fn();
+    proto.scrollIntoView = spy;
+    const { rerender } = render(<LiveRegion state={base} />);
+    expect(spy).not.toHaveBeenCalled();
+    rerender(<LiveRegion state={wrong(1)} />);
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(spy.mock.calls[0][0]).toMatchObject({ block: 'nearest' });
+    rerender(<LiveRegion state={wrong(2)} />);
+    expect(spy).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not throw where scrollIntoView is missing', () => {
+    proto.scrollIntoView = undefined;
+    expect(() => render(<LiveRegion state={wrong(1)} />)).not.toThrow();
   });
 });

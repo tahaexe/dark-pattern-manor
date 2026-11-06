@@ -252,20 +252,70 @@
   opacity: 0.7;
 }
 
-/* Whisper region for feedback */
+/* Whisper region for feedback.
+   Positioned above the room's backdrop: `.room-wall` is absolutely
+   positioned, so a static region was painted under it and neither the
+   instruction nor the whispered hint showed (7 Nov review). Both lines sit
+   on dark plates in ghost white, so they pass AA over any part of the
+   painted backdrop. */
 .spell-card-whisper-region {
-  text-align: center;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+  max-width: 44rem;
   min-height: 2em;
-  margin: var(--spacing-md) 0;
+  margin: var(--spacing-md) auto;
+  text-align: center;
+}
+
+.live-announcement {
+  margin: 0;
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--manor-night) 78%, transparent);
+  color: var(--ghost);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+}
+
+.live-announcement:empty {
+  display: none;
 }
 
 .spell-card-whisper {
-  font-size: 0.875rem;
-  color: var(--ink-soft);
-  text-align: center;
+  margin: 0;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--manor-night) 88%, transparent);
+  box-shadow: 0 0 18px rgba(244, 239, 230, 0.12);
+  color: var(--ghost);
+  font-family: var(--font-display);
+  font-size: 1.3rem;
   font-style: italic;
   line-height: var(--line-height-tight);
-  margin: 0;
+  text-align: center;
+  animation: whisper-in 0.6s ease-out;
+}
+
+@keyframes whisper-in {
+  from {
+    opacity: 0;
+    filter: blur(3px);
+  }
+  to {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spell-card-whisper {
+    animation: none;
+  }
 }
 
 /* Ghost inline SVG */
@@ -594,7 +644,9 @@
  * routed content (task bar, frame, cards) flows below and to the left of it.
  * ------------------------------------------------------------------ */
 .sound-toggle {
-  position: fixed;
+  /* Scrolls with the page like the Back button (fixed, it sat over the
+     stacked spell cards on a phone once the page scrolled; 7 Nov review). */
+  position: absolute;
   top: var(--spacing-md);
   right: var(--spacing-md);
   z-index: 10;
