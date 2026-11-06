@@ -2,8 +2,8 @@ import { useEffect, useState } from 'preact/hooks';
 import type { ComponentType } from 'preact';
 import LookPage from '../look/LookPage';
 import Room from '../engine/Room';
+import TitleScreen from './TitleScreen';
 import { loadRoom, roomSlugs } from '../engine/registry';
-import { doneCount } from '../engine/progress';
 import type { RoomData } from '../engine/types';
 import SoundToggle from '../audio/SoundToggle';
 
@@ -97,11 +97,6 @@ export default function App() {
     }
   }, [route]);
 
-  const handleStart = () => {
-    window.location.hash = '#/room/1';
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
-  };
-
   const handleBack = () => {
     window.location.hash = '#/';
     window.dispatchEvent(new HashChangeEvent('hashchange'));
@@ -111,7 +106,6 @@ export default function App() {
   // The continue affordance: rooms 1–11 reach the next room, room 12 reaches
   // the ending.
   const nextHash = roomNum >= 12 ? '#/end' : `#/room/${roomNum + 1}`;
-  const allComplete = doneCount() >= 12;
 
   return (
     <div class="app">
@@ -119,18 +113,7 @@ export default function App() {
       <SoundToggle />
 
       {route === 'title' ? (
-        <div class="title-screen">
-          <h1 tabindex={-1}>Dark Pattern Manor</h1>
-          <p class="subtitle">Every trick is a ghost. Name it to set the page free.</p>
-          <button onClick={handleStart} class="start-button">
-            Start
-          </button>
-          {allComplete ? (
-            <p class="title-end-link">
-              <a href="#/end">The manor is quiet</a>
-            </p>
-          ) : null}
-        </div>
+        <TitleScreen />
       ) : route === 'look' ? (
         <LookPage />
       ) : route === 'end' ? (

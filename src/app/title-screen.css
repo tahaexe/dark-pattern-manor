@@ -1,0 +1,228 @@
+@import '../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * The title screen: the manor's front hall.
+ *
+ * The screen is full-bleed — it escapes the app shell's 800px column and
+ * 1.5rem padding the same way the rooms do (`width: 100vw` with negative
+ * side margins) — so the painted foyer backdrop fills the viewport. A
+ * vignette darkens the backdrop toward a near-solid night field behind the
+ * centred text column, so the candle heading, the tagline and the facts all
+ * stay well above WCAG AA contrast (the axe-core color-contrast check proves
+ * it). Colours come only from tokens; no new image and no new font are added.
+ * ------------------------------------------------------------------ */
+.title-screen {
+  position: relative;
+  min-height: 100vh;
+  width: 100vw;
+  /* Bleed over #app's padding on all sides, so the hall fills exactly one
+     viewport (no scrollbar) and no plain strip shows above or below it. */
+  margin: calc(-1 * var(--spacing-lg)) calc(50% - 50vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  box-sizing: border-box;
+  overflow: hidden;
+  text-align: center;
+}
+
+/* The painted foyer backdrop uses the rooms' `.room` / `.room-wall` from
+   look.css. The vignette is an extra darkening layer on top of it. */
+.title-vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      60% 55% at 50% 45%,
+      color-mix(in srgb, var(--manor-night) 84%, transparent) 0%,
+      color-mix(in srgb, var(--manor-night) 58%, transparent) 45%,
+      color-mix(in srgb, var(--manor-night) 22%, transparent) 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--manor-night) 35%, transparent) 0%,
+      color-mix(in srgb, var(--manor-night) 50%, transparent) 100%
+    );
+}
+
+/* The centred content column sits above the backdrop and the vignette. */
+.title-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+  max-width: 48rem;
+  width: 100%;
+}
+
+/* The heading and the ghost share a row; the ghost floats to the heading's
+   right on wide viewports, and tucks beside it on a phone. */
+.title-headline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.title-heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--candle);
+  /* ~3rem at 412px, ~6.5rem at 1920px. */
+  font-size: clamp(3rem, 2rem + 5vw, 6.5rem);
+  line-height: var(--line-height-tight);
+  margin: 0;
+  text-shadow:
+    0 0 18px rgba(240, 190, 119, 0.45),
+    0 0 36px rgba(240, 190, 119, 0.25);
+}
+
+.title-heading:focus,
+.title-heading:focus-visible {
+  outline: 3px solid var(--candle);
+  outline-offset: 4px;
+  border-radius: var(--radius-md);
+}
+
+/* The ghost's box is reserved at a fixed clamp size so its presence causes no
+   layout shift. ~80px on a phone up to ~140px at 1920px. */
+.title-ghost {
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: clamp(70px, 7vw, 120px);
+  height: clamp(80px, 8vw, 140px);
+  align-items: center;
+  justify-content: center;
+  animation: title-ghost-float 6s ease-in-out infinite alternate;
+}
+
+.title-ghost-svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--ghost);
+  stroke-width: 1.5;
+  opacity: 0.85;
+  filter: drop-shadow(0 0 8px rgba(244, 239, 230, 0.3));
+}
+
+@keyframes title-ghost-float {
+  from {
+    transform: translateY(-6px);
+  }
+  to {
+    transform: translateY(6px);
+  }
+}
+
+.title-tagline {
+  font-family: var(--font-ui);
+  font-size: clamp(1.1rem, 1rem + 0.5vw, 1.35rem);
+  color: var(--ghost);
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+.title-facts {
+  font-family: var(--font-ui);
+  font-size: clamp(0.9rem, 0.85rem + 0.25vw, 1.05rem);
+  color: var(--ghost);
+  line-height: var(--line-height-normal);
+  margin: 0;
+  max-width: 44rem;
+}
+
+/* The controls. The primary is a candle button (the rooms' candle look); the
+   secondary is a quieter candle link. Both are real anchors so the hash router
+   drives navigation; both present at least a 44px target and a 3px candle
+   focus ring. */
+.title-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.title-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: var(--spacing-md) var(--spacing-2xl);
+  background: linear-gradient(135deg, var(--gold), var(--candle));
+  color: var(--ink);
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.3);
+  transition:
+    transform var(--duration-hover) var(--easing),
+    box-shadow var(--duration-hover) var(--easing);
+}
+
+.title-button:hover,
+.title-button:focus {
+  color: var(--ink);
+  text-decoration: none;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 190, 119, 0.5);
+}
+
+.title-button:focus-visible,
+.title-button:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 3px;
+}
+
+.title-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--candle);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.title-link:hover,
+.title-link:focus {
+  color: var(--gold);
+}
+
+.title-link:focus-visible,
+.title-link:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 3px;
+  border-radius: var(--radius-md);
+}
+
+/* Under reduced motion the ghost holds still and the button does not lift. */
+@media (prefers-reduced-motion: reduce) {
+  .title-ghost {
+    animation: none;
+  }
+
+  .title-button {
+    transition: none;
+  }
+
+  .title-button:hover,
+  .title-button:focus {
+    transform: none;
+  }
+}

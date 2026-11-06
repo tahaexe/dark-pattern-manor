@@ -21,6 +21,27 @@ export const rooms: Record<string, () => Promise<{ default: RoomData }>> = {
   bramblegate: () => import('../rooms/bramblegate/room'),
 };
 
+/**
+ * Room display names in product order, where index `i` is room number `i + 1`.
+ * These are static strings (the same titles the ending's checklist shows), so
+ * the title screen can name the next unfinished room without loading any room
+ * chunk. The order matches `roomSlugs()`.
+ */
+export const ROOM_NAMES: readonly string[] = [
+  'The Foyer',
+  'The Library',
+  'The Dining Room',
+  'The Parlour',
+  'The Conservatory',
+  'The Ballroom',
+  'The Portrait Gallery',
+  'The Pantry',
+  'The Study',
+  'The Nursery',
+  'The Attic',
+  'The Cellar',
+];
+
 /** Every registered room slug. */
 export function roomSlugs(): string[] {
   return Object.keys(rooms);

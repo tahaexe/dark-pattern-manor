@@ -39,20 +39,21 @@ describe('App', () => {
     window.dispatchEvent(new HashChangeEvent('hashchange', { oldURL: window.location.href, newURL: window.location.href }));
   };
 
-  it('renders the title screen with heading, subtitle, and Start button', () => {
+  it('renders the title screen with heading, tagline, and the primary action', () => {
     render(<App />);
     const heading = screen.getByText('Dark Pattern Manor');
-    const subtitle = screen.getByText('Every trick is a ghost. Name it to set the page free.');
-    const startBtn = screen.getByText('Start');
+    const tagline = screen.getByText('Every trick is a ghost. Name it to set the page free.');
+    const enter = screen.getByText('Enter the manor') as HTMLAnchorElement;
     expect(heading).toBeDefined();
-    expect(subtitle).toBeDefined();
-    expect(startBtn).toBeDefined();
+    expect(tagline).toBeDefined();
+    expect(enter.getAttribute('href')).toBe('#/room/1');
   });
 
-  it('clicking Start shows the heading "The Foyer"', async () => {
+  it('navigating to #/room/1 shows the heading "The Foyer"', async () => {
     render(<App />);
-    const startBtn = screen.getByText('Start');
-    startBtn.click();
+    // The primary action is an anchor to #/room/1; the hash router drives the
+    // transition the same way the anchor click would.
+    setHashAndTrigger('#/room/1');
     await waitFor(() => {
       const foyer = screen.queryByText('The Foyer');
       expect(foyer).toBeDefined();
@@ -61,8 +62,7 @@ describe('App', () => {
 
   it('clicking Back returns to the title', async () => {
     render(<App />);
-    const startBtn = screen.getByText('Start');
-    startBtn.click();
+    setHashAndTrigger('#/room/1');
 
     await waitFor(() => {
       const foyer = screen.queryByText('The Foyer');
@@ -144,10 +144,12 @@ describe('App', () => {
     expect(screen.getByText('Ghost hunt in your own browser')).toBeDefined();
   });
 
-  it('shows a link to #/end on the title only once all twelve rooms are complete', () => {
+  it('shows the "The manor is quiet" link on the title only once all twelve rooms are complete', () => {
     render(<App />);
-    // Not yet complete: no end link.
+    // Not yet complete: no end link on the title screen.
     expect(screen.queryByText('The manor is quiet')).toBeNull();
+    // The no-progress primary action is "Enter the manor".
+    expect(screen.getByText('Enter the manor')).toBeDefined();
   });
 
   it('shows the title end link when all twelve are complete', () => {
@@ -164,9 +166,8 @@ describe('App', () => {
   });
 
   it('axe-core reports no violations on the room screen', async () => {
+    setHashAndTrigger('#/room/1');
     const { container } = render(<App />);
-    const startBtn = screen.getByText('Start');
-    startBtn.click();
     await waitFor(() => {
       const foyer = screen.queryByText('The Foyer');
       expect(foyer).toBeDefined();

@@ -8,7 +8,10 @@
  * Rules this module keeps:
  *  - One AudioContext, created lazily and only inside a user gesture, never at
  *    import or page load, so the browser never blocks it and nothing plays
- *    before the player has acted.
+ *    before the player has acted. When the platform reports no user activation
+ *    yet (`navigator.userActivation.hasBeenActive === false`), context creation
+ *    is deferred until the first pointerdown/keydown, so opening a room's
+ *    address directly never creates the context before a gesture.
  *  - If no AudioContext constructor exists (jsdom has none), every function is
  *    a silent no-op that throws nothing.
  *  - Everything passes through one master gain, held quiet: the ambience about
@@ -59,14 +62,67 @@ export function hasAudio(): boolean {
 }
 
 /**
+ * True only when the platform exposes `navigator.userActivation` AND it reports
+ * that the page has not yet had a user gesture (`hasBeenActive === false`).
+ * When `userActivation` is absent (jsdom, older browsers) this is false, so the
+ * context is created on demand exactly as before. When a gesture has already
+ * happened it is also false.
+ */
+function awaitingFirstGesture(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = (
+    navigator as Navigator & { userActivation?: { hasBeenActive?: boolean } }
+  ).userActivation;
+  return !!ua && ua.hasBeenActive === false;
+}
+
+/**
+ * While true, a one-time capture-phase listener is armed on `window`, waiting
+ * for the first gesture so the deferred context can be created then. The
+ * stored cleanup removes those listeners (used on reset).
+ */
+let pendingGestureCleanup: (() => void) | null = null;
+
+/**
+ * Arm a one-time capture-phase pointerdown/keydown listener on `window`. On the
+ * first gesture it removes itself, creates the context (user activation is true
+ * by then), and resumes the ambience if sound is on and a room is still
+ * haunted. Idempotent: a second call while already armed does nothing.
+ */
+function armGestureListener(): void {
+  if (pendingGestureCleanup || typeof window === 'undefined') return;
+  const onGesture = () => {
+    cleanup();
+    const c = ensureContext();
+    if (c && soundOn && roomTag && HAUNTED_TAGS.has(roomTag)) startAmbience();
+  };
+  const cleanup = () => {
+    window.removeEventListener('pointerdown', onGesture, true);
+    window.removeEventListener('keydown', onGesture, true);
+    pendingGestureCleanup = null;
+  };
+  window.addEventListener('pointerdown', onGesture, true);
+  window.addEventListener('keydown', onGesture, true);
+  pendingGestureCleanup = cleanup;
+}
+
+/**
  * The single place an AudioContext is born. Only ever reached from a public
  * sound function, each of which runs inside (or just after) a user gesture,
  * and only when sound is on — so no context exists at import or before a
  * gesture, and none is created while sound is off.
+ *
+ * If the platform reports no user activation yet, it creates nothing, arms a
+ * one-time gesture listener, and returns null; the caller no-ops cleanly and
+ * the context is created on that first gesture instead.
  */
 function ensureContext(): AudioContext | null {
   const Ctor = AudioCtor();
   if (!Ctor) return null;
+  if (!ctx && awaitingFirstGesture()) {
+    armGestureListener();
+    return null;
+  }
   if (!ctx) {
     ctx = new Ctor();
     master = ctx.createGain();
@@ -565,9 +621,10 @@ export function quiet(): void {
 // Test seam.
 // --------------------------------------------------------------------------
 
-/** Test-only: drop the context, master, ambience and listeners. */
+/** Test-only: drop the context, master, ambience, pending gesture and listeners. */
 export function __resetForTests(): void {
   stopAmbience();
+  pendingGestureCleanup?.();
   if (master) safeDisconnect(master);
   if (ctx) {
     try {

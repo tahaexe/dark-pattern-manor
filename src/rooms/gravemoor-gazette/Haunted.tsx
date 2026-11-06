@@ -1,4 +1,5 @@
 import type { HauntedProps } from '../../engine/types';
+import InkGhost from '../../ui/InkGhost';
 import './room.css';
 
 /**
@@ -72,25 +73,7 @@ export default function Haunted({
                 <span class="mist mist-above"></span>
                 <span class="mist mist-below"></span>
                 <span class="ghost-wrap">
-                  <svg
-                    viewBox="0 0 120 140"
-                    width="120"
-                    height="140"
-                    class="ghost"
-                    xmlns="http://www.w3.org/2000/svg"
-                    aria-hidden="true"
-                  >
-                    <path
-                      class="ghost-body"
-                      d="M20 70 Q20 24 60 24 Q100 24 100 70 L100 118
-                         Q94 112 88 118 Q82 124 76 118 Q70 112 64 118
-                         Q58 124 52 118 Q46 112 40 118 Q34 124 28 118
-                         Q22 112 20 118 Z"
-                    />
-                    <circle class="ghost-eye" cx="48" cy="60" r="4" />
-                    <circle class="ghost-eye" cx="72" cy="60" r="4" />
-                    <path class="ghost-mouth" d="M52 74 Q60 82 68 74" />
-                  </svg>
+                  <InkGhost />
                 </span>
                 {reducedMotion ? <span class="stirs-label">Something stirs here</span> : null}
               </span>

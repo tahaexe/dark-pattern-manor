@@ -175,13 +175,28 @@ async function foyer(): Promise<RoomData> {
   return loadRoom('gravemoor-gazette');
 }
 
+/**
+ * Forget the stored on/off choice so no test leaks "off" into the next: on
+ * Node 22 (CI) jsdom's localStorage persists across tests; on newer Node the
+ * global localStorage shadows it and is unavailable, which hid the leak.
+ */
+function clearStoredChoice(): void {
+  try {
+    globalThis.localStorage?.removeItem('dpm-sound');
+  } catch {
+    /* no storage here */
+  }
+}
+
 beforeEach(() => {
   resetProgress();
+  clearStoredChoice();
   installAudio();
   sound.__resetForTests();
 });
 
 afterEach(() => {
+  clearStoredChoice();
   sound.__resetForTests();
   removeAudio();
   storageRestore?.();
@@ -479,5 +494,114 @@ describe('sound — accessibility of the toggle', () => {
     );
     await screen.findByRole('button', { name: /Sound/ });
     await expectNoViolations(container);
+  });
+});
+
+// --------------------------------------------------------------------------
+// The gesture gate: when navigator.userActivation reports no gesture yet,
+// ensureContext defers and arms a one-time window listener.
+// --------------------------------------------------------------------------
+
+describe('sound — user-activation gesture gate', () => {
+  /**
+   * Install a fake `navigator.userActivation`. Pass `undefined` to remove it
+   * (jsdom's default). Returns a setter so a test can flip `hasBeenActive` to
+   * true at the moment a gesture "happens". Restored in the returned cleanup.
+   */
+  function withUserActivation(initial: boolean | undefined) {
+    const original = Object.getOwnPropertyDescriptor(navigator, 'userActivation');
+    const state = { hasBeenActive: initial };
+    if (initial === undefined) {
+      delete (navigator as unknown as { userActivation?: unknown }).userActivation;
+    } else {
+      Object.defineProperty(navigator, 'userActivation', {
+        configurable: true,
+        get: () => state,
+      });
+    }
+    const restore = () => {
+      if (original) Object.defineProperty(navigator, 'userActivation', original);
+      else delete (navigator as unknown as { userActivation?: unknown }).userActivation;
+    };
+    return { setActive: (v: boolean) => (state.hasBeenActive = v), restore };
+  }
+
+  it('hasBeenActive=false: mounting a haunted room creates no AudioContext', async () => {
+    const ua = withUserActivation(false);
+    try {
+      sound.setSoundOn(true);
+      const room = await foyer();
+      render(<Room room={room} rng={identityRng} />);
+      // The room is haunted on mount, so startAmbience ran — but with no
+      // user activation yet, ensureContext deferred and created nothing.
+      expect(contextsCreated).toBe(0);
+    } finally {
+      ua.restore();
+    }
+  });
+
+  it('hasBeenActive=false: a keydown on window creates exactly one context and starts the ambience', async () => {
+    const ua = withUserActivation(false);
+    try {
+      sound.setSoundOn(true);
+      const room = await foyer();
+      render(<Room room={room} rng={identityRng} />);
+      expect(contextsCreated).toBe(0);
+
+      // The first gesture: the browser now reports activation, and our armed
+      // capture-phase listener fires.
+      ua.setActive(true);
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'a' }));
+
+      expect(contextsCreated).toBe(1);
+      const c = liveContext();
+      expect(c).not.toBeNull();
+      // The ambience started: a looping buffer source was created.
+      expect(c!.sources.length).toBeGreaterThan(0);
+    } finally {
+      ua.restore();
+    }
+  });
+
+  it('hasBeenActive=false: a pointerdown on window also creates the context', async () => {
+    const ua = withUserActivation(false);
+    try {
+      sound.setSoundOn(true);
+      const room = await foyer();
+      render(<Room room={room} rng={identityRng} />);
+      expect(contextsCreated).toBe(0);
+
+      ua.setActive(true);
+      window.dispatchEvent(new Event('pointerdown'));
+
+      expect(contextsCreated).toBe(1);
+    } finally {
+      ua.restore();
+    }
+  });
+
+  it('hasBeenActive=true: the context is created on demand immediately (today\u2019s behaviour)', async () => {
+    const ua = withUserActivation(true);
+    try {
+      sound.setSoundOn(true);
+      const room = await foyer();
+      render(<Room room={room} rng={identityRng} />);
+      // Activation already true, so the mount ambience created the context now.
+      expect(contextsCreated).toBe(1);
+    } finally {
+      ua.restore();
+    }
+  });
+
+  it('no userActivation (jsdom default): created on demand (today\u2019s behaviour)', async () => {
+    const ua = withUserActivation(undefined);
+    try {
+      sound.setSoundOn(true);
+      const room = await foyer();
+      render(<Room room={room} rng={identityRng} />);
+      expect(contextsCreated).toBe(1);
+    } finally {
+      ua.restore();
+    }
   });
 });
