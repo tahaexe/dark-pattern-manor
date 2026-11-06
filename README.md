@@ -17,7 +17,11 @@ npm run build
 
 ## How it is built with Kiro
 
-This project is built with Kiro, an AI-powered development environment. Steering documents in `.kiro/steering` guide development decisions; specs in `.kiro/specs` break features into requirements, design, and tasks; hooks in `.kiro/hooks` automate workflow tasks like command validation and testing. A guard hook ensures all shell commands stay within the repository.
+This project is built with Kiro, an AI-powered development environment. Steering documents in `.kiro/steering` guide development decisions; specs in `.kiro/specs` break features into requirements, design, and tasks; hooks in `.kiro/hooks` automate workflow tasks like command validation and testing.
+
+- **command-guard** (`PreToolUse`): blocks any shell command outside the repository's allow-list before it runs.
+- **room-checks** (`PostToolUse`): after a file under `src/rooms/` is written, runs the room-data checks (the same validation as `npm run check:rooms`) and prints one line per room.
+- **gates-on-stop** (`Stop`): when the agent finishes its turn, runs `npm test`, `npm run build` and `npm run check:size` in order and prints a one-line summary per gate.
 
 ## Assets
 

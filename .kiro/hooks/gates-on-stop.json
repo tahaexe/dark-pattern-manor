@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "gates-on-stop",
+      "description": "When the agent finishes its turn, runs npm test, npm run build and npm run check:size in order and prints one summary line per gate",
+      "trigger": "Stop",
+      "action": {
+        "type": "command",
+        "command": "node scripts/hooks/gates-on-stop.mjs"
+      },
+      "timeout": 180,
+      "enabled": true
+    }
+  ]
+}

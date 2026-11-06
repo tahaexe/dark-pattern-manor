@@ -8,9 +8,10 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run && npm run test:hooks",
     "typecheck": "tsc --noEmit",
     "test:guard": "node --test scripts/hooks/guard-command.test.mjs",
+    "test:hooks": "node --test scripts/hooks/",
     "check:rooms": "node scripts/check-rooms.mjs",
     "check:size": "node scripts/check-bundle-size.mjs"
   },

@@ -4,8 +4,8 @@
 // and JSX resolve), then validates each room against the structural, card,
 // relatives, hint, guide and fiction rules. The possessed element is resolved
 // by rendering the room's Haunted component into a jsdom document and looking
-// it up by id. On the first failure it prints the room name and the failed
-// rule, then exits non-zero.
+// it up by id. It prints one short line per room ("room N ok" or the rules
+// that failed) and exits non-zero on any failure.
 //
 // Usage: node scripts/check-rooms.mjs
 //        node scripts/check-rooms.mjs --self-test   (runs broken-fixture checks)
@@ -60,9 +60,12 @@ async function main() {
   });
 
   let failed = false;
-  const fail = (roomName, rule) => {
-    console.error(`check:rooms FAILED — ${roomName}: ${rule}`);
+  // Collect failures keyed by room id; room-set checks use the key 'set'.
+  const roomFailures = new Map();
+  const fail = (roomName, rule, roomId = 'set') => {
     failed = true;
+    if (!roomFailures.has(roomId)) roomFailures.set(roomId, []);
+    roomFailures.get(roomId).push(rule);
   };
 
   const cssEscape = (s) =>
@@ -90,7 +93,7 @@ async function main() {
     }
     for (const r of rooms) {
       if (!ROOM_PATTERNS.includes(r.pattern)) {
-        fail(r.name, `pattern "${r.pattern}" is not one of the 12 room patterns`);
+        fail(r.name, `pattern "${r.pattern}" is not one of the 12 room patterns`, r.id);
       }
     }
 
@@ -106,7 +109,7 @@ async function main() {
     // Per-room validation.
     for (const r of rooms) {
       const errors = validateRoom(r);
-      for (const e of errors) fail(r.name, e);
+      for (const e of errors) fail(r.name, e, r.id);
 
       // No quoted text over 25 words in the guide.
       const quoteSources = [r.guide.definition, r.guide.whereYouMeetIt, r.guide.tip];
@@ -114,23 +117,23 @@ async function main() {
         const quotes = text.match(/"([^"]+)"/g) || [];
         for (const q of quotes) {
           if (wordCount(q.replace(/"/g, '')) > 25) {
-            fail(r.name, 'a quoted passage in the guide exceeds 25 words');
+            fail(r.name, 'a quoted passage in the guide exceeds 25 words', r.id);
           }
         }
       }
 
       // Exactly one protection tip.
       if (!r.guide.tip || typeof r.guide.tip !== 'string' || r.guide.tip.trim() === '') {
-        fail(r.name, 'there must be exactly one protection tip');
+        fail(r.name, 'there must be exactly one protection tip', r.id);
       }
 
       // Guide URLs https + on the allowlist.
-      if (!isAllowlistedUrl(r.guide.us.url)) fail(r.name, 'US guide URL not https/allowlisted');
-      if (!isAllowlistedUrl(r.guide.eu.url)) fail(r.name, 'EU guide URL not https/allowlisted');
+      if (!isAllowlistedUrl(r.guide.us.url)) fail(r.name, 'US guide URL not https/allowlisted', r.id);
+      if (!isAllowlistedUrl(r.guide.eu.url)) fail(r.name, 'EU guide URL not https/allowlisted', r.id);
 
       // Brand approved.
       if (!APPROVED_BRANDS.includes(r.brand)) {
-        fail(r.name, `brand "${r.brand}" is not an approved fictional brand`);
+        fail(r.name, `brand "${r.brand}" is not an approved fictional brand`, r.id);
       }
 
       // Possessed element found by id in the rendered Haunted DOM.
@@ -147,11 +150,27 @@ async function main() {
           mount,
         );
         const el = mount.querySelector(`#${cssEscape(r.possessedId)}`);
-        if (!el) fail(r.name, `possessed element #${r.possessedId} not found in the haunted DOM`);
+        if (!el) fail(r.name, `possessed element #${r.possessedId} not found in the haunted DOM`, r.id);
       } finally {
         render(null, mount);
         mount.remove();
       }
+    }
+
+    // One short line per room, ordered by id.
+    const sorted = [...rooms].sort((a, b) => a.id - b.id);
+    for (const r of sorted) {
+      const errs = roomFailures.get(r.id);
+      if (errs && errs.length > 0) {
+        console.error(`room ${r.id} FAILED: ${errs.join('; ')}`);
+      } else {
+        console.log(`room ${r.id} ok`);
+      }
+    }
+    // Report any room-set failures that are not tied to a single room.
+    const setErrs = roomFailures.get('set');
+    if (setErrs && setErrs.length > 0) {
+      console.error(`room set FAILED: ${setErrs.join('; ')}`);
     }
 
     if (selfTest) {
