@@ -1,0 +1,569 @@
+@import '../../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * Bramblegate Fitness — Room 12, The Cellar
+ * Reuses the manor look (tokens, frame, card) and the ghost / mist / flicker
+ * approach from Rooms 1-11. Confines all cracks and mist to the possessed
+ * cancel line ("To cancel, complete our 7-step exit survey ..."); the frame,
+ * the account card and the honest twin stay whole.
+ * ------------------------------------------------------------------ */
+
+.bramblegate {
+  position: relative;
+  z-index: 1;
+}
+
+/* Masthead */
+.bramblegate-header {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--spacing-md);
+}
+
+.bramblegate-address {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.bramblegate-masthead {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.bramblegate-tagline {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  margin: var(--spacing-xs) 0 0;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------ *
+ * The account card (haunted). Dark wood card so the trick lives in the missing
+ * cancel button and the maze line, never in low contrast.
+ * ------------------------------------------------------------------ */
+.account-card {
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.account-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ghost);
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* The membership line: label and value. */
+.membership-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin: 0;
+  color: var(--ghost);
+  font-size: 1.0625rem;
+  line-height: var(--line-height-normal);
+}
+
+.membership-label {
+  flex: 0 0 auto;
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+.membership-value {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+}
+
+/* Lining, tabular figures in the UI face (Room 9's lesson: the display face's
+   old-style "1" read as "I"), so "£39" never reads as "£I9" and the price
+   column never changes width. */
+.membership-price {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+  font-weight: 700;
+  color: var(--candle);
+  white-space: nowrap;
+}
+
+/* The loud options the gym wants: upgrade (bright) or pause. Real buttons
+   OUTSIDE the possessed cancel line. */
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+
+.account-upgrade {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.3);
+}
+
+.account-upgrade:hover,
+.account-upgrade:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 190, 119, 0.5);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.account-pause {
+  background: transparent;
+  color: var(--ghost);
+  border: 1px solid var(--candle);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.account-pause:hover,
+.account-pause:focus {
+  background: rgba(240, 190, 119, 0.12);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The possessed cancel line (Hard to cancel).
+ * A real <button> (the possessed element and the ghost's positioning context),
+ * keyboard-reachable with the visible line text as its accessible name (no
+ * aria-label). It is NOT a live region. It is small and quiet — the maze is the
+ * only way out — but still meets WCAG AA contrast.
+ * ------------------------------------------------------------------ */
+.cancel-line {
+  display: block;
+  width: 100%;
+  margin-top: var(--spacing-sm);
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--manor-line);
+  padding: var(--spacing-md) 0 0;
+  /* Small and quiet, but readable: a soft parchment-edge grey on dark wood
+     that still meets WCAG AA. */
+  color: var(--parchment-edge);
+  font-family: var(--font-ui);
+  font-size: 0.8125rem;
+  line-height: var(--line-height-normal);
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  transition: color var(--duration-hover) var(--easing);
+}
+
+.cancel-line:hover,
+.cancel-line:focus {
+  color: var(--ghost);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* The line text sits above the ghost (z-index 3). */
+.cancel-line-text {
+  position: relative;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost — hero of the haunted room.
+ * Anchored INSIDE the room's panel (Room 9's lesson: the first ghost there sat
+ * out in the frame's border; this one stays in the panel), beside the
+ * possessed cancel line. The cancel line is the LAST element in the panel and
+ * its upper neighbour is the Pause button (a control), so the ghost rises into
+ * the EMPTY space beside the line — the panel's right margin, past the line's
+ * text — never over the line text, a button, the price or the Pause button
+ * above (the line text sits at z-index 3, above the ghost at z-index 1).
+ * ------------------------------------------------------------------ */
+.ghost-signs {
+  position: absolute;
+  /* Default (narrow) anchor; overridden ≥601px. */
+  left: 0;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ghost-wrap {
+  position: absolute;
+  left: 8px;
+  top: -70px;
+  width: 120px;
+  height: 140px;
+  z-index: 1;
+  transform-origin: 50% 100%;
+  animation: ghost-bob 4s ease-in-out infinite;
+}
+
+.ghost {
+  width: 120px;
+  height: 140px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(244, 239, 230, 0.35));
+}
+
+.ghost-body {
+  fill: color-mix(in srgb, var(--ghost) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.ghost-mouth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes ghost-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* Flicker on the possessed cancel line itself — opacity 1 -> 0.85, at most
+   twice a second. */
+.cancel-line.signs-active .cancel-line-text {
+  animation: cellar-flicker 0.6s steps(1) infinite;
+}
+
+@keyframes cellar-flicker {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 90% { opacity: 0.85; }
+}
+
+/* Mist drifting around the ghost, never over text. */
+.mist {
+  position: absolute;
+  width: 130px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(244, 239, 230, 0.18) 0%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: mist-drift 10s ease-in-out infinite alternate;
+}
+
+.mist-left {
+  left: 0;
+  top: 10px;
+}
+
+.mist-above {
+  left: 30px;
+  top: -70px;
+}
+
+.mist-below {
+  left: 10px;
+  top: 70px;
+}
+
+@keyframes mist-drift {
+  0% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.5; transform: translate(6px, -4px); }
+  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* Named: the ghost unwinds upward and leaves; its mist goes with it. */
+.cancel-line.named .ghost-wrap {
+  animation: ghost-flee var(--duration-ghost-flee) var(--easing) forwards;
+}
+
+@keyframes ghost-flee {
+  0% { transform: translateY(0) scaleY(1); opacity: 0.9; }
+  100% { transform: translateY(-120px) scaleY(1.6); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Above 600 px the ghost rises from the empty middle beside the cancel line,
+ * inside the panel — never out in the frame's border (Room 9's lesson), and
+ * never over a button, the price or the Pause button above it. The line's
+ * text wraps to the left; the ghost's hem rests above the empty middle.
+ * ------------------------------------------------------------------ */
+@media (min-width: 601px) {
+  .ghost-signs {
+    left: 76%; /* 7 Nov (Neo): at 55% its hem touched the line's text end; the right of the line is empty */
+    top: 50%;
+  }
+
+  .ghost-wrap {
+    left: -60px;
+    top: -118px;
+  }
+
+  .mist-left {
+    left: -60px;
+  }
+
+  .mist-above {
+    left: -30px;
+    top: -118px;
+  }
+
+  .mist-below {
+    left: -50px;
+  }
+
+  .stirs-label {
+    left: 55%;
+    top: 74px;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: static dashed candle outline + label, no animation.
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .ghost-wrap,
+  .mist,
+  .cancel-line.signs-active .cancel-line-text,
+  .cancel-line.named .ghost-wrap {
+    animation: none !important;
+  }
+}
+
+.cancel-line.reduced-motion.signs-active {
+  outline: 2px dashed var(--candle);
+  outline-offset: 3px;
+}
+
+.cancel-line.reduced-motion .ghost-wrap {
+  animation: none !important;
+}
+
+.cancel-line.reduced-motion .mist {
+  animation: none !important;
+}
+
+.stirs-label {
+  position: absolute;
+  left: 8px;
+  top: 74px;
+  font-size: 0.75rem;
+  color: var(--candle);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------ *
+ * Honest twin — the same account page, with a plain "Cancel membership" button
+ * beside the others; one click cancels and shows the confirmation. Light
+ * parchment card with ink text, like Rooms 1-11's honest twin.
+ * ------------------------------------------------------------------ */
+.bramblegate-honest .account-card {
+  background-color: #fbfaf7;
+  border: 1px solid var(--parchment-2);
+}
+
+.bramblegate-honest .account-title {
+  color: var(--ink);
+}
+
+.bramblegate-honest .membership-line {
+  color: var(--ink);
+}
+
+.bramblegate-honest .membership-price {
+  color: var(--ink);
+}
+
+/* The honest options — a plain, equal set; the Upgrade button is calmer here. */
+.bramblegate-honest .account-upgrade {
+  background: var(--parchment-2);
+  color: var(--ink);
+  border: 1px solid var(--parchment-edge);
+  box-shadow: none;
+}
+
+.bramblegate-honest .account-upgrade:hover,
+.bramblegate-honest .account-upgrade:focus {
+  transform: none;
+  box-shadow: none;
+  outline: 3px solid var(--ink);
+}
+
+.bramblegate-honest .account-pause {
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+.bramblegate-honest .account-pause:hover,
+.bramblegate-honest .account-pause:focus {
+  background: rgba(29, 20, 23, 0.08);
+  outline: 3px solid var(--ink);
+}
+
+/* The honest cancel button — plain and equal, beside the others. */
+.account-cancel {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.account-cancel:hover,
+.account-cancel:focus {
+  background: var(--parchment);
+  color: var(--ink);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* The confirmation after one click. */
+.cancel-confirmation {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: var(--line-height-normal);
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow screens: keep everything inside the frame at 412px wide; no
+ * horizontal overflow. Compact masthead so the title and the card land in the
+ * first screen. At 412px the label-and-value rows wrap, the buttons go full
+ * width, and a smaller ghost (about 72 x 84) rises from a strip reserved under
+ * the cancel line, so it never covers the line text, a button or the price
+ * (exactly as Rooms 2-11 do).
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .bramblegate-masthead {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+
+  .bramblegate-header {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+  }
+
+  /* The membership row wraps instead of overlapping at 412px. */
+  .membership-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .membership-value {
+    text-align: left;
+  }
+
+  .membership-price {
+    white-space: normal;
+  }
+
+  /* The options stack and go full width. */
+  .account-actions {
+    flex-direction: column;
+  }
+
+  .account-upgrade,
+  .account-pause,
+  .account-cancel {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* At 412px the cancel line reserves a strip under its text, and the smaller
+     ghost rises from that strip at its right end, so it never covers the line
+     text, a button or the price. */
+  .cancel-line {
+    padding-bottom: 96px;
+  }
+
+  .ghost-signs {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 72px;
+    height: 84px;
+  }
+
+  .ghost {
+    width: 72px;
+    height: 84px;
+  }
+
+  .mist {
+    width: 80px;
+    height: 40px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 60px;
+    top: -44px;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 10px;
+    top: -84px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 20px;
+    top: -30px;
+  }
+
+  .stirs-label {
+    left: auto;
+    right: 78px;
+    top: -44px;
+    width: 64px;
+    white-space: normal;
+    text-align: right;
+  }
+}

@@ -18,7 +18,7 @@ export const rooms: Record<string, () => Promise<{ default: RoomData }>> = {
   mildew: () => import('../rooms/mildew/room'),
   wanderwick: () => import('../rooms/wanderwick/room'),
   rookery: () => import('../rooms/rookery/room'),
-  // The other room is added here as it is built, keyed by brand slug.
+  bramblegate: () => import('../rooms/bramblegate/room'),
 };
 
 /** Every registered room slug. */
