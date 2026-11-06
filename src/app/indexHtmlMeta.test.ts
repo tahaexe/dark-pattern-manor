@@ -47,6 +47,8 @@ describe('index.html link-preview metadata', () => {
     const image = metaContent(html, 'property', 'og:image');
     expect(image).not.toBeNull();
     expect(image!.endsWith('og-card.png')).toBe(true);
+    // 7 Nov: link-preview scrapers (Facebook, LinkedIn, X) need an absolute URL
+    expect(image!.startsWith('https://')).toBe(true);
     expect(metaContent(html, 'property', 'og:image:width')).toBe('1200');
     expect(metaContent(html, 'property', 'og:image:height')).toBe('630');
     const alt = metaContent(html, 'property', 'og:image:alt');
