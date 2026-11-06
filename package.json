@@ -11,7 +11,7 @@
     "test": "vitest run && npm run test:hooks",
     "typecheck": "tsc --noEmit",
     "test:guard": "node --test scripts/hooks/guard-command.test.mjs",
-    "test:hooks": "node --test scripts/hooks/",
+    "test:hooks": "node --test scripts/hooks/*.test.mjs",
     "check:rooms": "node scripts/check-rooms.mjs",
     "check:size": "node scripts/check-bundle-size.mjs"
   },
