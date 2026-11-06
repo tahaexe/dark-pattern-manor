@@ -62,7 +62,14 @@ h1 {
   line-height: var(--line-height-tight);
 }
 
+/* Only when the player is on the keyboard: after a click, Chrome and Firefox
+   do not match :focus-visible, so a heading that takes focus on a state
+   change shows no ring to pointer players (7 Nov). */
 h1:focus {
+  outline: none;
+}
+
+h1:focus-visible {
   outline: 3px solid var(--candle);
   outline-offset: 2px;
   border-radius: var(--radius-md);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import type { ComponentType } from 'preact';
 import LookPage from '../look/LookPage';
 import Room from '../engine/Room';
@@ -90,8 +90,15 @@ export default function App() {
     };
   }, [route]);
 
-  // Focus the title heading when returning to the title screen.
+  // Focus the title heading when returning to the title screen (not on the
+  // first load, where focus already starts at the top of the page and a
+  // programmatic focus only drew a ring around the title).
+  const firstRoute = useRef(true);
   useEffect(() => {
+    if (firstRoute.current) {
+      firstRoute.current = false;
+      return;
+    }
     if (route === 'title') {
       setTimeout(() => document.querySelector('h1')?.focus(), 0);
     }
