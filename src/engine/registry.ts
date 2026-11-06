@@ -11,7 +11,8 @@ export const rooms: Record<string, () => Promise<{ default: RoomData }>> = {
   'inkbone-books': () => import('../rooms/inkbone-books/room'),
   grimsupper: () => import('../rooms/grimsupper/room'),
   gloamline: () => import('../rooms/gloamline/room'),
-  // The other 8 rooms are added here as they are built, keyed by brand slug.
+  hollowpost: () => import('../rooms/hollowpost/room'),
+  // The other 7 rooms are added here as they are built, keyed by brand slug.
 };
 
 /** Every registered room slug. */

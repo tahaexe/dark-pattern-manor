@@ -1,0 +1,452 @@
+@import '../../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * Hollowpost Tickets — Room 5, The Conservatory
+ * Reuses the manor look (tokens, frame, banner) and the ghost / mist /
+ * flicker approach from Rooms 1-4. Confines all cracks and mist to the
+ * possessed countdown banner; the frame, ticket card and honest twin stay
+ * whole.
+ * ------------------------------------------------------------------ */
+
+.hollowpost {
+  position: relative;
+  z-index: 1;
+}
+
+/* Masthead */
+.hollowpost-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--spacing-md);
+}
+
+.hollowpost-address {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hollowpost-masthead {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.hollowpost-tagline {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  margin: var(--spacing-xs) 0 0;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ticket sign-up card (haunted). Dark wood card so the trick lives in the
+ * invented, resetting deadline, never in low contrast.
+ * ------------------------------------------------------------------ */
+.ticket-card {
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+/* Above 600 px the ghost (140 px, centred on the banner near the card's top)
+   needs room to its right; the card's own padding already gives it space, and
+   the banner sits at the top with the body below, so the hem is never cut. */
+
+/* ------------------------------------------------------------------ *
+ * The possessed countdown banner (Fake urgency).
+ * A real button so it is keyboard-reachable and has an accessible name. It
+ * carries no aria-label, so the accessible name is the visible banner text
+ * (Label in Name, WCAG 2.5.3). It is NOT a live region. A red alert bar whose
+ * digits are tabular so the banner never changes width as the clock ticks.
+ * The label is the positioning context for the ghost that peeks beside it.
+ * ------------------------------------------------------------------ */
+.ticket-countdown {
+  /* A deep, warm red that still meets WCAG AA with the bright text on it. */
+  background: #7a1f1f;
+  color: var(--ghost);
+  border: 1px solid #a33a3a;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1.125rem;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  align-self: stretch;
+  transition: background var(--duration-hover) var(--easing);
+}
+
+.ticket-countdown:hover,
+.ticket-countdown:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.ticket-countdown-label {
+  position: relative;
+  z-index: 3;
+  display: inline-block;
+}
+
+/* Tabular figures so the mm:ss clock never changes width — no layout shift. */
+.ticket-countdown-clock {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: 0.02em;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ticket body: the event, the price and the Buy button.
+ * ------------------------------------------------------------------ */
+.ticket-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.ticket-event {
+  color: var(--ghost);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+.ticket-price {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--candle);
+  margin: 0;
+  line-height: 1.1;
+}
+
+/* The primary action: buying the ticket. Loud, bright primary. */
+.ticket-buy {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1.125rem;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all var(--duration-hover) var(--easing);
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.3);
+}
+
+.ticket-buy:hover,
+.ticket-buy:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 190, 119, 0.5);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost — hero of the haunted room.
+ * Anchored to the possessed banner itself (.ticket-countdown-label), so it
+ * peeks just right of the banner, vertically centred at its height. It never
+ * covers the banner's text, the price or the button (the text sits at
+ * z-index 3, above the ghost at z-index 1).
+ * ------------------------------------------------------------------ */
+.ghost-signs {
+  position: absolute;
+  /* Right of the banner text, vertically centred on it. */
+  left: 100%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ghost-wrap {
+  position: absolute;
+  left: 8px;
+  top: -70px;
+  width: 120px;
+  height: 140px;
+  z-index: 1;
+  transform-origin: 50% 100%;
+  animation: ghost-bob 4s ease-in-out infinite;
+}
+
+.ghost {
+  width: 120px;
+  height: 140px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(244, 239, 230, 0.35));
+}
+
+.ghost-body {
+  fill: color-mix(in srgb, var(--ghost) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.ghost-mouth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes ghost-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* Flicker on the possessed banner itself — opacity 1 -> 0.85, at most twice a
+   second. */
+.ticket-countdown.signs-active .ticket-countdown-label {
+  animation: conservatory-flicker 0.6s steps(1) infinite;
+}
+
+@keyframes conservatory-flicker {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 90% { opacity: 0.85; }
+}
+
+/* Mist drifting around the ghost, never over text. */
+.mist {
+  position: absolute;
+  width: 130px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(244, 239, 230, 0.18) 0%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: mist-drift 10s ease-in-out infinite alternate;
+}
+
+.mist-left {
+  left: 0;
+  top: 10px;
+}
+
+.mist-above {
+  left: 30px;
+  top: -70px;
+}
+
+.mist-below {
+  left: 10px;
+  top: 70px;
+}
+
+@keyframes mist-drift {
+  0% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.5; transform: translate(6px, -4px); }
+  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* Named: the ghost unwinds upward and leaves; its mist goes with it. */
+.ticket-countdown.named .ghost-wrap {
+  animation: ghost-flee var(--duration-ghost-flee) var(--easing) forwards;
+}
+
+@keyframes ghost-flee {
+  0% { transform: translateY(0) scaleY(1); opacity: 0.9; }
+  100% { transform: translateY(-120px) scaleY(1.6); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: static dashed candle outline + label, no animation. The
+ * countdown is frozen at 04:59 by the component (the interval never starts),
+ * so the clock does not tick either.
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .ghost-wrap,
+  .mist,
+  .ticket-countdown.signs-active .ticket-countdown-label,
+  .ticket-countdown.named .ghost-wrap {
+    animation: none !important;
+  }
+}
+
+.ticket-countdown.reduced-motion.signs-active {
+  outline: 2px dashed var(--candle);
+  outline-offset: 3px;
+}
+
+.ticket-countdown.reduced-motion .ghost-wrap {
+  animation: none !important;
+}
+
+.ticket-countdown.reduced-motion .mist {
+  animation: none !important;
+}
+
+.stirs-label {
+  position: absolute;
+  left: 8px;
+  top: 74px;
+  font-size: 0.75rem;
+  color: var(--candle);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------ *
+ * Honest twin — the same ticket page with the price, the concert date and a
+ * fixed sale date as plain text, no countdown (real best practice, no Fake
+ * urgency). Light parchment card with ink text, like Rooms 1-4's honest
+ * banner.
+ * ------------------------------------------------------------------ */
+.hollowpost-honest .hollowpost-header {
+  color: var(--ink);
+}
+
+.hollowpost-honest .ticket-card {
+  background-color: #fbfaf7;
+  border: 1px solid var(--parchment-2);
+}
+
+.hollowpost-honest .ticket-event {
+  color: var(--ink);
+}
+
+.hollowpost-honest .ticket-price {
+  color: var(--ink);
+}
+
+/* The fixed sale date, plain text — no countdown, no pressure. */
+.ticket-sale-date {
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+  margin: 0;
+  font-weight: 700;
+}
+
+/* The honest Buy button — a plain, calm primary. */
+.ticket-buy-honest {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.ticket-buy-honest:hover,
+.ticket-buy-honest:focus {
+  background: var(--parchment);
+  color: var(--ink);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow screens: keep everything inside the frame at 412px wide; no
+ * horizontal overflow. Compact masthead so the title and the card land in the
+ * first screen. At 412px the banner keeps the full width, and a smaller ghost
+ * (about 72 x 84) rises from a strip reserved under it, at its right end, so
+ * it never covers the banner's text, the price or the button (exactly as
+ * Rooms 2-4 do).
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .hollowpost-masthead {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+
+  .hollowpost-header {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+  }
+
+  .ticket-price {
+    font-size: 1.75rem;
+  }
+
+  .ticket-buy,
+  .ticket-buy-honest {
+    width: 100%;
+    text-align: center;
+    align-self: stretch;
+  }
+
+  /* At 412px the banner keeps the full width, and the smaller ghost rises from
+     a strip reserved under it, at its right end, so it never covers the
+     banner's text, the price or the button. */
+  .ticket-countdown-label {
+    display: block;
+    padding-bottom: 88px;
+  }
+
+  .ghost-signs {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 72px;
+    height: 84px;
+  }
+
+  .ghost {
+    width: 72px;
+    height: 84px;
+  }
+
+  .mist {
+    width: 80px;
+    height: 40px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 60px;
+    top: -44px;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 10px;
+    top: -84px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 20px;
+    top: -30px;
+  }
+
+  .stirs-label {
+    left: auto;
+    right: 78px;
+    top: -44px;
+    width: 64px;
+    white-space: normal;
+    text-align: right;
+  }
+}
