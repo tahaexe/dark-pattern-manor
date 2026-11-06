@@ -1,0 +1,491 @@
+@import '../../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * Gloamline — Room 4, The Parlour
+ * Reuses the manor look (tokens, frame, banner) and the ghost / mist /
+ * flicker approach from Rooms 1-3. Confines all cracks and mist to the
+ * possessed small print; the frame, trial card and honest twin stay whole.
+ * ------------------------------------------------------------------ */
+
+.gloamline {
+  position: relative;
+  z-index: 1;
+}
+
+/* Masthead */
+.gloamline-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--spacing-md);
+}
+
+.gloamline-address {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.gloamline-masthead {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.gloamline-tagline {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  margin: var(--spacing-xs) 0 0;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------ *
+ * The trial sign-up card (haunted). Dark wood card so the trick lives in the
+ * size, weight and placement of the terms, never in low contrast.
+ * ------------------------------------------------------------------ */
+.trial-card {
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* 6 Nov (Neo): above 600 px the ghost (140 px, centred on the two-line small
+   print at the card's foot) lost its hem to the card's bottom edge: room for it. */
+@media (min-width: 601px) {
+  .trial-card {
+    padding-bottom: 56px;
+  }
+}
+
+/* The loud offer — the thing the eye is meant to catch. */
+.trial-headline {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--candle);
+  margin: 0;
+  line-height: 1.1;
+}
+
+.trial-pitch {
+  /* High-contrast parchment on the dark card. */
+  color: var(--ghost);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+.trial-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.trial-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  /* Bright ink on the dark card — WCAG AA. */
+  color: var(--ghost);
+}
+
+.trial-input {
+  background: #fbfaf7;
+  color: var(--ink);
+  border: 1px solid var(--parchment-2);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+}
+
+.trial-input:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* Loud, bright primary: the choice the service wants. Its text names only the
+   free part, not the recurring price. */
+.trial-start {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1.125rem;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all var(--duration-hover) var(--easing);
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.3);
+}
+
+.trial-start:hover,
+.trial-start:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 190, 119, 0.5);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The possessed small print (Hidden subscription).
+ * A real button so it is keyboard-reachable and has an accessible name. It
+ * carries no aria-label, so the accessible name is the visible small-print
+ * text (Label in Name, WCAG 2.5.3). It is small and light and placed far below
+ * the button — made quiet by size, weight and placement, never by low contrast
+ * (--parchment-2 on the dark card stays AA). The paragraph itself is the
+ * positioning context for the ghost that peeks beside it. The extra top margin
+ * pushes it well below the button, so the terms sit far from the offer.
+ * ------------------------------------------------------------------ */
+.trial-smallprint {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  /* Far below the button — placement is the trick. */
+  margin: var(--spacing-xl) 0 0;
+  padding: var(--spacing-xs) 0;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  font-family: var(--font-ui);
+  transition: background var(--duration-hover) var(--easing);
+}
+
+.trial-smallprint:hover,
+.trial-smallprint:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.trial-smallprint-label {
+  /* Small and light — quiet by size and weight, not by low contrast. The dim
+     parchment on the dark card still meets WCAG AA. */
+  color: var(--parchment-2);
+  font-size: 0.75rem;
+  font-weight: 400;
+  line-height: var(--line-height-normal);
+  display: block;
+  position: relative;
+  z-index: 3;
+  /* Cap the paragraph so the ghost (120 x 140) has its own space just right of
+     the paragraph's end; the ghost is anchored to this element. */
+  max-width: 60ch;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost — hero of the haunted room.
+ * Anchored to the possessed small print itself (.trial-smallprint-label), so
+ * it peeks just right of the paragraph's end, vertically centred at its
+ * height. It never covers the paragraph's text, the button, the headline or
+ * the inputs (the text sits at z-index 3, above the ghost at z-index 1).
+ * ------------------------------------------------------------------ */
+.ghost-signs {
+  position: absolute;
+  /* Right of the paragraph's end, vertically centred on it. */
+  left: 100%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ghost-wrap {
+  position: absolute;
+  left: 8px;
+  top: -70px;
+  width: 120px;
+  height: 140px;
+  z-index: 1;
+  transform-origin: 50% 100%;
+  animation: ghost-bob 4s ease-in-out infinite;
+}
+
+.ghost {
+  width: 120px;
+  height: 140px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(244, 239, 230, 0.35));
+}
+
+.ghost-body {
+  fill: color-mix(in srgb, var(--ghost) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.ghost-mouth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes ghost-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* Flicker on the possessed small print itself — opacity 1 -> 0.85, at most
+   twice a second. */
+.trial-smallprint.signs-active .trial-smallprint-label {
+  animation: parlour-flicker 0.6s steps(1) infinite;
+}
+
+@keyframes parlour-flicker {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 90% { opacity: 0.85; }
+}
+
+/* Mist drifting around the ghost, never over text. */
+.mist {
+  position: absolute;
+  width: 130px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(244, 239, 230, 0.18) 0%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: mist-drift 10s ease-in-out infinite alternate;
+}
+
+.mist-left {
+  left: 0;
+  top: 10px;
+}
+
+.mist-above {
+  left: 30px;
+  top: -70px;
+}
+
+.mist-below {
+  left: 10px;
+  top: 70px;
+}
+
+@keyframes mist-drift {
+  0% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.5; transform: translate(6px, -4px); }
+  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* Named: the ghost unwinds upward and leaves; its mist goes with it. */
+.trial-smallprint.named .ghost-wrap {
+  animation: ghost-flee var(--duration-ghost-flee) var(--easing) forwards;
+}
+
+@keyframes ghost-flee {
+  0% { transform: translateY(0) scaleY(1); opacity: 0.9; }
+  100% { transform: translateY(-120px) scaleY(1.6); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: static dashed candle outline + label, no animation.
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .ghost-wrap,
+  .mist,
+  .trial-smallprint.signs-active .trial-smallprint-label,
+  .trial-smallprint.named .ghost-wrap {
+    animation: none !important;
+  }
+}
+
+.trial-smallprint.reduced-motion.signs-active {
+  outline: 2px dashed var(--candle);
+  outline-offset: 3px;
+}
+
+.trial-smallprint.reduced-motion .ghost-wrap {
+  animation: none !important;
+}
+
+.trial-smallprint.reduced-motion .mist {
+  animation: none !important;
+}
+
+.stirs-label {
+  position: absolute;
+  left: 8px;
+  top: 74px;
+  font-size: 0.75rem;
+  color: var(--candle);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------ *
+ * Honest twin — the three facts beside the button at body-text size and a
+ * button that names the price (real best practice, no Hidden subscription).
+ * Light parchment card with ink text, like Rooms 1-3's honest banner.
+ * ------------------------------------------------------------------ */
+.gloamline-honest .gloamline-header {
+  color: var(--ink);
+}
+
+.gloamline-honest .trial-card {
+  background-color: #fbfaf7;
+  border: 1px solid var(--parchment-2);
+}
+
+.gloamline-honest .trial-headline {
+  color: var(--ink);
+}
+
+.gloamline-honest .trial-pitch {
+  color: var(--ink);
+}
+
+.gloamline-honest .trial-label {
+  color: var(--ink);
+}
+
+/* The three facts, at body-text size, beside the button — no small print. */
+.trial-terms-honest {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.trial-terms-honest li {
+  margin: 0;
+}
+
+/* The honest button names the recurring price itself. */
+.trial-start-honest {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.trial-start-honest:hover,
+.trial-start-honest:focus {
+  background: var(--parchment);
+  color: var(--ink);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow screens: keep everything inside the frame at 412px wide; no
+ * horizontal overflow. Compact masthead so the title and the card land in the
+ * first screen. At 412px the small print keeps the full width, and a smaller
+ * ghost (about 72 x 84) rises from a strip reserved under it, at its right
+ * end, so it never covers the small print's text, the inputs or the button
+ * (exactly as Rooms 2-3 do).
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .gloamline-masthead {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+
+  .gloamline-header {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+  }
+
+  .trial-headline {
+    font-size: 1.875rem;
+  }
+
+  .trial-start {
+    width: 100%;
+    text-align: center;
+    align-self: stretch;
+  }
+
+  .trial-start-honest {
+    width: 100%;
+    text-align: center;
+    align-self: stretch;
+  }
+
+  /* At 412px the small print keeps the full width, and the smaller ghost rises
+     from a strip reserved under it, at its right end, so it never covers the
+     paragraph's text, the inputs or the button. */
+  .trial-smallprint-label {
+    max-width: none;
+    padding-bottom: 88px;
+  }
+
+  .ghost-signs {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 72px;
+    height: 84px;
+  }
+
+  .ghost {
+    width: 72px;
+    height: 84px;
+  }
+
+  .mist {
+    width: 80px;
+    height: 40px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 60px;
+    top: -44px;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 10px;
+    top: -84px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 20px;
+    top: -30px;
+  }
+
+  .stirs-label {
+    left: auto;
+    right: 78px;
+    top: -44px;
+    width: 64px;
+    white-space: normal;
+    text-align: right;
+  }
+}
