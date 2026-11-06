@@ -32,8 +32,14 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Validate room data
+        run: npm run check:rooms
+
       - name: Build
         run: npm run build
+
+      - name: Check initial bundle size
+        run: npm run check:size
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

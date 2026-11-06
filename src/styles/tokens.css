@@ -25,9 +25,9 @@
   --color-ghost: var(--ghost);
   --color-border: var(--manor-line);
 
-  /* Font families */
-  --font-display: 'Cormorant Garamond', Georgia, serif;
-  --font-ui: 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  /* Font families — metrics-matched fallbacks avoid font-swap layout shift */
+  --font-display: 'Cormorant Garamond', 'Cormorant Fallback', Georgia, serif;
+  --font-ui: 'Atkinson Hyperlegible Next', 'Atkinson Fallback', system-ui, sans-serif;
 
   /* Spacing (4px grid) */
   --spacing-xs: 0.25rem;

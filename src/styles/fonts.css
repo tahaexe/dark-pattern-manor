@@ -1,0 +1,77 @@
+/* Self-hosted fonts with no layout shift.
+ *
+ * The two main faces (Cormorant Garamond 700 for display, Atkinson
+ * Hyperlegible Next 400 for body) load with font-display: optional, so the
+ * first paint uses a metrics-matched fallback and the web font only swaps in
+ * on a later paint when already cached — there is no font-swap reflow (fix 6).
+ * Size-adjusted fallback faces keep the fallback's line box the same height as
+ * the web font, so even before the font arrives the layout does not jump.
+ *
+ * Vite resolves these @fontsource package URLs to hashed, same-origin assets.
+ */
+
+/* ---- Atkinson Hyperlegible Next (body) ---- */
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-weight: 400;
+  font-display: optional;
+  src: url('@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-400-normal.woff2')
+      format('woff2'),
+    url('@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-400-normal.woff')
+      format('woff');
+}
+
+@font-face {
+  font-family: 'Atkinson Hyperlegible Next';
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
+  src: url('@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-700-normal.woff2')
+      format('woff2'),
+    url('@fontsource/atkinson-hyperlegible-next/files/atkinson-hyperlegible-next-latin-700-normal.woff')
+      format('woff');
+}
+
+/* Metrics-matched fallback for Atkinson, so the fallback box matches. */
+@font-face {
+  font-family: 'Atkinson Fallback';
+  src: local('Segoe UI'), local('Helvetica Neue'), local('Arial');
+  size-adjust: 97%;
+  ascent-override: 92%;
+  descent-override: 23%;
+  line-gap-override: 0%;
+}
+
+/* ---- Cormorant Garamond (display) ---- */
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 600;
+  font-display: optional;
+  src: url('@fontsource/cormorant-garamond/files/cormorant-garamond-latin-600-normal.woff2')
+      format('woff2'),
+    url('@fontsource/cormorant-garamond/files/cormorant-garamond-latin-600-normal.woff')
+      format('woff');
+}
+
+@font-face {
+  font-family: 'Cormorant Garamond';
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
+  src: url('@fontsource/cormorant-garamond/files/cormorant-garamond-latin-700-normal.woff2')
+      format('woff2'),
+    url('@fontsource/cormorant-garamond/files/cormorant-garamond-latin-700-normal.woff')
+      format('woff');
+}
+
+/* Metrics-matched fallback for Cormorant (a tall, narrow serif). */
+@font-face {
+  font-family: 'Cormorant Fallback';
+  src: local('Georgia'), local('Times New Roman');
+  size-adjust: 110%;
+  ascent-override: 80%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}

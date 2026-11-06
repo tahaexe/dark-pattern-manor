@@ -8,7 +8,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--spacing-2xl) var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-2xl);
   width: 100vw;
   margin-left: calc(50% - 50vw);
   margin-right: calc(50% - 50vw);
@@ -25,8 +25,9 @@
 .room-wall {
   position: absolute;
   inset: 0;
-  /* The painted foyer: the page's one raster image. No text ever sits on it; the task bar, the
-     framed page and the cards carry their own solid backgrounds. The night scrim keeps the frame in front. */
+  /* The painted foyer: the page's one raster image. No text ever sits on it;
+     the task bar, the framed page and the cards carry their own solid
+     backgrounds. The night scrim keeps the frame in front. */
   background:
     linear-gradient(
       180deg,
@@ -37,6 +38,33 @@
     var(--manor-night);
 }
 
+/* Fix 5: Warm candlelight as one CSS layer between the painting and the
+   interface — soft warm glows at the left and right sconces, and a gentle
+   dark vignette in the corners. No new image. */
+.room::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      40% 70% at 0% 42%,
+      color-mix(in srgb, var(--candle) 22%, transparent) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      40% 70% at 100% 42%,
+      color-mix(in srgb, var(--candle) 22%, transparent) 0%,
+      transparent 70%
+    ),
+    radial-gradient(
+      120% 120% at 50% 50%,
+      transparent 60%,
+      color-mix(in srgb, var(--manor-night) 55%, transparent) 100%
+    );
+}
+
 /* Full page look-page wrapper */
 .look-page {
   display: flex;
@@ -44,10 +72,10 @@
   align-items: center;
 }
 
-/* Gazette styling */
+/* Gazette styling (standalone look page) */
 .gazette-header {
   text-align: center;
-  margin-bottom: var(--spacing-2xl);
+  margin-bottom: var(--spacing-xl);
   border-bottom: 2px solid var(--ink);
   padding-bottom: var(--spacing-lg);
   position: relative;
@@ -63,20 +91,20 @@
 }
 
 .gazette-masthead {
-  font-family: Georgia, serif;
+  font-family: var(--font-display);
   font-size: 2.5rem;
-  font-weight: 400;
+  font-weight: 700;
   color: var(--ink);
   margin: 0;
   line-height: 1.2;
 }
 
 .gazette-content {
-  margin-bottom: var(--spacing-2xl);
+  margin-bottom: var(--spacing-xl);
 }
 
 .gazette-content h3 {
-  font-family: Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.5rem;
   color: var(--ink);
   margin-bottom: var(--spacing-md);
@@ -89,13 +117,13 @@
   line-height: var(--line-height-relaxed);
 }
 
-/* Cookie banner */
+/* Cookie banner (standalone look page) */
 .cookie-banner {
   background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
   border: 1px solid var(--manor-line);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
-  margin: var(--spacing-xl) 0;
+  margin: var(--spacing-lg) 0 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -105,7 +133,8 @@
   z-index: 1;
 }
 
-@media (max-width: 768px) {
+/* Fix 1: under 600px the banner stacks — text above, buttons below. */
+@media (max-width: 600px) {
   .cookie-banner {
     flex-direction: column;
     align-items: stretch;
@@ -113,8 +142,8 @@
 }
 
 .cookie-text {
-  flex: 1;
-  min-width: 200px;
+  flex: 1 1 240px;
+  min-width: 0;
 }
 
 .cookie-title {
@@ -133,7 +162,7 @@
 
 .cookie-buttons {
   display: flex;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
   align-items: center;
   flex-wrap: wrap;
   position: relative;
@@ -186,7 +215,7 @@
   position: relative;
 }
 
-/* Mist around possessed reject button */
+/* Mist around possessed reject button (standalone look page) */
 .mist {
   position: absolute;
   width: 120px;
@@ -251,7 +280,7 @@
   }
 }
 
-/* Split view styling */
+/* Split view styling (standalone look page) */
 .cookie-banner-split {
   display: flex;
   flex-direction: column;
@@ -330,7 +359,7 @@
   outline-offset: 1px;
 }
 
-/* Honest banner card styling */
+/* Honest banner card styling (standalone look page) */
 .cookie-banner-honest {
   background-color: #fbfaf7;
   border: 1px solid var(--parchment-2);
@@ -342,7 +371,7 @@
 }
 
 .cookie-title-honest {
-  font-family: Georgia, serif;
+  font-family: var(--font-display);
   font-size: 1.125rem;
   font-weight: 700;
   color: var(--ink);
@@ -355,4 +384,52 @@
   color: var(--ink);
   line-height: var(--line-height-normal);
   margin: 0;
+}
+
+/* The split preview frames in the engine Room are whole but compact. */
+.manor-frame-preview {
+  margin: 0;
+  padding: var(--spacing-lg);
+  max-width: none;
+  border-width: 10px;
+}
+
+/* Fix 4: at 1920 x 1080 the whole scene fits in the first screen — the task
+   bar, the frame and the three spell cards above the fold. Tighten the frame
+   height and the gaps so nothing is cut in half. */
+@media (min-width: 1280px) and (min-height: 900px) {
+  .room-scene {
+    padding-top: var(--spacing-lg);
+    padding-bottom: var(--spacing-lg);
+  }
+
+  .room-scene > .task-bar {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .room-scene > .manor-frame {
+    margin: var(--spacing-sm) auto;
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+
+  .room-scene .gazette-header {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+  }
+
+  .room-scene .gazette-content {
+    margin-bottom: var(--spacing-md);
+  }
+
+  .room-scene .cookie-banner {
+    margin-top: var(--spacing-md);
+  }
+
+  .room-scene > .spell-cards {
+    margin: var(--spacing-md) 0 0;
+  }
+
+  .room-scene .spell-card {
+    height: 180px;
+  }
 }

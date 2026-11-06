@@ -1,0 +1,148 @@
+import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
+import type { RoomData, SpellCard } from './types';
+import { initialState, reduce } from './machine';
+import type { RoomEvent, RoomState } from './machine';
+import { completeRoom } from './progress';
+import Lantern from '../ui/Lantern';
+import SpellPicker from '../ui/SpellPicker';
+import LiveRegion from '../ui/LiveRegion';
+import BeforeAfterSlider from '../ui/BeforeAfterSlider';
+import GuideCard from '../ui/GuideCard';
+
+export interface RoomProps {
+  room: RoomData;
+  /** Slug of the next room to unlock on completion. */
+  nextSlug?: string;
+  /** Optional rng so tests can fix the spell-card order. */
+  rng?: () => number;
+}
+
+/** True when the user asks for reduced motion. */
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false;
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const handler = () => setReduced(mq.matches);
+    mq.addEventListener?.('change', handler);
+    return () => mq.removeEventListener?.('change', handler);
+  }, []);
+  return reduced;
+}
+
+/** The heading that labels each state, for focus and announcement. */
+const STATE_HEADING: Record<RoomState['tag'], string> = {
+  haunted: 'Haunted',
+  inspecting: 'Inspecting',
+  picking: 'Name the trick',
+  named: 'Named',
+  honest: 'The honest page',
+  done: 'The room is free',
+};
+
+export default function Room({ room, nextSlug, rng }: RoomProps) {
+  const reduceBound = (state: RoomState, event: RoomEvent) => reduce(state, event, room);
+  const [state, dispatch] = useReducer(reduceBound, room, initialState);
+  const [slider, setSlider] = useState(0);
+  const reducedMotion = usePrefersReducedMotion();
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const doneRef = useRef(false);
+
+  // Auto-advance named -> honest with no player input.
+  useEffect(() => {
+    if (state.tag === 'named') {
+      dispatch({ type: 'ADVANCE' });
+    }
+  }, [state.tag]);
+
+  // Persist progress exactly once on reaching done.
+  useEffect(() => {
+    if (state.tag === 'done' && !doneRef.current) {
+      doneRef.current = true;
+      completeRoom(room.slug, nextSlug);
+    }
+  }, [state.tag, room.slug, nextSlug]);
+
+  // Move focus to the heading labelling the new state.
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, [state.tag]);
+
+  const signsActive = state.tag === 'haunted' || state.tag === 'inspecting';
+  const showSplit = state.tag === 'honest' || state.tag === 'done';
+
+  const HauntedView = room.Haunted;
+  const HonestView = room.Honest;
+
+  return (
+    <div class="room-scene">
+      <div class="room" aria-hidden="true">
+        <div class="room-wall"></div>
+      </div>
+
+      <div class="task-bar">
+        <h1 class="task-bar-title" tabIndex={-1} ref={headingRef}>
+          {room.name}
+        </h1>
+        <span class="task-bar-task">{room.task}</span>
+        <Lantern onLantern={() => dispatch({ type: 'LANTERN' })} keyActive={state.tag === 'haunted'} />
+      </div>
+
+      <h2 class="visually-hidden">{STATE_HEADING[state.tag]}</h2>
+
+      {!showSplit ? (
+        <div class="manor-frame">
+          <HauntedView
+            onSelectPossessed={() => dispatch({ type: 'SELECT_POSSESSED' })}
+            onSelectOther={() => dispatch({ type: 'SELECT_OTHER' })}
+            signsActive={signsActive}
+            reducedMotion={reducedMotion}
+          />
+        </div>
+      ) : null}
+
+      {state.tag === 'picking' ? (
+        <SpellPicker
+          cards={room.cards}
+          onPick={(card: SpellCard) => dispatch({ type: 'PICK', card })}
+          flicker={state.flicker}
+          rng={rng}
+        />
+      ) : null}
+
+      <LiveRegion state={state} />
+
+      {showSplit ? (
+        <>
+          <div class="split" style={{ ['--split' as string]: `${slider}%` }}>
+            <div class="split-side haunted">
+              <span class="split-label">Haunted</span>
+              <div class="manor-frame manor-frame-preview">
+                <HauntedView
+                  onSelectPossessed={() => {}}
+                  onSelectOther={() => {}}
+                  signsActive={false}
+                  reducedMotion={reducedMotion}
+                  preview
+                />
+              </div>
+            </div>
+            <div class="split-side honest">
+              <span class="split-label">Honest</span>
+              <div class="manor-frame manor-frame-preview">
+                <HonestView onCompleteTask={() => dispatch({ type: 'COMPLETE_TASK' })} />
+              </div>
+            </div>
+          </div>
+
+          <BeforeAfterSlider value={slider} onChange={setSlider} />
+
+          <GuideCard pattern={room.pattern} guide={room.guide} />
+        </>
+      ) : null}
+    </div>
+  );
+}

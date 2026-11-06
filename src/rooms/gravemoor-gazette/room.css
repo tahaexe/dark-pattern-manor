@@ -1,0 +1,392 @@
+@import '../../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * The Gravemoor Gazette — Room 1, The Foyer
+ * Reuses the manor look (tokens, frame, banner). Confines all cracks and
+ * mist to the possessed "Reject all" link; the frame and twin stay whole.
+ * ------------------------------------------------------------------ */
+
+.gazette {
+  position: relative;
+  z-index: 1;
+}
+
+/* Masthead */
+.gazette-header {
+  text-align: center;
+  margin-bottom: var(--spacing-2xl);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--spacing-lg);
+}
+
+.gazette-address {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.gazette-masthead {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.gazette-content {
+  margin-bottom: var(--spacing-xl);
+}
+
+.gazette-content h3 {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--ink);
+  margin-bottom: var(--spacing-md);
+  font-weight: 700;
+}
+
+.gazette-content p {
+  font-size: 1rem;
+  color: var(--ink);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ------------------------------------------------------------------ *
+ * Haunted cookie banner
+ * ------------------------------------------------------------------ */
+.cookie-banner {
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin: var(--spacing-lg) 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+  position: relative;
+}
+
+.cookie-text {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.cookie-title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--candle);
+  margin-bottom: var(--spacing-sm);
+}
+
+.cookie-description {
+  font-size: 0.875rem;
+  /* WCAG AA on the dark banner. */
+  color: var(--ghost);
+  line-height: var(--line-height-normal);
+}
+
+.cookie-buttons {
+  display: flex;
+  gap: var(--spacing-lg);
+  align-items: center;
+  flex-wrap: wrap;
+  position: relative;
+  flex: 0 0 auto;
+}
+
+/* Loud, bright primary. */
+.cookie-accept {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.3);
+  min-width: 110px;
+}
+
+.cookie-accept:hover,
+.cookie-accept:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 190, 119, 0.5);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* The possessed quiet option: a small plain text link. Readable (AA) but made
+   hard to see by size, weight and placement — the Visual interference trick. */
+.cookie-reject {
+  background: transparent;
+  color: var(--parchment-2);
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  font-weight: 400;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: color var(--duration-hover) var(--easing);
+  position: relative;
+  text-decoration: underline;
+  overflow: visible;
+}
+
+.cookie-reject:hover,
+.cookie-reject:focus {
+  color: var(--parchment);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.cookie-reject-label {
+  position: relative;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost — hero of the haunted room (fix 3)
+ * ------------------------------------------------------------------ */
+.ghost-signs {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ghost-wrap {
+  position: absolute;
+  /* Peek over the top of the link, offset to the side so it never covers the
+     "Reject all" text. */
+  left: 8px;
+  bottom: 10px;
+  width: 120px;
+  height: 140px;
+  z-index: 1;
+  transform-origin: 50% 100%;
+  animation: ghost-bob 4s ease-in-out infinite;
+}
+
+.ghost {
+  width: 120px;
+  height: 140px;
+  display: block;
+  /* Thin white ink lines, clearly visible on the dark banner and painted foyer. */
+  filter: drop-shadow(0 0 10px rgba(244, 239, 230, 0.35));
+}
+
+.ghost-body {
+  fill: color-mix(in srgb, var(--ghost) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.ghost-mouth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes ghost-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* Flicker on the possessed link itself — opacity 1 → 0.85, at most twice a second. */
+.cookie-reject.signs-active .cookie-reject-label {
+  animation: foyer-flicker 0.6s steps(1) infinite;
+}
+
+@keyframes foyer-flicker {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 90% { opacity: 0.85; }
+}
+
+/* Mist drifting around the ghost and the possessed element, never over text. */
+.mist {
+  position: absolute;
+  width: 130px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(244, 239, 230, 0.18) 0%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: mist-drift 10s ease-in-out infinite alternate;
+}
+
+.mist-left {
+  left: -40px;
+  bottom: 20px;
+}
+
+.mist-above {
+  left: 20px;
+  bottom: 120px;
+}
+
+.mist-below {
+  left: -10px;
+  bottom: -20px;
+}
+
+@keyframes mist-drift {
+  0% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.5; transform: translate(6px, -4px); }
+  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* Named: the ghost unwinds upward and leaves; its mist goes with it. */
+.cookie-reject.named .ghost-wrap {
+  animation: ghost-flee var(--duration-ghost-flee) var(--easing) forwards;
+}
+
+@keyframes ghost-flee {
+  0% { transform: translateY(0) scaleY(1); opacity: 0.9; }
+  100% { transform: translateY(-120px) scaleY(1.6); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: static dashed candle outline + label, no animation (fix 3)
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .ghost-wrap,
+  .mist,
+  .cookie-reject.signs-active .cookie-reject-label,
+  .cookie-reject.named .ghost-wrap {
+    animation: none !important;
+  }
+}
+
+.cookie-reject.reduced-motion.signs-active {
+  outline: 2px dashed var(--candle);
+  outline-offset: 3px;
+}
+
+.cookie-reject.reduced-motion .ghost-wrap {
+  animation: none !important;
+}
+
+.cookie-reject.reduced-motion .mist {
+  animation: none !important;
+}
+
+.stirs-label {
+  position: absolute;
+  left: 0;
+  bottom: -22px;
+  font-size: 0.75rem;
+  color: var(--candle);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------ *
+ * Honest twin — equal buttons (real best practice, no Visual interference)
+ * ------------------------------------------------------------------ */
+.gazette-honest .gazette-header,
+.gazette-honest .gazette-content h3,
+.gazette-honest .gazette-content p {
+  color: var(--ink);
+}
+
+.cookie-banner-honest {
+  background-color: #fbfaf7;
+  border: 1px solid var(--parchment-2);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.cookie-title-honest {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 var(--spacing-sm);
+}
+
+.cookie-description-honest {
+  font-size: 0.875rem;
+  color: var(--ink);
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+.cookie-buttons-equal {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+/* Both choices are the same kind of control: equal font size, padding, fill. */
+.cookie-button-equal {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  flex: 1 1 140px;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.cookie-button-equal:hover,
+.cookie-button-equal:focus {
+  background: var(--parchment);
+  color: var(--ink);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Fix 1: under 600px the banner stacks — text above, buttons below;
+ * nothing overflows the frame at 390px.
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .cookie-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-md);
+  }
+
+  .cookie-buttons {
+    width: 100%;
+    justify-content: flex-start;
+    gap: var(--spacing-md) var(--spacing-lg);
+  }
+
+  .cookie-accept {
+    flex: 0 0 auto;
+  }
+
+  /* Keep the ghost inside the frame at narrow widths. */
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+  }
+
+  .mist-left {
+    left: auto;
+    right: -20px;
+  }
+}
