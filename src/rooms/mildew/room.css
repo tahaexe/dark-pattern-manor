@@ -1,0 +1,622 @@
+@import '../../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * Mildew Drive — Room 9, The Study
+ * Reuses the manor look (tokens, frame, card) and the ghost / mist / flicker
+ * approach from Rooms 1-8. Confines all cracks and mist to the possessed block
+ * of fee lines; the frame, the plan card and the honest twin stay whole.
+ * ------------------------------------------------------------------ */
+
+.mildew {
+  position: relative;
+  z-index: 1;
+}
+
+/* Masthead */
+.mildew-header {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--spacing-md);
+}
+
+.mildew-address {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.mildew-masthead {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.mildew-tagline {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  margin: var(--spacing-xs) 0 0;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------ *
+ * The three-step indicator "1 Plan · 2 Details · 3 Pay". Step 3 is current,
+ * marked with aria-current="step"; the current step reads in candle gold.
+ * ------------------------------------------------------------------ */
+.checkout-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm) var(--spacing-md);
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 var(--spacing-lg);
+  padding: 0;
+  list-style: none;
+}
+
+.checkout-step {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--ink-soft);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+/* The "·" separators between steps, drawn with ::after so they are decorative
+   and never read as a step. */
+.checkout-step:not(:last-child)::after {
+  content: '\00b7';
+  margin-left: var(--spacing-md);
+  color: var(--ink-soft);
+}
+
+.checkout-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  border: 2px solid var(--ink-soft);
+  color: var(--ink-soft);
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.checkout-step.is-current {
+  color: var(--ink);
+}
+
+.checkout-step.is-current .checkout-step-num {
+  background: var(--bronze);
+  border-color: var(--bronze);
+  color: var(--ghost);
+}
+
+/* ------------------------------------------------------------------ *
+ * The plan card (haunted). Dark wood card so the trick lives in the late fees,
+ * never in low contrast.
+ * ------------------------------------------------------------------ */
+.plan-card {
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.plan-name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ghost);
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* The advertised "From £1/month" — loud and large, the only price shown until
+   the last step. */
+.plan-shout {
+  margin: 0;
+  color: var(--ghost);
+  font-size: 1.125rem;
+  line-height: var(--line-height-normal);
+}
+
+.plan-shout-price {
+  /* 6 Nov (Neo): the display face's old-style "1" read as "I" ("From £ I/month"): the UI face's lining figures. */
+  font-family: var(--font-ui);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--candle);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+.plan-blurb {
+  margin: 0;
+  color: var(--ghost);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+}
+
+/* ------------------------------------------------------------------ *
+ * The possessed block of fee lines (Hidden costs).
+ * A real <button> (the possessed element and the ghost's positioning context),
+ * keyboard-reachable with the visible fee text as its accessible name (no
+ * aria-label). It is NOT a live region. The fees are revealed only here, at the
+ * last step.
+ * ------------------------------------------------------------------ */
+.fee-lines {
+  display: block;
+  width: 100%;
+  /* A deep, warm red that still meets WCAG AA with the bright text on it. */
+  background: #7a1f1f;
+  border: 1px solid #a33a3a;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-md);
+  color: var(--ghost);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  transition: background var(--duration-hover) var(--easing);
+}
+
+.fee-lines:hover,
+.fee-lines:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* The fee block's inner column. The ghost anchors inside this, in the reserved
+   left margin, so it peeks beside the lines at their height, never over a fee
+   line, the total or the Pay button. The inner text sits above the ghost. */
+.fee-lines-inner {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.fee-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.fee-line-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Tabular figures so the fee prices and the total line up and never change
+   width. */
+.fee-line-price {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  font-weight: 700;
+  color: var(--candle);
+  white-space: nowrap;
+  text-align: right;
+}
+
+/* The real total line, set apart by a rule above it. */
+.fee-line-total {
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid #a33a3a;
+  font-weight: 700;
+}
+
+.fee-line-total .fee-line-name {
+  color: var(--ghost);
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+}
+
+.fee-line-total .fee-line-price {
+  font-size: 1.125rem;
+}
+
+/* The primary action: paying. Loud, bright primary. */
+.plan-pay {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1.125rem;
+  cursor: pointer;
+  align-self: flex-start;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  transition: all var(--duration-hover) var(--easing);
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.3);
+}
+
+.plan-pay:hover,
+.plan-pay:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 190, 119, 0.5);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost — hero of the haunted room.
+ * Anchored to the possessed fee block's left margin (.ghost-signs sits at the
+ * block's top-left), so it peeks just left of the fee lines, vertically centred
+ * at their height. It never covers a fee line, the total or the "Pay £9.49
+ * today" button (the fee text sits at z-index 3, above the ghost at z-index 1;
+ * the Pay button is a sibling below the block entirely).
+ * ------------------------------------------------------------------ */
+.ghost-signs {
+  position: absolute;
+  /* Left of the fee block, vertically centred on it. */
+  left: 0;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ghost-wrap {
+  position: absolute;
+  /* Out in the left margin beside the block, clear of the fee text. */
+  left: -132px;
+  top: -70px;
+  width: 120px;
+  height: 140px;
+  z-index: 1;
+  transform-origin: 50% 100%;
+  animation: ghost-bob 4s ease-in-out infinite;
+}
+
+.ghost {
+  width: 120px;
+  height: 140px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(244, 239, 230, 0.35));
+}
+
+.ghost-body {
+  fill: color-mix(in srgb, var(--ghost) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.ghost-mouth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes ghost-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* Flicker on the possessed fee block itself — opacity 1 -> 0.85, at most twice
+   a second. */
+.fee-lines.signs-active .fee-lines-inner {
+  animation: study-flicker 0.6s steps(1) infinite;
+}
+
+@keyframes study-flicker {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 90% { opacity: 0.85; }
+}
+
+/* Mist drifting around the ghost, never over text. */
+.mist {
+  position: absolute;
+  width: 130px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(244, 239, 230, 0.18) 0%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: mist-drift 10s ease-in-out infinite alternate;
+}
+
+.mist-left {
+  left: -140px;
+  top: 10px;
+}
+
+.mist-above {
+  left: -110px;
+  top: -70px;
+}
+
+.mist-below {
+  left: -130px;
+  top: 70px;
+}
+
+@keyframes mist-drift {
+  0% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.5; transform: translate(6px, -4px); }
+  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* Named: the ghost unwinds upward and leaves; its mist goes with it. */
+.fee-lines.named .ghost-wrap {
+  animation: ghost-flee var(--duration-ghost-flee) var(--easing) forwards;
+}
+
+@keyframes ghost-flee {
+  0% { transform: translateY(0) scaleY(1); opacity: 0.9; }
+  100% { transform: translateY(-120px) scaleY(1.6); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: static dashed candle outline + label, no animation.
+ * ------------------------------------------------------------------ */
+/* 6 Nov (Neo): above 600 px the ghost sat out in the frame's left border; it
+   rises from the empty middle of the fee block instead, between the names and
+   the prices. */
+@media (min-width: 601px) {
+  .ghost-signs {
+    left: 50%;
+  }
+
+  .ghost-wrap {
+    left: -60px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ghost-wrap,
+  .mist,
+  .fee-lines.signs-active .fee-lines-inner,
+  .fee-lines.named .ghost-wrap {
+    animation: none !important;
+  }
+}
+
+.fee-lines.reduced-motion.signs-active {
+  outline: 2px dashed var(--candle);
+  outline-offset: 3px;
+}
+
+.fee-lines.reduced-motion .ghost-wrap {
+  animation: none !important;
+}
+
+.fee-lines.reduced-motion .mist {
+  animation: none !important;
+}
+
+.stirs-label {
+  position: absolute;
+  left: -132px;
+  top: 74px;
+  font-size: 0.75rem;
+  color: var(--candle);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------ *
+ * Honest twin — step 1 shows the whole price up front on the plan card
+ * ("£4.50/month, all fees included, + £4.99 setup"), with the same fee lines
+ * listed there, so finding the real price takes one click. Light parchment card
+ * with ink text, like Rooms 1-8's honest twin.
+ * ------------------------------------------------------------------ */
+.mildew-honest .plan-card {
+  background-color: #fbfaf7;
+  border: 1px solid var(--parchment-2);
+}
+
+.mildew-honest .plan-name {
+  color: var(--ink);
+}
+
+.mildew-honest .plan-shout {
+  color: var(--ink);
+}
+
+.mildew-honest .plan-shout-price {
+  color: var(--ink);
+}
+
+.mildew-honest .plan-blurb {
+  color: var(--ink);
+}
+
+/* The honest, up-front fee lines: plain ink text, calm, listed at step 1. */
+.fee-lines-honest {
+  margin: 0;
+  padding: var(--spacing-md);
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  background-color: #f3eee1;
+  border: 1px solid var(--parchment-2);
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+}
+
+.fee-lines-honest .fee-line-name {
+  color: var(--ink);
+}
+
+.fee-lines-honest .fee-line-price {
+  color: var(--ink);
+}
+
+.fee-lines-honest .fee-line-total {
+  border-top-color: var(--parchment-2);
+}
+
+.fee-lines-honest .fee-line-total .fee-line-name {
+  color: var(--ink);
+}
+
+/* The honest "whole price up front" headline on the plan card. */
+.plan-realprice {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* The honest primary action — a plain, calm primary. */
+.plan-pay-honest {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.plan-pay-honest:hover,
+.plan-pay-honest:focus {
+  background: var(--parchment);
+  color: var(--ink);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.mildew-honest .checkout-step.is-current .checkout-step-num {
+  background: var(--bronze);
+  border-color: var(--bronze);
+  color: var(--parchment);
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow screens: keep everything inside the frame at 412px wide; no
+ * horizontal overflow. Compact masthead so the title and the card land in the
+ * first screen. At 412px the fee block keeps the full width, and a smaller
+ * ghost (about 72 x 84) rises from a strip reserved under the block, so it
+ * never covers a fee line, the total or the Pay button (exactly as Rooms 2-8
+ * do).
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  /* 6 Nov (Neo): at 412 px the total's nowrap price ran over "Real total". */
+  .fee-line-total {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+  }
+
+  .fee-line-total .fee-line-price {
+    white-space: normal;
+    text-align: left;
+  }
+
+  .mildew-masthead {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+
+  .mildew-header {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+  }
+
+  .plan-shout-price {
+    font-size: 2rem;
+  }
+
+  .plan-pay,
+  .plan-pay-honest {
+    width: 100%;
+    text-align: center;
+    align-self: stretch;
+  }
+
+  /* At 412px the fee block reserves a strip under its lines, and the smaller
+     ghost rises from that strip at its right end, so it never covers a fee
+     line, the total or the Pay button. */
+  .fee-lines-inner {
+    padding-bottom: 88px;
+  }
+
+  .ghost-signs {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 72px;
+    height: 84px;
+  }
+
+  .ghost {
+    width: 72px;
+    height: 84px;
+  }
+
+  .mist {
+    width: 80px;
+    height: 40px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 60px;
+    top: -44px;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 10px;
+    top: -84px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 20px;
+    top: -30px;
+  }
+
+  .stirs-label {
+    left: auto;
+    right: 78px;
+    top: -44px;
+    width: 64px;
+    white-space: normal;
+    text-align: right;
+  }
+}
