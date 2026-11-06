@@ -41,6 +41,10 @@ jobs:
       - name: Check initial bundle size
         run: npm run check:size
 
+      # The build manifest is only for the size check; a hidden folder in the artifact failed the deploy twice
+      - name: Drop the build manifest from the site
+        run: rm -rf dist/.vite
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
