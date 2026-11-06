@@ -582,3 +582,68 @@
     animation: none;
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * The Sound toggle: one button on every page, top-right inside the manor
+ * frame. Colours come only from tokens; text meets WCAG AA contrast; the
+ * focus ring is a 3px candle outline on the dark surface. Under reduced
+ * motion it holds still (the sound itself keeps playing — sound is not
+ * motion). The 44x44 target and the top-right placement keep it clear of the
+ * task bar, the possessed element, the ghost and the spell cards at both
+ * 1920x1080 and 412px wide: the toggle sits in the top-right corner and the
+ * routed content (task bar, frame, cards) flows below and to the left of it.
+ * ------------------------------------------------------------------ */
+.sound-toggle {
+  position: fixed;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  z-index: 10;
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  color: var(--candle);
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: box-shadow var(--duration-hover) var(--easing);
+}
+
+.sound-toggle svg {
+  width: 24px;
+  height: 24px;
+  stroke: currentColor;
+  fill: none;
+  flex: 0 0 auto;
+}
+
+.sound-toggle-label {
+  color: var(--ghost);
+}
+
+.sound-toggle:hover {
+  box-shadow: 0 0 10px rgba(240, 190, 119, 0.4);
+}
+
+.sound-toggle:focus-visible,
+.sound-toggle:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* aria-pressed=false (sound off): a dimmer glyph, still AA against the wood. */
+.sound-toggle[aria-pressed='false'] {
+  color: var(--gold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sound-toggle {
+    transition: none;
+  }
+}

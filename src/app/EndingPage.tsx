@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'preact/hooks';
 import { doneCount } from '../engine/progress';
+import { quiet } from '../audio/sound';
 import ShareCard from './ShareCard';
 import './ending.css';
 
@@ -86,6 +87,12 @@ export default function EndingPage() {
   useEffect(() => {
     headingRef.current?.focus();
   }, []);
+
+  // The gentle three-note descending chime, once, when the ending opens with
+  // all twelve named. A no-op when sound is off or there is no audio.
+  useEffect(() => {
+    if (complete) quiet();
+  }, [complete]);
 
   if (!complete) {
     return (

@@ -8,6 +8,17 @@ import SpellPicker from '../ui/SpellPicker';
 import LiveRegion from '../ui/LiveRegion';
 import BeforeAfterSlider from '../ui/BeforeAfterSlider';
 import GuideCard from '../ui/GuideCard';
+import {
+  cold,
+  fadeOutAmbience,
+  flee,
+  honest as honestCue,
+  lantern as lanternCue,
+  setRoomTag,
+  startAmbience,
+  stopAmbience,
+  whisper,
+} from '../audio/sound';
 
 export interface RoomProps {
   room: RoomData;
@@ -48,6 +59,8 @@ const STATE_HEADING: Record<RoomState['tag'], string> = {
   done: 'The room is free',
 };
 
+const HAUNTED_TAGS: ReadonlyArray<RoomState['tag']> = ['haunted', 'inspecting', 'picking'];
+
 export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   const reduceBound = (state: RoomState, event: RoomEvent) => reduce(state, event, room);
   const [state, dispatch] = useReducer(reduceBound, room, initialState);
@@ -55,6 +68,8 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   const reducedMotion = usePrefersReducedMotion();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const doneRef = useRef(false);
+  // The previous tag, so sound effects fire on the transition, not every render.
+  const prevTag = useRef<RoomState['tag'] | null>(null);
 
   // Auto-advance named -> honest with no player input.
   useEffect(() => {
@@ -75,6 +90,53 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   useEffect(() => {
     headingRef.current?.focus();
   }, [state.tag]);
+
+  // Sound: cues and ambience, driven from the view. The reducer stays pure;
+  // these effects only read the tag and the wrong-pick nonce it already
+  // produces. Each cue is a no-op when sound is off or there is no audio.
+  useEffect(() => {
+    const tag = state.tag;
+    const prev = prevTag.current;
+    prevTag.current = tag;
+
+    // Tell the engine the current state so turning sound on can resume the
+    // ambience, and so leaving the room can stop it.
+    setRoomTag(tag);
+
+    // Cues on specific transitions.
+    if (prev === 'haunted' && tag === 'inspecting') lanternCue();
+    if (prev === 'inspecting' && tag === 'picking') cold();
+    if (tag === 'named') flee();
+    if (tag === 'done') honestCue();
+
+    // Ambience: play only while haunted/inspecting/picking; fade out when the
+    // room turns honest.
+    if (HAUNTED_TAGS.includes(tag)) {
+      startAmbience();
+    } else if (tag === 'honest' && prev !== 'honest' && prev !== 'done') {
+      fadeOutAmbience();
+    }
+  }, [state.tag]);
+
+  // The whisper fires exactly once per wrong pick, keyed on the nonce the live
+  // region also uses — so the whisper sound and the whispered hint land
+  // together. Skip the initial 0 so no whisper plays on mount.
+  const firstNonce = useRef(true);
+  useEffect(() => {
+    if (firstNonce.current) {
+      firstNonce.current = false;
+      return;
+    }
+    if (state.whisperNonce > 0) whisper();
+  }, [state.whisperNonce]);
+
+  // Leaving the room: stop the ambience at once and clear its timers.
+  useEffect(() => {
+    return () => {
+      setRoomTag(null);
+      stopAmbience();
+    };
+  }, []);
 
   const signsActive = state.tag === 'haunted' || state.tag === 'inspecting';
   const showSplit = state.tag === 'honest' || state.tag === 'done';

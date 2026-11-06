@@ -5,6 +5,7 @@ import Room from '../engine/Room';
 import { loadRoom, roomSlugs } from '../engine/registry';
 import { doneCount } from '../engine/progress';
 import type { RoomData } from '../engine/types';
+import SoundToggle from '../audio/SoundToggle';
 
 type Route = 'title' | 'room' | 'look' | 'end';
 
@@ -114,6 +115,9 @@ export default function App() {
 
   return (
     <div class="app">
+      {/* One Sound toggle on every page, top-right inside the manor frame. */}
+      <SoundToggle />
+
       {route === 'title' ? (
         <div class="title-screen">
           <h1 tabindex={-1}>Dark Pattern Manor</h1>
