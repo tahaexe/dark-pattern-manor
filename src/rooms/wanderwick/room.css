@@ -417,7 +417,8 @@
  * Light parchment card with ink text, like Rooms 1-9's honest twin.
  * ------------------------------------------------------------------ */
 .wanderwick-honest .game-screen {
-  background-color: #fbfaf7;
+  /* shorthand: also clears the base rule's dark gradient (7 Nov) */
+  background: #fbfaf7;
   border: 1px solid var(--parchment-2);
 }
 

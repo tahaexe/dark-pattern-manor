@@ -20,7 +20,8 @@ The Room Engine must serve all 12 rooms without favouring any one. It is the con
 - **close-relative card**: A wrong spell card that names a dark pattern related to the correct one.
 - **clearly-different card**: A wrong spell card that names a dark pattern unrelated to the correct one.
 - **Ghost Guide entry**: The card that opens after the ghost flees: a two-sentence definition, a where-you-meet-it string, a US legal line (source label and URL), an EU legal line (source label and URL), and one protection tip.
-- **Before/After slider**: The control that splits the haunted and honest versions side by side, operable by keyboard as an ARIA slider.
+- **Before/After slider**: The control that splits the haunted and honest versions, operable by keyboard as an ARIA slider.
+- **comparison box**: The single box, shown from the honest state on, that stacks the haunted version and its honest twin in one cell and wipes the honest twin over the haunted version from the left up to the slider's value.
 - **lantern**: The control (a button and the L key) that turns the page to the inspecting state, letting the player select any interactive element.
 - **live region**: An ARIA live region, set to polite, that announces state changes and whispers to assistive technology.
 - **prefers-reduced-motion**: The user setting exposed through the CSS media query of the same name; when active it replaces all motion-based ghost signs with static signs.
@@ -71,6 +72,25 @@ The Room Engine must serve all 12 rooms without favouring any one. It is the con
 4. THE Room_Engine SHALL render text that meets WCAG AA contrast in both the haunted and honest states.
 5. THE Room_Engine SHALL make the possessed element focusable with a non-empty accessible name, selectable by pointer, keyboard, and screen reader.
 6. THE Room_Engine SHALL provide the Before/After slider as an ARIA slider operable by keyboard.
+
+### Requirement 9: The Before/After Comparison Wipe
+
+**User Story:** As a player, once the ghost has fled, I want the honest twin to wipe over the haunted version in one comparison box so that I can see exactly what changed and move the reveal myself by keyboard or pointer.
+
+#### Acceptance Criteria
+
+1. WHEN the room enters the honest state, THE Room_Engine SHALL render a single comparison box that stacks the haunted version and its honest twin in the same grid cell so that the box is as tall as the taller version and neither version shifts the layout.
+2. THE Room_Engine SHALL draw the haunted version underneath and the honest twin on top, and SHALL reveal the honest twin from the left edge up to the slider's value using `clip-path: inset(0 calc(100% - var(--split)) 0 0)`, where the honest layer carries a `--split` custom property equal to the slider's value as a percentage.
+3. THE Room_Engine SHALL treat a slider value of 0 as fully haunted and 100 as fully honest.
+4. WHEN the comparison box first appears AND prefers-reduced-motion is active, THE Room_Engine SHALL set the slider to 50 and hold it there without animation.
+5. WHEN the comparison box first appears AND prefers-reduced-motion is not active, THE Room_Engine SHALL sweep the slider once from 0 to 50 over about 1.2 seconds and then rest at 50.
+6. THE Room_Engine SHALL render, at the reveal edge, a decorative (`aria-hidden`) vertical divider in the candle colour with a small round grip.
+7. THE Room_Engine SHALL render a small "Haunted" label in the top-right corner and a "Honest" label in the top-left corner, each visible only on its own side of the divider.
+8. THE Room_Engine SHALL label the Before/After slider "Before and After slider" and step its value by 5 for the arrow keys, by 25 for Page Up and Page Down, to 0 for Home, and to 100 for End, clamped to the range 0–100, and SHALL set the slider's value from the pointer's x position when the player drags on the range or on the comparison box, without moving keyboard focus.
+9. WHEN any element inside the honest layer of the comparison box receives keyboard focus, THE Room_Engine SHALL move the slider to 100 at once, so that a focused control is never hidden by the clip (WCAG 2.4.11).
+10. THE Room_Engine SHALL keep the honest twin interactive (its single task action completes the room) and keep the haunted version non-interactive (preview mode), relying on `clip-path` so the clipped-away honest parts receive no pointer events.
+11. THE Room_Engine SHALL give the comparison box `role="group"` with the accessible name "Haunted and honest versions", keep the haunted preview announced as it is today, and read nothing new on each slider step beyond the native range's value.
+12. WHERE the viewport is narrower than 600 px, THE Room_Engine SHALL render the comparison box at full width with the same wipe behaviour.
 
 ### Requirement 4: Ghost Signs and Reduced Motion
 
@@ -148,3 +168,10 @@ These are the executable properties the Room Engine must satisfy, expressed for 
 ### Shuffle property
 
 - Shuffling the three spell cards yields a permutation of the same three cards: the same set, in a possibly different order.
+
+### Comparison-wipe properties
+
+- When the comparison box first appears under prefers-reduced-motion, the slider's value is 50 and the honest layer's `--split` is `50%`.
+- The slider's value is clamped to 0–100: the arrow keys move it by 5, Page Up and Page Down by 25, Home to 0, and End to 100.
+- Focusing any control inside the honest layer moves the slider to 100.
+- The honest twin's single task action completes the room at any slider value.

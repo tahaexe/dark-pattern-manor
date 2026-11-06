@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useRef, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'preact/hooks';
 import type { RoomData, SpellCard } from './types';
 import { initialState, reduce } from './machine';
 import type { RoomEvent, RoomState } from './machine';
@@ -61,15 +61,30 @@ const STATE_HEADING: Record<RoomState['tag'], string> = {
 
 const HAUNTED_TAGS: ReadonlyArray<RoomState['tag']> = ['haunted', 'inspecting', 'picking'];
 
+/** The reveal where the opening sweep rests. */
+const SWEEP_REST = 50;
+/** The opening sweep's duration in ms (~1.2 s). */
+const SWEEP_MS = 1200;
+
 export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   const reduceBound = (state: RoomState, event: RoomEvent) => reduce(state, event, room);
   const [state, dispatch] = useReducer(reduceBound, room, initialState);
-  const [slider, setSlider] = useState(0);
+  // The reveal: 0 = fully haunted, 100 = fully honest. It starts at the rest
+  // point so the comparison never flashes fully-haunted for assistive tech or
+  // under reduced motion; the opening sweep (below) animates it in when motion
+  // is allowed.
+  const [slider, setSlider] = useState(SWEEP_REST);
   const reducedMotion = usePrefersReducedMotion();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const doneRef = useRef(false);
   // The previous tag, so sound effects fire on the transition, not every render.
   const prevTag = useRef<RoomState['tag'] | null>(null);
+
+  const comparisonRef = useRef<HTMLDivElement>(null);
+  const honestLayerRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
+  // The opening sweep runs once per room, keyed off the first honest render.
+  const sweptRef = useRef(false);
 
   // Auto-advance named -> honest with no player input.
   useEffect(() => {
@@ -90,6 +105,47 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   useEffect(() => {
     headingRef.current?.focus();
   }, [state.tag]);
+
+  const signsActive = state.tag === 'haunted' || state.tag === 'inspecting';
+  const showSplit = state.tag === 'honest' || state.tag === 'done';
+
+  // The opening sweep. When the comparison first appears: under reduced motion
+  // it stays at the rest point (no animation); otherwise it sweeps once from 0
+  // to the rest point over ~1.2 s so the reveal is seen, then rests. Runs once.
+  useLayoutEffect(() => {
+    if (!showSplit || sweptRef.current) return;
+    sweptRef.current = true;
+    if (reducedMotion) {
+      setSlider(SWEEP_REST);
+      return;
+    }
+    if (typeof requestAnimationFrame !== 'function') {
+      setSlider(SWEEP_REST);
+      return;
+    }
+    let raf = 0;
+    const start = performance.now();
+    setSlider(0);
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / SWEEP_MS);
+      setSlider(Math.round(t * SWEEP_REST));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [showSplit, reducedMotion]);
+
+  // Focus safety (WCAG 2.4.11): if any control inside the honest layer takes
+  // focus, snap the reveal fully to honest so the focused control is never
+  // hidden behind the clip.
+  useEffect(() => {
+    if (!showSplit) return;
+    const layer = honestLayerRef.current;
+    if (!layer) return;
+    const onFocusIn = () => setSlider(100);
+    layer.addEventListener('focusin', onFocusIn);
+    return () => layer.removeEventListener('focusin', onFocusIn);
+  }, [showSplit]);
 
   // Sound: cues and ambience, driven from the view. The reducer stays pure;
   // these effects only read the tag and the wrong-pick nonce it already
@@ -138,15 +194,42 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
     };
   }, []);
 
-  const signsActive = state.tag === 'haunted' || state.tag === 'inspecting';
-  const showSplit = state.tag === 'honest' || state.tag === 'done';
-
   const HauntedView = room.Haunted;
   const HonestView = room.Honest;
 
   // The continue affordance: the same way every room reaches the next. For the
   // last room `nextHash` is `#/end`, so the manor's exit leads to the ending.
   const leavingManor = nextHash === '#/end';
+
+  // Dragging the divider with a pointer sets the reveal from the pointer's x,
+  // without stealing keyboard focus from the range or the honest controls.
+  const setFromPointer = (clientX: number) => {
+    const box = comparisonRef.current;
+    if (!box) return;
+    const rect = box.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const pct = ((clientX - rect.left) / rect.width) * 100;
+    setSlider(Math.max(0, Math.min(100, Math.round(pct))));
+  };
+
+  const onPointerDown = (e: PointerEvent) => {
+    // Let the native range handle its own thumb; only drive from the box
+    // surface so dragging the divider works.
+    const target = e.target as HTMLElement | null;
+    if (target && target.closest('.split-control')) return;
+    draggingRef.current = true;
+    (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    setFromPointer(e.clientX);
+  };
+  const onPointerMove = (e: PointerEvent) => {
+    if (!draggingRef.current) return;
+    setFromPointer(e.clientX);
+  };
+  const endDrag = (e: PointerEvent) => {
+    if (!draggingRef.current) return;
+    draggingRef.current = false;
+    (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+  };
 
   return (
     <div class="room-scene">
@@ -188,9 +271,24 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
 
       {showSplit ? (
         <>
-          <div class="split" style={{ ['--split' as string]: `${slider}%` }}>
-            <div class="split-side haunted">
-              <span class="split-label">Haunted</span>
+          {/* The before/after comparison wipe. Both versions are stacked in one
+              grid cell, so the box is as tall as the taller one and nothing
+              shifts. The haunted preview is underneath; the honest twin is on
+              top, revealed from the left up to `--split` by its clip-path. */}
+          <div
+            class="comparison"
+            role="group"
+            aria-label="Haunted and honest versions"
+            ref={comparisonRef}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={endDrag}
+            onPointerCancel={endDrag}
+          >
+            <div class="comparison-cell comparison-haunted">
+              <span class="comparison-tag comparison-tag-haunted" aria-hidden="true">
+                Haunted
+              </span>
               <div class="manor-frame manor-frame-preview">
                 <HauntedView
                   onSelectPossessed={() => {}}
@@ -201,15 +299,32 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
                 />
               </div>
             </div>
-            <div class="split-side honest">
-              <span class="split-label">Honest</span>
+
+            <div
+              class="comparison-cell comparison-honest"
+              ref={honestLayerRef}
+              style={{ ['--split' as string]: `${slider}%` }}
+            >
+              <span class="comparison-tag comparison-tag-honest" aria-hidden="true">
+                Honest
+              </span>
               <div class="manor-frame manor-frame-preview">
                 <HonestView onCompleteTask={() => dispatch({ type: 'COMPLETE_TASK' })} />
               </div>
             </div>
+
+            {/* The reveal edge: a candle-colour divider with a round grip.
+                Decorative — the slider and the drag carry the real control. */}
+            <div
+              class="comparison-divider"
+              aria-hidden="true"
+              style={{ ['--split' as string]: `${slider}%` }}
+            >
+              <span class="comparison-grip"></span>
+            </div>
           </div>
 
-          <BeforeAfterSlider value={slider} onChange={setSlider} />
+          <BeforeAfterSlider value={slider} onChange={setSlider} step={5} />
 
           <GuideCard pattern={room.pattern} guide={room.guide} />
 

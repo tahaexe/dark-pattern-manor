@@ -386,7 +386,8 @@
 }
 
 .grimsupper-honest .discount-pop {
-  background-color: #fbfaf7;
+  /* shorthand: also clears the base rule's dark gradient (7 Nov) */
+  background: #fbfaf7;
   border: 1px solid var(--parchment-2);
   /* The honest pop-up has no ghost, so it needs no extra bottom room. */
   padding-bottom: var(--spacing-lg);

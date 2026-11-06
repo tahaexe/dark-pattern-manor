@@ -387,7 +387,10 @@
  * parchment card with ink text, like Rooms 1-11's honest twin.
  * ------------------------------------------------------------------ */
 .bramblegate-honest .account-card {
-  background-color: #fbfaf7;
+  /* The shorthand also clears the haunted card's dark gradient; with only
+     background-color the gradient stayed on top and the ink text sat on dark
+     (found 7 Nov in the real-browser walk). */
+  background: #fbfaf7;
   border: 1px solid var(--parchment-2);
 }
 

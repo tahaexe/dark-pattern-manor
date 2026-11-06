@@ -95,8 +95,9 @@
 }
 
 .checkout-step.is-current .checkout-step-num {
-  background: var(--bronze);
-  border-color: var(--bronze);
+  /* A darker bronze: ghost on plain bronze was 4.2:1 for this 13 px digit (7 Nov). */
+  background: color-mix(in srgb, var(--bronze) 70%, var(--ink));
+  border-color: color-mix(in srgb, var(--bronze) 70%, var(--ink));
   color: var(--ghost);
 }
 
@@ -427,7 +428,8 @@
  * with ink text, like Rooms 1-8's honest twin.
  * ------------------------------------------------------------------ */
 .mildew-honest .plan-card {
-  background-color: #fbfaf7;
+  /* shorthand: also clears the base rule's dark gradient (7 Nov) */
+  background: #fbfaf7;
   border: 1px solid var(--parchment-2);
 }
 
@@ -513,9 +515,9 @@
 }
 
 .mildew-honest .checkout-step.is-current .checkout-step-num {
-  background: var(--bronze);
-  border-color: var(--bronze);
-  color: var(--parchment);
+  background: color-mix(in srgb, var(--bronze) 70%, var(--ink));
+  border-color: color-mix(in srgb, var(--bronze) 70%, var(--ink));
+  color: var(--ghost);
 }
 
 /* ------------------------------------------------------------------ *

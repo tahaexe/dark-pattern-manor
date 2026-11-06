@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/preact';
 import Room from './Room';
 import { loadRoom, roomSlugs } from './registry';
@@ -10,6 +10,23 @@ const identityRng = () => 0;
 
 async function foyer(): Promise<RoomData> {
   return loadRoom('gravemoor-gazette');
+}
+
+/** Mock matchMedia so `prefers-reduced-motion: reduce` is on (deterministic). */
+function mockReducedMotion() {
+  return vi.spyOn(window, 'matchMedia').mockImplementation(
+    (query: string) =>
+      ({
+        matches: query.includes('prefers-reduced-motion'),
+        media: query,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      }) as unknown as MediaQueryList,
+  );
 }
 
 describe('registry (on-demand loading)', () => {
@@ -144,24 +161,76 @@ describe('Room component — wrong-pick whisper', () => {
   });
 });
 
-describe('Room component — Before/After slider', () => {
+describe('Room component — the Before/After comparison wipe', () => {
+  let spy: ReturnType<typeof mockReducedMotion> | undefined;
+
   beforeEach(() => {
     __resetForTests();
+    // Reduced motion on: the opening sweep is skipped, so the reveal rests at
+    // 50 synchronously — a deterministic starting point for every assertion.
+    spy = mockReducedMotion();
   });
 
-  it('the slider moves with the arrow keys and with Home and End', async () => {
+  afterEach(() => {
+    spy?.mockRestore();
+  });
+
+  async function reachHonest() {
     const room = await foyer();
-    render(<Room room={room} rng={identityRng} />);
+    const view = render(<Room room={room} rng={identityRng} />);
     fireEvent.click(screen.getByRole('button', { name: /Lantern/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Reject all' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Visual interference' }));
+    await screen.findByRole('heading', { level: 2, name: 'Visual interference' });
+    return view;
+  }
 
-    const slider = (await screen.findByRole('slider', {
+  it('renders one comparison box, role=group, with both versions stacked', async () => {
+    const { container } = await reachHonest();
+    const box = screen.getByRole('group', { name: 'Haunted and honest versions' });
+    expect(box).toBeDefined();
+    // Both versions live inside the one box.
+    expect(box.querySelector('.comparison-haunted')).not.toBeNull();
+    expect(box.querySelector('.comparison-honest')).not.toBeNull();
+    // Exactly one comparison box.
+    expect(container.querySelectorAll('.comparison')).toHaveLength(1);
+  });
+
+  it('under reduced motion the slider starts at 50 and the honest layer carries --split: 50%', async () => {
+    const { container } = await reachHonest();
+    const slider = screen.getByRole('slider', {
       name: 'Before and After slider',
-    })) as HTMLInputElement;
+    }) as HTMLInputElement;
+    expect(slider.value).toBe('50');
+    const honest = container.querySelector('.comparison-honest') as HTMLElement;
+    expect(honest.style.getPropertyValue('--split')).toBe('50%');
+  });
 
-    // Starts fully haunted.
-    expect(slider.value).toBe('0');
+  it('arrow keys move by 5, Page Up/Down by 25, Home/End to 0/100 (clamped)', async () => {
+    const { container } = await reachHonest();
+    const slider = screen.getByRole('slider', {
+      name: 'Before and After slider',
+    }) as HTMLInputElement;
+    const split = () =>
+      (container.querySelector('.comparison-honest') as HTMLElement).style.getPropertyValue(
+        '--split',
+      );
+
+    expect(slider.value).toBe('50');
+
+    fireEvent.keyDown(slider, { key: 'ArrowRight' });
+    await waitFor(() => expect(slider.value).toBe('55'));
+    expect(split()).toBe('55%');
+
+    fireEvent.keyDown(slider, { key: 'ArrowLeft' });
+    await waitFor(() => expect(slider.value).toBe('50'));
+
+    fireEvent.keyDown(slider, { key: 'PageUp' });
+    await waitFor(() => expect(slider.value).toBe('75'));
+
+    fireEvent.keyDown(slider, { key: 'PageDown' });
+    fireEvent.keyDown(slider, { key: 'PageDown' });
+    await waitFor(() => expect(slider.value).toBe('25'));
 
     fireEvent.keyDown(slider, { key: 'End' });
     await waitFor(() => expect(slider.value).toBe('100'));
@@ -169,7 +238,39 @@ describe('Room component — Before/After slider', () => {
     fireEvent.keyDown(slider, { key: 'Home' });
     await waitFor(() => expect(slider.value).toBe('0'));
 
-    fireEvent.keyDown(slider, { key: 'ArrowRight' });
-    await waitFor(() => expect(slider.value).toBe('1'));
+    // Clamped: another ArrowLeft at 0 does not go negative.
+    fireEvent.keyDown(slider, { key: 'ArrowLeft' });
+    await waitFor(() => expect(slider.value).toBe('0'));
+  });
+
+  it('focusing the honest twin task button snaps the reveal fully to honest (100)', async () => {
+    const { container } = await reachHonest();
+    const slider = screen.getByRole('slider', {
+      name: 'Before and After slider',
+    }) as HTMLInputElement;
+    // Start it anywhere but 100.
+    fireEvent.keyDown(slider, { key: 'Home' });
+    await waitFor(() => expect(slider.value).toBe('0'));
+
+    // The honest twin's task button lives inside the honest layer.
+    const honest = container.querySelector('.comparison-honest') as HTMLElement;
+    const taskButton = honest.querySelector('button') as HTMLButtonElement;
+    fireEvent.focusIn(taskButton);
+
+    await waitFor(() => expect(slider.value).toBe('100'));
+    expect(honest.style.getPropertyValue('--split')).toBe('100%');
+  });
+
+  it('the one-click task completes the room (reaches done) at any slider value', async () => {
+    await reachHonest();
+    const slider = screen.getByRole('slider', {
+      name: 'Before and After slider',
+    }) as HTMLInputElement;
+    // Move the reveal to a partial value; the task must still complete.
+    fireEvent.keyDown(slider, { key: 'ArrowLeft' });
+    await waitFor(() => expect(slider.value).toBe('45'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Reject all' }));
+    await waitFor(() => expect(doneCount()).toBe(1));
   });
 });

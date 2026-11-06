@@ -2,7 +2,7 @@ export interface BeforeAfterSliderProps {
   /** 0 = fully haunted, 100 = fully honest. */
   value: number;
   onChange: (value: number) => void;
-  /** Step size for arrow keys (default 1). */
+  /** Step size for arrow keys (default 1). Page Up / Page Down move by 5×. */
   step?: number;
 }
 
@@ -10,12 +10,19 @@ export interface BeforeAfterSliderProps {
  * The Before/After control: a native range input exposed as an ARIA slider,
  * labelled "Before and After slider", fully keyboard operable with native
  * range semantics — Left/Down decrease and Right/Up increase by one step,
- * Home jumps to the minimum (fully haunted), End to the maximum (fully
- * honest). The key handling is explicit so the semantics hold uniformly
- * across browsers and test environments.
+ * Page Down / Page Up move by a larger page (step × 5), Home jumps to the
+ * minimum (fully haunted) and End to the maximum (fully honest). Every value is
+ * clamped to 0–100. The key handling is explicit so the semantics hold
+ * uniformly across browsers and test environments.
+ *
+ * The control carries no visible side labels: in the engine the "Haunted" and
+ * "Honest" labels live on the corners of the comparison box, so the slider is
+ * the lone control under the wipe. Its accessible name is "Before and After
+ * slider".
  */
 export default function BeforeAfterSlider({ value, onChange, step = 1 }: BeforeAfterSliderProps) {
   const clamp = (v: number) => Math.max(0, Math.min(100, v));
+  const page = step * 5;
 
   const onKeyDown = (e: KeyboardEvent) => {
     let next: number | null = null;
@@ -27,6 +34,12 @@ export default function BeforeAfterSlider({ value, onChange, step = 1 }: BeforeA
       case 'ArrowRight':
       case 'ArrowUp':
         next = clamp(value + step);
+        break;
+      case 'PageDown':
+        next = clamp(value - page);
+        break;
+      case 'PageUp':
+        next = clamp(value + page);
         break;
       case 'Home':
         next = 0;
@@ -43,9 +56,6 @@ export default function BeforeAfterSlider({ value, onChange, step = 1 }: BeforeA
 
   return (
     <div class="split-control">
-      <label class="split-label-text" for="before-after-slider">
-        Haunted
-      </label>
       <input
         id="before-after-slider"
         type="range"
@@ -58,7 +68,6 @@ export default function BeforeAfterSlider({ value, onChange, step = 1 }: BeforeA
         onKeyDown={onKeyDown}
         onInput={(e) => onChange(clamp(Number((e.target as HTMLInputElement).value)))}
       />
-      <span class="split-label-text">Honest</span>
     </div>
   );
 }

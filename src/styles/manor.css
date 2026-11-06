@@ -493,7 +493,9 @@
   outline-offset: 1px;
 }
 
-/* Split view (Before/After) */
+/* Split view (Before/After) — the standalone look-page prototype. The engine
+   Room uses the `.comparison*` rules at the end of this file; these `.split*`
+   rules are kept for the look page. */
 .split {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -605,6 +607,143 @@
   box-shadow: 0 4px 12px var(--candle);
   outline: 3px solid var(--candle);
   outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The Before/After comparison wipe (engine Room, Requirement 9).
+ *
+ * A classic before/after wipe: the haunted preview and the honest twin are
+ * stacked in ONE grid cell, so the box is as tall as the taller version and
+ * nothing shifts as the reveal moves. The haunted preview is underneath; the
+ * honest twin is on top, revealed from the left edge up to `--split` with a
+ * clip-path. A candle-colour divider with a round grip marks the reveal edge;
+ * a "Haunted" tag sits top-right and a "Honest" tag top-left, each visible only
+ * on its own side of the divider.
+ *
+ * These `.comparison*` classes are the engine's own; the standalone look-page
+ * prototype keeps using the `.split*` rules above, untouched.
+ * ------------------------------------------------------------------ */
+.comparison {
+  display: grid;
+  margin: var(--spacing-2xl) auto;
+  max-width: 1000px;
+  width: 100%;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 2;
+  /* Vertical swipes still scroll the page on a phone; only horizontal drags
+     move the divider (none trapped the scroll over a tall comparison). */
+  touch-action: pan-y;
+}
+
+/* Both versions occupy the same single cell, so the box takes the height of
+   the taller one and neither shifts the layout. */
+.comparison-cell {
+  grid-area: 1 / 1;
+  min-width: 0;
+  padding: var(--spacing-xl);
+  position: relative;
+  /* Each layer is its own stacking context, so a z-indexed element inside the
+     haunted preview (a banner, a ghost, a modal) can never paint over the
+     honest twin (found 7 Nov: room 12's account card and room 1's banner
+     showed through at 100). */
+  isolation: isolate;
+}
+
+.comparison-haunted {
+  z-index: 0;
+  background: linear-gradient(135deg, var(--manor-wood), var(--manor-wood-2));
+  color: var(--ghost);
+}
+
+/* The honest twin is drawn on top and revealed from the left up to `--split`.
+   The clip-path means the clipped-away part receives no pointer events, so the
+   haunted preview underneath is what shows on the right side. */
+.comparison-honest {
+  z-index: 1;
+  background-color: var(--parchment);
+  color: var(--ink);
+  box-shadow: inset 0 0 20px rgba(240, 190, 119, 0.1);
+  clip-path: inset(0 calc(100% - var(--split, 50%)) 0 0);
+}
+
+/* The corner tags. The "Haunted" tag at top-right shows only over the haunted
+   side because the honest layer (on top) covers the left region; the "Honest"
+   tag at top-left is inside the honest layer, so it is clipped to the honest
+   side with it. */
+.comparison-tag {
+  position: absolute;
+  top: var(--spacing-md);
+  z-index: 3;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-sm);
+  /* Its own dark plate: on a phone the tag sat over the page's parchment and
+     ghost-white text read at 2:1 (7 Nov, the pixel contrast check). */
+  background: color-mix(in srgb, var(--manor-night) 88%, transparent);
+  color: var(--ghost);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+
+.comparison-tag-haunted {
+  right: var(--spacing-md);
+}
+
+.comparison-tag-honest {
+  left: var(--spacing-md);
+}
+
+/* The reveal edge: a thin vertical divider in the candle colour, positioned at
+   `--split` across the box, with a small round grip in the middle. Decorative
+   and aria-hidden; the slider and the pointer drag carry the real control. */
+.comparison-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--split, 50%);
+  width: 2px;
+  margin-left: -1px;
+  background: var(--candle);
+  box-shadow: 0 0 8px rgba(240, 190, 119, 0.6);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.comparison-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, var(--gold), var(--candle));
+  border: 2px solid var(--bronze);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+/* Below 600px the box is full width; the same wipe works unchanged. */
+@media (max-width: 600px) {
+  .comparison {
+    max-width: none;
+  }
+
+  .comparison-cell {
+    padding: var(--spacing-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comparison-honest {
+    /* The reveal is driven by JS state, not a CSS transition; the rule is kept
+       explicit so no transition sneaks in under reduced motion. */
+    transition: none;
+  }
 }
 
 /* Progress candles - SVG versions */

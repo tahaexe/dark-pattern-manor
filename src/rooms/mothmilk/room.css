@@ -414,7 +414,8 @@
  * ink text, like Rooms 1-7's honest twin.
  * ------------------------------------------------------------------ */
 .mothmilk-honest .basket-card {
-  background-color: #fbfaf7;
+  /* shorthand: also clears the base rule's dark gradient (7 Nov) */
+  background: #fbfaf7;
   border: 1px solid var(--parchment-2);
 }
 

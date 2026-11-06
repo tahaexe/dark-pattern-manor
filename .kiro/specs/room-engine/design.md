@@ -93,7 +93,7 @@ The reducer carries, inside the state, only what the view needs to render: the c
 
 1. Receives a loaded `RoomData` (see on-demand loading below).
 2. Holds the reducer state with `useReducer(reduceBound, initialState(room))`.
-3. Renders, per state, the room's `Haunted` component, the lantern, the spell picker, the live region, and — from `honest` onward — the Before/After slider, the honest twin, and the Ghost Guide card.
+3. Renders, per state, the room's `Haunted` component, the lantern, the spell picker, the live region, and — from `honest` onward — the comparison box (the haunted preview and the honest twin stacked in one cell), the Before/After slider, and the Ghost Guide card.
 4. Translates player input (pointer, keyboard, the L key, screen-reader activation) into `RoomEvent`s.
 5. On every state change, writes the new state's announcement into the live region (Requirement 3.1) and moves focus to the heading that labels the new state (Requirement 3.2).
 6. On reaching `done`, calls the progress store to persist completion and unlock the next room (Requirement 2.8).
@@ -165,7 +165,7 @@ export interface RoomData {
 }
 ```
 
-`HauntedProps` give the Haunted component the callbacks it needs: `onSelectPossessed`, `onSelectOther`, and the current `signsActive` / `reducedMotion` flags so it can render ghost signs. `HonestProps` give the Honest component `onCompleteTask` so its single task action dispatches `COMPLETE_TASK`. Both variants are rendered from the same `RoomData`, so they necessarily share the room's brand, the room's content, and the room's task; `check-rooms.mjs` asserts the two variants are built from one `RoomData` and never diverge on brand, content, or task.
+`HauntedProps` give the Haunted component the callbacks it needs: `onSelectPossessed`, `onSelectOther`, and the current `signsActive` / `reducedMotion` flags so it can render ghost signs, plus a `preview` flag for the static "before" side of the comparison. `HonestProps` give the Honest component `onCompleteTask` so its single task action dispatches `COMPLETE_TASK`. Both variants are rendered from the same `RoomData`, so they necessarily share the room's brand, the room's content, and the room's task; `check-rooms.mjs` asserts the two variants are built from one `RoomData` and never diverge on brand, content, or task.
 
 ### The pattern vocabulary (`src/engine/patterns.ts`)
 
@@ -244,9 +244,33 @@ A single `role="status" aria-live="polite"` element (matching the prototype's "S
 
 The whisper of a wrong card fires **exactly once per pick** and is announced **once** in this polite live region: the view keys the whisper on `state.whisperNonce`, so each wrong `PICK` produces one new announcement and no re-render re-announces a stale hint; a correct pick, a repeated identical render, or any unrelated state change does not re-fire the whisper (Requirements 2.6, 5.2, 5.5). The engine test asserts a single wrong pick yields exactly one whisper in exactly one polite region.
 
+### The Before/After comparison wipe (Requirement 9)
+
+From the `honest` state on, `Room.tsx` renders a **comparison box** — a classic before/after wipe — in place of the old two-column side-by-side layout.
+
+**Layout.** The two versions are stacked in one CSS-grid cell (both children assigned `grid-area: 1 / 1`), so the box is as tall as the taller of the two and nothing shifts as the wipe moves (Requirement 9.1). The haunted preview is drawn underneath; the honest twin is drawn on top and revealed from the left edge up to the slider's value with
+
+```css
+.comparison-honest { clip-path: inset(0 calc(100% - var(--split)) 0 0); }
+```
+
+where the honest layer carries an inline `--split: <value>%` (Requirement 9.2). A value of 0 shows all haunted, 100 all honest (Requirement 9.3). A thin vertical divider in the candle colour with a small round grip sits at the reveal edge; the divider and grip are decorative and `aria-hidden` (Requirement 9.6). A small "Haunted" label sits in the top-right corner and a "Honest" label in the top-left corner, each clipped to its own side of the divider so each is visible only on its own side (Requirement 9.7).
+
+The comparison box carries `role="group"` with the accessible name "Haunted and honest versions" (Requirement 9.11). The haunted preview inside it stays non-interactive (`preview` mode: `aria-hidden`, `tabIndex={-1}`, no `onClick`, no possessed-element id), exactly as today. The honest twin stays the interactive layer: its single task button completes the room (Requirement 9.10). Clipped-away parts of the honest layer receive no pointer events by the nature of `clip-path`.
+
+**The opening sweep.** When the comparison first appears, the slider starts at 50. Under `prefers-reduced-motion` it is set to 50 and held there with no animation (Requirement 9.4). Otherwise an effect sweeps the value once from 0 to 50 over about 1.2 s with `requestAnimationFrame`, then rests at 50, so the reveal is seen (Requirement 9.5). The sweep runs once per room; it is cancelled on unmount.
+
+**Dragging the divider.** In addition to the range input, the player can drag the divider itself: a `pointerdown` on the comparison box (with pointer capture) and `pointermove` set the value from the pointer's x position relative to the box (`(clientX − left) / width × 100`, clamped 0–100). This pointer path does **not** move keyboard focus (Requirement 9.8).
+
+**Focus safety (WCAG 2.4.11).** When any element inside the honest layer receives focus (a `focusin` listener on the honest layer), the slider jumps to 100 at once, so a focused control is never hidden behind the clip (Requirement 9.9).
+
+**Narrow screens.** Below 600 px the comparison box is full width and the same wipe works unchanged (Requirement 9.12).
+
+The engine's comparison uses its own class names (`.comparison`, `.comparison-cell`, `.comparison-haunted`, `.comparison-honest`, `.comparison-divider`, `.comparison-grip`, `.comparison-tag`) so the standalone look-page prototype's `.split` styles are untouched.
+
 ### The Before/After slider (`src/ui/BeforeAfterSlider.tsx`)
 
-An `<input type="range">` exposed as an ARIA slider, operable by keyboard (Requirement 3.6). It splits the haunted version and its honest twin; it appears from the `honest` state onward. Value 0 shows fully haunted, 100 fully honest; the control is labelled "Before and After slider". It follows native range-slider keyboard semantics: Left/Down arrows decrease and Right/Up arrows increase the value by one step, `Home` jumps to the minimum (fully haunted), and `End` jumps to the maximum (fully honest). The engine test drives the slider with the arrow keys and with `Home` and `End` and asserts the value and the split move accordingly.
+An `<input type="range">` exposed as an ARIA slider, operable by keyboard (Requirement 3.6, 9.8). It drives the comparison wipe; it appears from the `honest` state onward. Value 0 shows fully haunted, 100 fully honest; the control is labelled "Before and After slider". Keyboard semantics: Left/Down decrease and Right/Up increase by one `step`; Page Down decreases and Page Up increases by `step × 5`; `Home` jumps to the minimum (0, fully haunted) and `End` to the maximum (100, fully honest); all values are clamped to 0–100. In the engine the slider is given `step={5}`, so the arrow keys move by 5 and Page Up/Down by 25. Pointer dragging on the range works natively. The component's own test uses the default `step` of 1. The engine test drives the slider with the arrow keys, Page Up/Down, and `Home`/`End` and asserts the value and the rendered `--split` move accordingly.
 
 ### The Ghost Guide card (`src/ui/GuideCard.tsx`)
 
@@ -345,7 +369,7 @@ The authored shape of a room is the `RoomData` object above. Constraints enforce
 - **Room chunk load failure** (offline, cache miss) shows an in-manor retry affordance that is whole and readable — never a broken frame — and does not advance or reset progress. Retrying re-issues the dynamic import.
 - **`localStorage` unavailable** falls back to in-memory progress so the room still completes; nothing throws into the render path.
 
-The haunting is always a clue layered on a working page, never hidden or broken content: all text stays readable and all controls operable while any ghost sign shows (Requirement 4.3, steering "Cracks and distortion").
+The haunting is always a clue layered on a working page, never hidden or broken content: all text stays readable and all controls operable while any ghost sign shows (Requirement 4.3, steering "Cracks and distortion"). The comparison wipe never hides a focusable honest control: focus inside the honest layer snaps the slider to 100 (Requirement 9.9).
 
 ## Testing Strategy
 
@@ -363,14 +387,17 @@ One assertion per transition in Requirement 2: `LANTERN` moves `haunted → insp
 
 ### axe-core accessibility tests
 
-- Engine-level (`src/engine/Room.axe.test.tsx`, Requirement 6.4): render one room in each of the six states (`haunted`, `inspecting`, `picking`, `named`, `honest`, `done`) and assert zero axe violations in every state.
+- Engine-level (`src/engine/Room.axe.test.tsx`, Requirement 6.4): render one room in each of the six states (`haunted`, `inspecting`, `picking`, `named`, `honest`, `done`) and assert zero axe violations in every state, including the comparison box in the honest and done states.
 - Per-room (below, design decision 5): axe-core finds zero violations on both the haunted and honest variants of every room, with the `color-contrast` rule included (not disabled). With `prefers-reduced-motion` mocked on, assert no ghost sign animates (the possessed element shows the static dashed candle outline and the "Something stirs here" label instead).
 
 ### Engine interaction tests (`src/engine/Room.test.tsx`)
 
 - The full loop: lantern → inspecting → pick possessed → picking → correct card → honest → complete task → done; focus moves to the new state's heading; loading a room uses dynamic import.
 - **The wrong-card whisper fires exactly once per pick and is announced once** in the single polite live region: after one wrong pick, exactly one whisper is present in exactly one `aria-live="polite"` region and is not re-announced by subsequent unrelated re-renders.
-- **The Before/After slider moves with the keyboard**: the arrow keys step the value, `Home` sets it to the minimum (fully haunted) and `End` sets it to the maximum (fully honest); the test asserts the slider value and the rendered split after each key.
+- **The comparison box** appears with both versions in a `role="group"` labelled "Haunted and honest versions"; under `prefers-reduced-motion` the slider's value is 50 and the honest layer's inline style carries a matching `--split: 50%`.
+- **The Before/After slider moves with the keyboard**: the arrow keys step the value by 5, Page Up/Down by 25, `Home` sets it to 0 and `End` to 100, clamped; the test asserts the slider value after each key.
+- **Focus safety**: focusing the honest twin's task button moves the slider to 100.
+- **Completion at any slider value**: the honest twin's single task click moves the room to `done` regardless of the slider's value.
 
 ### Per-room tests (`src/rooms/<slug>/<slug>.test.tsx`, design decision 4)
 
