@@ -1,0 +1,563 @@
+@import '../../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * Grimsupper — Room 3, The Dining Room
+ * Reuses the manor look (tokens, frame, banner) and the ghost / mist /
+ * flicker approach from Rooms 1-2. Confines all cracks and mist to the
+ * possessed decline link; the frame, pop-up and honest twin stay whole.
+ * ------------------------------------------------------------------ */
+
+.grimsupper {
+  position: relative;
+  z-index: 1;
+}
+
+/* The shop page in normal flow: masthead and the two menu cards, no fixed or
+   minimum heights. The pop-up overlays it; the backdrop dims it. */
+.grimsupper-shop-page {
+  position: relative;
+  z-index: 0;
+}
+
+/* 6 Nov (Neo): above 600 px the pop-up (about 300 px) covered the whole short
+   page, the brand included. The dimmed page runs on under the cards and the
+   pop-up sits at its foot, so the masthead stays readable above it. */
+@media (min-width: 601px) {
+  .grimsupper-shop-page {
+    padding-bottom: 240px;
+  }
+
+  .discount-overlay {
+    align-items: flex-end;
+  }
+}
+
+/* Masthead */
+.grimsupper-header {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--spacing-md);
+}
+
+.grimsupper-address {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.grimsupper-masthead {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.grimsupper-tagline {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  margin: var(--spacing-xs) 0 0;
+  font-style: italic;
+}
+
+/* The shop page's menu cards. Parchment cards with ink text. */
+.grimsupper-shop {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-lg);
+}
+
+.dish-card {
+  flex: 1 1 200px;
+  min-width: 0;
+  background-color: #fbfaf7;
+  border: 1px solid var(--parchment-2);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+.dish-name {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 var(--spacing-xs);
+}
+
+.dish-note {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  line-height: var(--line-height-normal);
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * The overlay: a real overlay inside the room's frame. It fills the room, dims
+ * the shop page with a backdrop (the manor's ink at ~60%) and centres the
+ * pop-up over it. The whole pop-up — the decline link included — stays in the
+ * first screen at 1920 x 1080 and at 412 x 823.
+ * ------------------------------------------------------------------ */
+.discount-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+}
+
+.discount-backdrop {
+  position: absolute;
+  inset: 0;
+  /* The manor's ink at ~60%. */
+  background: color-mix(in srgb, var(--manor-night) 60%, transparent);
+  z-index: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * The discount pop-up (haunted). Dark wood card centred over the backdrop, so
+ * the trick lives in the decline wording and weight, never in low contrast.
+ * It reserves extra bottom room so the whole ghost beside the decline link is
+ * drawn, never cut by the pop-up's bottom edge.
+ * ------------------------------------------------------------------ */
+.discount-pop {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 460px;
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  /* Room for the whole ghost (about 140px tall, anchored beside the decline
+     link near the pop-up's foot): let it sit within the card, not clipped. */
+  padding-bottom: 90px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  overflow: visible;
+}
+
+.discount-pop-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--candle);
+  margin: 0 0 var(--spacing-sm);
+}
+
+.discount-pop-text {
+  /* High-contrast parchment on the dark card — the lie is the wording of the
+     "no", not the legibility. */
+  color: var(--ghost);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+  margin: 0 0 var(--spacing-lg);
+}
+
+.discount-pop-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+
+/* Loud, bright primary: the choice the shop wants. */
+.discount-accept {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1.125rem;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.3);
+}
+
+.discount-accept:hover,
+.discount-accept:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 190, 119, 0.5);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The possessed decline link (Confirmshaming).
+ * A real button so it is keyboard-reachable and has an accessible name. It
+ * carries no aria-label, so the accessible name is the visible shaming
+ * sentence (Label in Name, WCAG 2.5.3). It is a small, dim text link beneath
+ * the big offer button — made quiet by size, weight and placement, never by
+ * low contrast (--parchment-2 on the dark card stays AA). The sentence itself
+ * is the positioning context for the ghost that peeks beside it.
+ * ------------------------------------------------------------------ */
+.discount-decline {
+  background: transparent;
+  color: var(--parchment-2);
+  border: none;
+  padding: var(--spacing-xs) 0;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-ui);
+  font-weight: 400;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  text-align: left;
+  text-decoration: underline;
+  transition: color var(--duration-hover) var(--easing);
+  position: relative;
+  overflow: visible;
+}
+
+.discount-decline:hover,
+.discount-decline:focus {
+  color: var(--parchment);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.discount-decline-label {
+  position: relative;
+  z-index: 3;
+  display: inline-block;
+  max-width: 60ch;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost — hero of the haunted room.
+ * Anchored to the possessed decline link itself, so it peeks just right of the
+ * link's end, vertically centred at the link's height. It never covers the
+ * link's text, the offer button, the pop-up heading or body (the text sits at
+ * z-index 3, above the ghost at z-index 1). The pop-up's bottom padding keeps
+ * the whole ghost inside the card, uncut.
+ * ------------------------------------------------------------------ */
+.ghost-signs {
+  position: absolute;
+  /* Right of the link's end, vertically centred on the line. */
+  left: 100%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ghost-wrap {
+  position: absolute;
+  left: 8px;
+  top: -70px;
+  width: 120px;
+  height: 140px;
+  z-index: 1;
+  transform-origin: 50% 100%;
+  animation: ghost-bob 4s ease-in-out infinite;
+}
+
+.ghost {
+  width: 120px;
+  height: 140px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(244, 239, 230, 0.35));
+}
+
+.ghost-body {
+  fill: color-mix(in srgb, var(--ghost) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.ghost-mouth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes ghost-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* Flicker on the possessed link itself — opacity 1 -> 0.85, at most twice a
+   second. */
+.discount-decline.signs-active .discount-decline-label {
+  animation: dining-flicker 0.6s steps(1) infinite;
+}
+
+@keyframes dining-flicker {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 90% { opacity: 0.85; }
+}
+
+/* Mist drifting around the ghost, never over text. */
+.mist {
+  position: absolute;
+  width: 130px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(244, 239, 230, 0.18) 0%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: mist-drift 10s ease-in-out infinite alternate;
+}
+
+.mist-left {
+  left: 0;
+  top: 10px;
+}
+
+.mist-above {
+  left: 30px;
+  top: -70px;
+}
+
+.mist-below {
+  left: 10px;
+  top: 70px;
+}
+
+@keyframes mist-drift {
+  0% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.5; transform: translate(6px, -4px); }
+  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* Named: the ghost unwinds upward and leaves; its mist goes with it. */
+.discount-decline.named .ghost-wrap {
+  animation: ghost-flee var(--duration-ghost-flee) var(--easing) forwards;
+}
+
+@keyframes ghost-flee {
+  0% { transform: translateY(0) scaleY(1); opacity: 0.9; }
+  100% { transform: translateY(-120px) scaleY(1.6); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: static dashed candle outline + label, no animation.
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .ghost-wrap,
+  .mist,
+  .discount-decline.signs-active .discount-decline-label,
+  .discount-decline.named .ghost-wrap {
+    animation: none !important;
+  }
+}
+
+.discount-decline.reduced-motion.signs-active {
+  outline: 2px dashed var(--candle);
+  outline-offset: 3px;
+}
+
+.discount-decline.reduced-motion .ghost-wrap {
+  animation: none !important;
+}
+
+.discount-decline.reduced-motion .mist {
+  animation: none !important;
+}
+
+.stirs-label {
+  position: absolute;
+  left: 8px;
+  top: 74px;
+  font-size: 0.75rem;
+  color: var(--candle);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------ *
+ * Honest twin — two plain, equal choices + a visible close button
+ * (real best practice, no Confirmshaming). Light parchment card with ink
+ * text, like Rooms 1-2's honest banner. Shown as the same overlay.
+ * ------------------------------------------------------------------ */
+.grimsupper-honest .grimsupper-header,
+.grimsupper-honest .discount-pop-title {
+  color: var(--ink);
+}
+
+.grimsupper-honest .discount-pop {
+  background-color: #fbfaf7;
+  border: 1px solid var(--parchment-2);
+  /* The honest pop-up has no ghost, so it needs no extra bottom room. */
+  padding-bottom: var(--spacing-lg);
+}
+
+.grimsupper-honest .discount-pop-title {
+  color: var(--ink);
+}
+
+.grimsupper-honest .discount-pop-text {
+  color: var(--ink);
+}
+
+/* The visible close button in the honest pop-up's corner. */
+.discount-close-honest {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  width: 36px;
+  height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--parchment-2);
+  border-radius: var(--radius-md);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.discount-close-honest:hover,
+.discount-close-honest:focus {
+  background: var(--ink);
+  color: var(--parchment);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.discount-pop-actions-honest {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+/* Both choices are the same kind of control: equal font size, padding, fill. */
+.discount-button-equal {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  flex: 1 1 140px;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.discount-button-equal:hover,
+.discount-button-equal:focus {
+  background: var(--parchment);
+  color: var(--ink);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow screens: keep everything inside the frame at 412px wide; no
+ * horizontal overflow. Compact masthead so the title and the pop-up land in
+ * the first screen. The overlay's padding tightens and the pop-up's reserved
+ * bottom room shrinks; a smaller ghost (about 72 x 84) rises from a strip
+ * reserved under the decline link, at its right end, so it never covers the
+ * link's text or the button (exactly as Room 2 does). The whole pop-up, the
+ * decline link included, stays in the first screen at 412 x 823.
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .grimsupper-masthead {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+
+  .grimsupper-header {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+  }
+
+  .grimsupper-shop {
+    flex-direction: column;
+  }
+
+  .discount-overlay {
+    padding: var(--spacing-md);
+    align-items: flex-start;
+  }
+
+  .discount-pop {
+    /* Under 600px the ghost rises from a reserved strip under the link, so the
+       pop-up no longer needs its own extra bottom room. */
+    padding-bottom: var(--spacing-lg);
+  }
+
+  .discount-accept {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* At 412px the decline link keeps the full width, and the smaller ghost rises
+     from a strip reserved under it, at its right end, so it never covers the
+     link's text, the offer button or the pop-up body. */
+  .discount-decline-label {
+    max-width: none;
+    padding-bottom: 88px;
+  }
+
+  .ghost-signs {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 72px;
+    height: 84px;
+  }
+
+  .ghost {
+    width: 72px;
+    height: 84px;
+  }
+
+  .mist {
+    width: 80px;
+    height: 40px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 60px;
+    top: -44px;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 10px;
+    top: -84px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 20px;
+    top: -30px;
+  }
+
+  .stirs-label {
+    left: auto;
+    right: 78px;
+    top: -44px;
+    width: 64px;
+    white-space: normal;
+    text-align: right;
+  }
+
+  .discount-button-equal {
+    flex: 1 1 100%;
+  }
+}

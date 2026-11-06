@@ -9,7 +9,8 @@ import type { RoomData } from './types';
 export const rooms: Record<string, () => Promise<{ default: RoomData }>> = {
   'gravemoor-gazette': () => import('../rooms/gravemoor-gazette/room'),
   'inkbone-books': () => import('../rooms/inkbone-books/room'),
-  // The other 10 rooms are added here as they are built, keyed by brand slug.
+  grimsupper: () => import('../rooms/grimsupper/room'),
+  // The other 9 rooms are added here as they are built, keyed by brand slug.
 };
 
 /** Every registered room slug. */

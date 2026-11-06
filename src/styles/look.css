@@ -461,3 +461,15 @@
     height: 180px;
   }
 }
+
+/* 6 Nov (Neo): at 412 px the frame's 16 px double border and its padding left a
+   ~220 px column for a room's page (room 3's pop-up wrapped "Yes, give me 15% off"
+   on three lines). Under 600 px the frame is thinner and tighter in every room. */
+@media (max-width: 600px) {
+  .room-scene > .manor-frame {
+    border-width: 10px;
+    padding: var(--spacing-md) var(--spacing-sm);
+    margin-left: var(--spacing-sm);
+    margin-right: var(--spacing-sm);
+  }
+}

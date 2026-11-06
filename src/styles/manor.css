@@ -120,6 +120,42 @@
   opacity: 0.8;
 }
 
+/* ------------------------------------------------------------------ *
+ * Under 600px the task does not fit on one line beside the title and the
+ * lantern (it squeezed into a narrow column — four lines in Room 3, three in
+ * Room 2). Lay the bar out in two rows: the room title with the lantern on the
+ * first row, the task on the second at the bar's full width. Above 600px it
+ * stays as it is. This is a viewport breakpoint, not an interaction, and the
+ * same three items render in every room and every state, so the switch causes
+ * no layout shift at runtime (CLS stays 0).
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .task-bar {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    column-gap: var(--spacing-md);
+    row-gap: var(--spacing-sm);
+  }
+
+  .task-bar-title {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .task-bar-lantern {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .task-bar-task {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin: 0;
+    text-align: left;
+  }
+}
+
 /* Spell cards container */
 .spell-cards {
   display: flex;
