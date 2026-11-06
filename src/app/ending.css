@@ -1,0 +1,184 @@
+/* The ending: a quiet closing room in the manor's look. Frame, tokens and
+   fonts only — no new raster image. It fits 1920 x 1080 without the checklist
+   being cramped (two columns above 1000px) and stays readable at 412px with no
+   horizontal overflow. Reduced motion runs nothing.
+
+   The continue link a room renders (.room-continue) and the title-page link to
+   the ending (.title-end-link) are styled in the shared look (look.css), since
+   the Room and the title live in the initial bundle; only the ending's own
+   styles live here, travelling in the lazily-loaded ending chunk. */
+
+.ending .ending-card {
+  max-width: 900px;
+}
+
+.ending-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 var(--spacing-sm);
+  line-height: var(--line-height-tight);
+}
+
+.ending-lead {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-lg);
+  color: var(--ink);
+  margin: 0 0 var(--spacing-xl);
+  line-height: var(--line-height-normal);
+}
+
+.ending-gate {
+  text-align: center;
+}
+
+.ending-back {
+  margin-top: var(--spacing-lg);
+}
+
+.ending-back a {
+  color: var(--ink);
+  text-decoration: underline;
+  border-bottom: 1px solid var(--ink);
+}
+
+.ending-back a:hover,
+.ending-back a:focus {
+  color: var(--bronze);
+}
+
+.ending-section {
+  margin: var(--spacing-xl) 0;
+}
+
+.ending-heading {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 var(--spacing-md);
+  line-height: var(--line-height-tight);
+}
+
+/* The checklist. Single column by default; two columns above 1000px so the
+   whole list shows on a 1920 x 1080 screen without cramming. CSS multi-column
+   keeps the ordered-list numbering intact. */
+.ending-checklist {
+  margin: 0;
+  padding-left: 1.4em;
+  color: var(--ink);
+  line-height: var(--line-height-relaxed);
+}
+
+.ending-checklist-item {
+  margin-bottom: var(--spacing-md);
+  break-inside: avoid;
+}
+
+.ending-checklist-line {
+  color: var(--ink);
+}
+
+.ending-room-link {
+  color: var(--ink);
+  text-decoration: underline;
+  border-bottom: 1px solid var(--ink);
+  white-space: nowrap;
+}
+
+.ending-room-link:hover,
+.ending-room-link:focus {
+  color: var(--bronze);
+}
+
+@media (min-width: 1000px) {
+  .ending-checklist {
+    columns: 2;
+    column-gap: var(--spacing-2xl);
+  }
+}
+
+/* The wandering ghosts. A plain list; name in the display face, line in body. */
+.ending-wandering {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+  line-height: var(--line-height-relaxed);
+}
+
+.ending-wandering-item {
+  margin-bottom: var(--spacing-md);
+}
+
+.ending-wandering-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* The share card: a manor card inside the ending frame. */
+.share-card {
+  border-top: 1px solid var(--bronze);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-xl);
+  text-align: center;
+}
+
+.share-card-heading {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 var(--spacing-md);
+  line-height: var(--line-height-tight);
+}
+
+.share-card-url {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--ink-soft);
+  margin: 0 0 var(--spacing-lg);
+  word-break: break-all;
+}
+
+.share-card-button {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  padding: var(--spacing-md) var(--spacing-2xl);
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.share-card-button:hover,
+.share-card-button:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.4);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.share-card-status {
+  min-height: 1.5em;
+  margin: var(--spacing-md) 0 0;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+@media (max-width: 600px) {
+  .ending .ending-card {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-card-button {
+    transition: none;
+  }
+}

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'preact/hooks';
+import type { ComponentType } from 'preact';
 import LookPage from '../look/LookPage';
 import Room from '../engine/Room';
 import { loadRoom, roomSlugs } from '../engine/registry';
+import { doneCount } from '../engine/progress';
 import type { RoomData } from '../engine/types';
 
-type Route = 'title' | 'room' | 'look';
+type Route = 'title' | 'room' | 'look' | 'end';
 
 /** Room number → slug, in product order. Only built rooms resolve. */
 const ROOM_ORDER = roomSlugs();
@@ -14,6 +16,7 @@ export function parseHash(raw: string): { route: Route; room: number } | null {
   const hash = raw.slice(1) || '';
   if (hash === '' || hash === '/') return { route: 'title', room: 1 };
   if (hash === '/look') return { route: 'look', room: 1 };
+  if (hash === '/end') return { route: 'end', room: 1 };
   if (hash.startsWith('/room/')) {
     const n = parseInt(hash.split('/')[2], 10);
     if (!isNaN(n) && n >= 1 && n <= 12) return { route: 'room', room: n };
@@ -29,6 +32,9 @@ export default function App() {
   const [roomNum, setRoomNum] = useState<number>(initial.room);
   const [room, setRoom] = useState<RoomData | null>(null);
   const [loadError, setLoadError] = useState(false);
+  // The ending is loaded on demand, the same way a room chunk is, so it never
+  // weighs on the initial bundle.
+  const [Ending, setEnding] = useState<ComponentType | null>(null);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -66,6 +72,23 @@ export default function App() {
     };
   }, [route, roomNum]);
 
+  // Load the ending chunk on demand when entering the end route.
+  useEffect(() => {
+    if (route !== 'end') return;
+    let active = true;
+    setLoadError(false);
+    import('./EndingPage')
+      .then((mod) => {
+        if (active) setEnding(() => mod.default);
+      })
+      .catch(() => {
+        if (active) setLoadError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [route]);
+
   // Focus the title heading when returning to the title screen.
   useEffect(() => {
     if (route === 'title') {
@@ -84,6 +107,10 @@ export default function App() {
   };
 
   const nextSlug = ROOM_ORDER[roomNum] ?? undefined;
+  // The continue affordance: rooms 1–11 reach the next room, room 12 reaches
+  // the ending.
+  const nextHash = roomNum >= 12 ? '#/end' : `#/room/${roomNum + 1}`;
+  const allComplete = doneCount() >= 12;
 
   return (
     <div class="app">
@@ -94,16 +121,41 @@ export default function App() {
           <button onClick={handleStart} class="start-button">
             Start
           </button>
+          {allComplete ? (
+            <p class="title-end-link">
+              <a href="#/end">The manor is quiet</a>
+            </p>
+          ) : null}
         </div>
       ) : route === 'look' ? (
         <LookPage />
+      ) : route === 'end' ? (
+        Ending ? (
+          <Ending />
+        ) : (
+          <div class="room-scene room-scene-pending">
+            <div class="room" aria-hidden="true">
+              <div class="room-wall"></div>
+            </div>
+            {loadError ? (
+              <div class="room-load-error" role="alert">
+                <h1 tabindex={-1}>The manor resists</h1>
+                <p>This page could not be summoned. Try again in a moment.</p>
+              </div>
+            ) : (
+              <div class="room-loading" role="status">
+                <h1 tabindex={-1}>Lighting the candles…</h1>
+              </div>
+            )}
+          </div>
+        )
       ) : (
         <div class="room-route">
           <button onClick={handleBack} class="back-button">
             Back
           </button>
           {room ? (
-            <Room room={room} nextSlug={nextSlug} />
+            <Room room={room} nextSlug={nextSlug} nextHash={nextHash} />
           ) : (
             // Reserve the room's full-height scene before the chunk arrives so
             // swapping in the loaded room adds no layout shift (CLS). The

@@ -69,6 +69,39 @@ describe('Room component — full loop', () => {
   });
 });
 
+describe('Room component — the continue affordance', () => {
+  beforeEach(() => {
+    __resetForTests();
+  });
+
+  async function reachHonest(nextHash: string) {
+    const room = await foyer();
+    render(<Room room={room} nextHash={nextHash} rng={identityRng} />);
+    fireEvent.click(screen.getByRole('button', { name: /Lantern/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reject all' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Visual interference' }));
+    await screen.findByRole('heading', { level: 2, name: 'Visual interference' });
+  }
+
+  it('renders a continue link to the given nextHash once honest', async () => {
+    await reachHonest('#/room/2');
+    const link = screen.getByRole('link', { name: 'Leave this room' }) as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('#/room/2');
+  });
+
+  it('for the last room, the continue link leads to #/end', async () => {
+    await reachHonest('#/end');
+    const link = screen.getByRole('link', { name: 'Leave the manor' }) as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('#/end');
+  });
+
+  it('shows no continue link before the honest step', async () => {
+    const room = await foyer();
+    render(<Room room={room} nextHash="#/room/2" rng={identityRng} />);
+    expect(screen.queryByRole('link', { name: /Leave/ })).toBeNull();
+  });
+});
+
 describe('Room component — wrong-pick whisper', () => {
   beforeEach(() => {
     __resetForTests();

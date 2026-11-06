@@ -473,3 +473,47 @@
     margin-right: var(--spacing-sm);
   }
 }
+
+/* ------------------------------------------------------------------ *
+ * The continue affordance a room renders in its honest step: the same way
+ * every room reaches the next (room 12's leads to the ending). Lives in the
+ * shared look so it is styled in the initial bundle alongside the Room.
+ * ------------------------------------------------------------------ */
+.room-continue {
+  display: inline-block;
+  margin: var(--spacing-md) auto var(--spacing-2xl);
+  color: var(--candle);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-decoration: underline;
+  position: relative;
+  z-index: 2;
+}
+
+.room-continue:hover,
+.room-continue:focus {
+  color: var(--gold);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* The title-page link to the ending, shown once the manor is quiet. */
+.title-end-link {
+  margin-top: var(--spacing-xl);
+}
+
+.title-end-link a {
+  color: var(--candle);
+  text-decoration: underline;
+}
+
+.title-end-link a:hover,
+.title-end-link a:focus {
+  color: var(--gold);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-continue {
+    transition: none;
+  }
+}

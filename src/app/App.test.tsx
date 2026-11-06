@@ -2,6 +2,22 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/preact';
 import axe from 'axe-core';
 import App from './App';
+import { __resetForTests, completeRoom } from '../engine/progress';
+
+const ALL_SLUGS = [
+  'gravemoor-gazette',
+  'inkbone-books',
+  'grimsupper',
+  'gloamline',
+  'hollowpost',
+  'shroudery',
+  'lanternstay',
+  'mothmilk',
+  'mildew',
+  'wanderwick',
+  'rookery',
+  'bramblegate',
+];
 
 describe('App', () => {
   let originalHash: string;
@@ -9,10 +25,12 @@ describe('App', () => {
   beforeEach(() => {
     originalHash = window.location.hash;
     window.location.hash = '';
+    __resetForTests();
   });
 
   afterEach(() => {
     window.location.hash = originalHash;
+    __resetForTests();
   });
 
   const setHashAndTrigger = (hash: string) => {
@@ -45,15 +63,15 @@ describe('App', () => {
     render(<App />);
     const startBtn = screen.getByText('Start');
     startBtn.click();
-    
+
     await waitFor(() => {
       const foyer = screen.queryByText('The Foyer');
       expect(foyer).toBeDefined();
     }, { timeout: 1000 });
-    
+
     const backBtn = screen.getByText('Back');
     backBtn.click();
-    
+
     await waitFor(() => {
       const title = screen.queryByText('Dark Pattern Manor');
       expect(title).toBeDefined();
@@ -107,6 +125,38 @@ describe('App', () => {
     }, { timeout: 1000 });
   });
 
+  it('opening #/end before completion shows the gate line, not the checklist', async () => {
+    setHashAndTrigger('#/end');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.queryByText('Name all twelve ghosts first.')).not.toBeNull();
+    }, { timeout: 1000 });
+    expect(screen.queryByText('Ghost hunt in your own browser')).toBeNull();
+  });
+
+  it('opening #/end after completing all twelve shows the ending', async () => {
+    for (const slug of ALL_SLUGS) completeRoom(slug);
+    setHashAndTrigger('#/end');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.queryByText('The manor is quiet')).not.toBeNull();
+    }, { timeout: 1000 });
+    expect(screen.getByText('Ghost hunt in your own browser')).toBeDefined();
+  });
+
+  it('shows a link to #/end on the title only once all twelve rooms are complete', () => {
+    render(<App />);
+    // Not yet complete: no end link.
+    expect(screen.queryByText('The manor is quiet')).toBeNull();
+  });
+
+  it('shows the title end link when all twelve are complete', () => {
+    for (const slug of ALL_SLUGS) completeRoom(slug);
+    render(<App />);
+    const link = screen.getByText('The manor is quiet') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('#/end');
+  });
+
   it('axe-core reports no violations on the title screen', async () => {
     const { container } = render(<App />);
     const results = await axe.run(container);
@@ -132,6 +182,7 @@ describe('parseHash', () => {
     expect(parseHash('')).toEqual({ route: 'title', room: 1 });
     expect(parseHash('#/')).toEqual({ route: 'title', room: 1 });
     expect(parseHash('#/look')).toEqual({ route: 'look', room: 1 });
+    expect(parseHash('#/end')).toEqual({ route: 'end', room: 1 });
     expect(parseHash('#/room/1')).toEqual({ route: 'room', room: 1 });
     expect(parseHash('#/room/12')).toEqual({ route: 'room', room: 12 });
     expect(parseHash('#/room/13')).toBeNull();

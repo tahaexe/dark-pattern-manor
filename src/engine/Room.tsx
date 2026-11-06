@@ -13,6 +13,11 @@ export interface RoomProps {
   room: RoomData;
   /** Slug of the next room to unlock on completion. */
   nextSlug?: string;
+  /**
+   * Hash of the next destination, offered from the honest step the way every
+   * room reaches the next: `#/room/N+1` for rooms 1–11, `#/end` for room 12.
+   */
+  nextHash?: string;
   /** Optional rng so tests can fix the spell-card order. */
   rng?: () => number;
 }
@@ -43,7 +48,7 @@ const STATE_HEADING: Record<RoomState['tag'], string> = {
   done: 'The room is free',
 };
 
-export default function Room({ room, nextSlug, rng }: RoomProps) {
+export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   const reduceBound = (state: RoomState, event: RoomEvent) => reduce(state, event, room);
   const [state, dispatch] = useReducer(reduceBound, room, initialState);
   const [slider, setSlider] = useState(0);
@@ -76,6 +81,10 @@ export default function Room({ room, nextSlug, rng }: RoomProps) {
 
   const HauntedView = room.Haunted;
   const HonestView = room.Honest;
+
+  // The continue affordance: the same way every room reaches the next. For the
+  // last room `nextHash` is `#/end`, so the manor's exit leads to the ending.
+  const leavingManor = nextHash === '#/end';
 
   return (
     <div class="room-scene">
@@ -141,6 +150,12 @@ export default function Room({ room, nextSlug, rng }: RoomProps) {
           <BeforeAfterSlider value={slider} onChange={setSlider} />
 
           <GuideCard pattern={room.pattern} guide={room.guide} />
+
+          {nextHash ? (
+            <a class="room-continue" href={nextHash}>
+              {leavingManor ? 'Leave the manor' : 'Leave this room'}
+            </a>
+          ) : null}
         </>
       ) : null}
     </div>
