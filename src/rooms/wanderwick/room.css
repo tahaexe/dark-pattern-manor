@@ -1,0 +1,596 @@
+@import '../../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * Wanderwick — Room 10, The Nursery
+ * Reuses the manor look (tokens, frame, card) and the ghost / mist / flicker
+ * approach from Rooms 1-9. Confines all cracks and mist to the possessed
+ * notifications pop-up; the frame, the puzzle board and the honest twin stay
+ * whole.
+ * ------------------------------------------------------------------ */
+
+.wanderwick {
+  position: relative;
+  z-index: 1;
+}
+
+/* Masthead */
+.wanderwick-header {
+  text-align: center;
+  margin-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--spacing-md);
+}
+
+.wanderwick-address {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.wanderwick-masthead {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.wanderwick-tagline {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  margin: var(--spacing-xs) 0 0;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------ *
+ * The game screen: the puzzle board, with the pop-up over its lower part. A
+ * dark wood panel so the trick lives in the endless pop-up, never in low
+ * contrast. The board and the pop-up share this panel; the pop-up is a
+ * non-modal dialog laid over the board's lower half.
+ * ------------------------------------------------------------------ */
+.game-screen {
+  position: relative;
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+/* The decorative 3x3 toy-tile board (fiction of a game in progress). */
+.puzzle-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-sm);
+  max-width: 18rem;
+  margin: 0 auto;
+}
+
+.puzzle-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1 / 1;
+  background: var(--manor-plum);
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  color: var(--candle);
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+/* ------------------------------------------------------------------ *
+ * The notifications pop-up — a non-modal dialog laid over the lower board.
+ * The pop-up card is whole; only the possessed question inside it carries the
+ * ghost and cracks.
+ * ------------------------------------------------------------------ */
+.nag-popup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  background: var(--manor-wood-2);
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+}
+
+/* ------------------------------------------------------------------ *
+ * The possessed question (Nagging).
+ * A real <button> (the possessed element and the ghost's positioning context),
+ * keyboard-reachable with the visible question text as its accessible name (no
+ * aria-label). Its two choices are SIBLING buttons below it — never a button
+ * inside a button.
+ * ------------------------------------------------------------------ */
+.nag-question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  width: 100%;
+  /* A deep, warm red that still meets WCAG AA with the bright text on it. */
+  background: #7a1f1f;
+  border: 1px solid #a33a3a;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  color: var(--ghost);
+  font-family: var(--font-ui);
+  font-size: 1.0625rem;
+  line-height: var(--line-height-normal);
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  transition: background var(--duration-hover) var(--easing);
+}
+
+.nag-question:hover,
+.nag-question:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* The question text and counter sit above the ghost (z-index 3). */
+.nag-question-text {
+  position: relative;
+  z-index: 3;
+  font-weight: 700;
+}
+
+/* The counter that rises each time the pop-up nags again. Lining, tabular
+   figures in the UI face (Room 9's lesson: the display face's old-style "1"
+   read as "I"), so "Asked 2 times" never reads as "Asked I times" and the
+   counter never changes width. */
+.nag-counter {
+  position: relative;
+  z-index: 3;
+  color: var(--candle);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.nag-counter-num {
+  font-family: var(--font-ui);
+  font-variant-numeric: tabular-nums lining-nums;
+  font-feature-settings: 'tnum' 1, 'lnum' 1;
+}
+
+/* The two choices: siblings in the card, side by side. */
+.nag-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+.nag-yes,
+.nag-notnow {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+/* "Yes" is the loud, bright primary the app wants. */
+.nag-yes {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: none;
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.3);
+}
+
+.nag-yes:hover,
+.nag-yes:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 190, 119, 0.5);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* "Not now" is the quiet, plain choice — there is no real "No". */
+.nag-notnow {
+  background: transparent;
+  color: var(--ghost);
+  border: 1px solid var(--ghost);
+}
+
+.nag-notnow:hover,
+.nag-notnow:focus {
+  background: var(--ghost);
+  color: var(--ink);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost — hero of the haunted room.
+ * Anchored INSIDE the room's panel (Room 9's lesson: the first ghost there sat
+ * out in the frame's border; this one stays in the panel), beside the
+ * possessed question, vertically centred at its height. It never covers the
+ * question text, the counter or the "Yes"/"Not now" buttons (the text sits at
+ * z-index 3, above the ghost at z-index 1; the buttons are siblings below the
+ * question entirely).
+ * ------------------------------------------------------------------ */
+.ghost-signs {
+  position: absolute;
+  /* Default (narrow) anchor: bottom-right of the question; overridden ≥601px. */
+  left: 0;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ghost-wrap {
+  position: absolute;
+  left: 8px;
+  top: -70px;
+  width: 120px;
+  height: 140px;
+  z-index: 1;
+  transform-origin: 50% 100%;
+  animation: ghost-bob 4s ease-in-out infinite;
+}
+
+.ghost {
+  width: 120px;
+  height: 140px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(244, 239, 230, 0.35));
+}
+
+.ghost-body {
+  fill: color-mix(in srgb, var(--ghost) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.ghost-mouth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes ghost-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* Flicker on the possessed question itself — opacity 1 -> 0.85, at most twice
+   a second. */
+.nag-question.signs-active .nag-question-text {
+  animation: nursery-flicker 0.6s steps(1) infinite;
+}
+
+@keyframes nursery-flicker {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 90% { opacity: 0.85; }
+}
+
+/* Mist drifting around the ghost, never over text. */
+.mist {
+  position: absolute;
+  width: 130px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(244, 239, 230, 0.18) 0%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: mist-drift 10s ease-in-out infinite alternate;
+}
+
+.mist-left {
+  left: 0;
+  top: 10px;
+}
+
+.mist-above {
+  left: 30px;
+  top: -70px;
+}
+
+.mist-below {
+  left: 10px;
+  top: 70px;
+}
+
+@keyframes mist-drift {
+  0% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.5; transform: translate(6px, -4px); }
+  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* Named: the ghost unwinds upward and leaves; its mist goes with it. */
+.nag-question.named .ghost-wrap {
+  animation: ghost-flee var(--duration-ghost-flee) var(--easing) forwards;
+}
+
+@keyframes ghost-flee {
+  0% { transform: translateY(0) scaleY(1); opacity: 0.9; }
+  100% { transform: translateY(-120px) scaleY(1.6); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Above 600 px the ghost rises from the empty right side of the question,
+ * inside the panel, between the question text and the panel edge — never out
+ * in the frame's border (Room 9's lesson).
+ * ------------------------------------------------------------------ */
+@media (min-width: 601px) {
+  .ghost-signs {
+    left: auto;
+    right: 8px;
+    top: 50%;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    top: -60px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 0;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 30px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 10px;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: static dashed candle outline + label, no animation. The
+ * pop-up still comes back after ~3 s (a state change), but with no fade or
+ * movement.
+ * ------------------------------------------------------------------ */
+/* 6 Nov (Neo): above 600 px the ghost, centred on the prompt, came down over
+   the "Not now" button below it. It rises from the prompt's right end into the
+   empty space beside the board instead; its hem rests on the prompt. */
+@media (min-width: 601px) {
+  .ghost-wrap {
+    top: -118px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ghost-wrap,
+  .mist,
+  .nag-question.signs-active .nag-question-text,
+  .nag-question.named .ghost-wrap {
+    animation: none !important;
+  }
+}
+
+.nag-question.reduced-motion.signs-active {
+  outline: 2px dashed var(--candle);
+  outline-offset: 3px;
+}
+
+.nag-question.reduced-motion .ghost-wrap {
+  animation: none !important;
+}
+
+.nag-question.reduced-motion .mist {
+  animation: none !important;
+}
+
+.stirs-label {
+  position: absolute;
+  left: 8px;
+  top: 74px;
+  font-size: 0.75rem;
+  color: var(--candle);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+@media (min-width: 601px) {
+  .stirs-label {
+    left: auto;
+    right: 8px;
+    top: 74px;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Honest twin — the same board and one prompt with a real "No, don't ask
+ * again"; once answered it never returns, so keeping playing takes one click.
+ * Light parchment card with ink text, like Rooms 1-9's honest twin.
+ * ------------------------------------------------------------------ */
+.wanderwick-honest .game-screen {
+  background-color: #fbfaf7;
+  border: 1px solid var(--parchment-2);
+}
+
+.wanderwick-honest .puzzle-tile {
+  background: #f3eee1;
+  border-color: var(--parchment-2);
+  color: var(--bronze);
+}
+
+.nag-popup-honest {
+  background-color: #f3eee1;
+  border: 1px solid var(--parchment-2);
+}
+
+.nag-question-honest {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: var(--line-height-normal);
+}
+
+/* "Turn on" — a plain, calm primary; "No, don't ask again" — an equal, plain
+   choice. Both end the prompt for good. */
+.nag-turnon,
+.nag-nomore {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.nag-turnon {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+}
+
+.nag-turnon:hover,
+.nag-turnon:focus {
+  background: var(--parchment);
+  color: var(--ink);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.nag-nomore {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+
+.nag-nomore:hover,
+.nag-nomore:focus {
+  background: var(--ink);
+  color: var(--parchment);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* After the honest prompt is answered: a calm line, back to the board. */
+.nag-dismissed {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow screens: keep everything inside the frame at 412px wide; no
+ * horizontal overflow. Compact masthead so the title, the board and the pop-up
+ * land in the first screen. At 412px the choices stack, the counter row wraps,
+ * and a smaller ghost (about 72 x 84) rises from a strip reserved under the
+ * question, so it never covers the question text, the counter or the buttons
+ * (exactly as Rooms 2-9 do).
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .wanderwick-masthead {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+
+  .wanderwick-header {
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-md);
+  }
+
+  .puzzle-tile {
+    font-size: 1.5rem;
+  }
+
+  /* The two choices stack so each keeps the full width and nothing overflows. */
+  .nag-actions {
+    flex-direction: column;
+  }
+
+  .nag-yes,
+  .nag-notnow,
+  .nag-turnon,
+  .nag-nomore {
+    width: 100%;
+  }
+
+  /* The counter row wraps instead of overlapping the question. */
+  .nag-counter {
+    display: block;
+    white-space: normal;
+  }
+
+  /* At 412px the question reserves a strip under its text, and the smaller
+     ghost rises from that strip at its right end, so it never covers the
+     question text, the counter or the buttons. */
+  .nag-question {
+    padding-bottom: 96px;
+  }
+
+  .ghost-signs {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 72px;
+    height: 84px;
+  }
+
+  .ghost {
+    width: 72px;
+    height: 84px;
+  }
+
+  .mist {
+    width: 80px;
+    height: 40px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 60px;
+    top: -44px;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 10px;
+    top: -84px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 20px;
+    top: -30px;
+  }
+
+  .stirs-label {
+    left: auto;
+    right: 78px;
+    top: -44px;
+    width: 64px;
+    white-space: normal;
+    text-align: right;
+  }
+}
