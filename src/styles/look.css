@@ -65,6 +65,32 @@
     );
 }
 
+/* ------------------------------------------------------------------ *
+ * Room loading / error: reserve the room's full-height box before the
+ * lazily-loaded room chunk arrives, so swapping in the room causes no
+ * layout shift (CLS). The pending scene is the same `room-scene` box
+ * (min-height: 100vh) with the same backdrop as the loaded room; its
+ * message is centred inside that reserved space.
+ * ------------------------------------------------------------------ */
+.room-scene-pending {
+  justify-content: center;
+}
+
+.room-loading,
+.room-load-error {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 32rem;
+  margin: auto;
+}
+
+.room-load-error p {
+  margin-top: var(--spacing-md);
+  color: var(--ghost);
+  line-height: var(--line-height-relaxed);
+}
+
 /* Full page look-page wrapper */
 .look-page {
   display: flex;

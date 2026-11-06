@@ -9,25 +9,33 @@ type Route = 'title' | 'room' | 'look';
 /** Room number → slug, in product order. Only built rooms resolve. */
 const ROOM_ORDER = roomSlugs();
 
+/** The route a hash names; null for an unknown hash (the current route stays). */
+export function parseHash(raw: string): { route: Route; room: number } | null {
+  const hash = raw.slice(1) || '';
+  if (hash === '' || hash === '/') return { route: 'title', room: 1 };
+  if (hash === '/look') return { route: 'look', room: 1 };
+  if (hash.startsWith('/room/')) {
+    const n = parseInt(hash.split('/')[2], 10);
+    if (!isNaN(n) && n >= 1 && n <= 12) return { route: 'room', room: n };
+  }
+  return null;
+}
+
 export default function App() {
-  const [route, setRoute] = useState<Route>('title');
-  const [roomNum, setRoomNum] = useState<number>(1);
+  // The first render already shows the hash's route: rendering the title first and switching in an effect shifted the whole
+  // app on a direct visit to #/room/N (Lighthouse mobile CLS 0.39-0.50).
+  const initial = parseHash(window.location.hash) ?? { route: 'title' as Route, room: 1 };
+  const [route, setRoute] = useState<Route>(initial.route);
+  const [roomNum, setRoomNum] = useState<number>(initial.room);
   const [room, setRoom] = useState<RoomData | null>(null);
   const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const handleHashChange = () => {
-      const hash = window.location.hash.slice(1) || '';
-      if (hash === '' || hash === '/') {
-        setRoute('title');
-      } else if (hash === '/look') {
-        setRoute('look');
-      } else if (hash.startsWith('/room/')) {
-        const n = parseInt(hash.split('/')[2], 10);
-        if (!isNaN(n) && n >= 1 && n <= 12) {
-          setRoomNum(n);
-          setRoute('room');
-        }
+      const next = parseHash(window.location.hash);
+      if (next) {
+        setRoomNum(next.room);
+        setRoute(next.route);
       }
     };
     handleHashChange();
@@ -96,14 +104,26 @@ export default function App() {
           </button>
           {room ? (
             <Room room={room} nextSlug={nextSlug} />
-          ) : loadError ? (
-            <div class="room-load-error" role="alert">
-              <h1 tabindex={-1}>The room resists</h1>
-              <p>This room could not be summoned. Try again in a moment.</p>
-            </div>
           ) : (
-            <div class="room-loading" role="status">
-              <h1 tabindex={-1}>Lighting the candles…</h1>
+            // Reserve the room's full-height scene before the chunk arrives so
+            // swapping in the loaded room adds no layout shift (CLS). The
+            // loading and error states live inside the same `room-scene` box,
+            // with the same backdrop, as the loaded room — the layout box is
+            // identical before and after the chunk resolves.
+            <div class="room-scene room-scene-pending">
+              <div class="room" aria-hidden="true">
+                <div class="room-wall"></div>
+              </div>
+              {loadError ? (
+                <div class="room-load-error" role="alert">
+                  <h1 tabindex={-1}>The room resists</h1>
+                  <p>This room could not be summoned. Try again in a moment.</p>
+                </div>
+              ) : (
+                <div class="room-loading" role="status">
+                  <h1 tabindex={-1}>Lighting the candles…</h1>
+                </div>
+              )}
             </div>
           )}
         </div>

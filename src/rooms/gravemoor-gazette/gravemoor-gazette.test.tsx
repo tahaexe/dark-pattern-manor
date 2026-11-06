@@ -34,6 +34,41 @@ function declared(selector: string, prop: string): string | null {
   return pm ? pm[1].trim() : null;
 }
 
+/**
+ * Extract the body of a top-level @media block whose prelude contains the given
+ * feature text (e.g. "max-width: 600px"). Returns the inner CSS text, with
+ * nested rule braces balanced, so it can be searched with `declaredIn`.
+ */
+function mediaBody(feature: string): string | null {
+  const idx = css.search(new RegExp(`@media[^{]*${feature.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`));
+  if (idx === -1) return null;
+  const open = css.indexOf('{', idx);
+  if (open === -1) return null;
+  let depth = 0;
+  for (let i = open; i < css.length; i++) {
+    if (css[i] === '{') depth++;
+    else if (css[i] === '}') {
+      depth--;
+      if (depth === 0) return css.slice(open + 1, i);
+    }
+  }
+  return null;
+}
+
+/** Read a property from a selector's first rule block within a CSS fragment. */
+function declaredIn(fragment: string, selector: string, prop: string): string | null {
+  const re = new RegExp(
+    `(?:^|[},])\\s*${selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\{([^}]*)\\}`,
+    'm',
+  );
+  const m = fragment.match(re);
+  if (!m) return null;
+  const body = m[1];
+  const pre = new RegExp(`(?:^|;)\\s*${prop}\\s*:\\s*([^;]+)`, 'i');
+  const pm = body.match(pre);
+  return pm ? pm[1].trim() : null;
+}
+
 describe('The Foyer — honest variant', () => {
   beforeEach(() => __resetForTests());
 
@@ -85,6 +120,60 @@ describe('The Foyer — the possessed element', () => {
     // A real button is focusable by keyboard and has a non-empty name.
     expect(possessed.getAttribute('aria-label')).toBe('Reject all');
     expect((possessed as HTMLButtonElement).tabIndex).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('The Foyer — the ghost size and anchor', () => {
+  it('renders the ghost SVG at about 120 x 140 px inside the possessed link', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    const possessed = container.querySelector('#foyer-reject')!;
+    // The ghost signs live inside the possessed element, so the ghost is
+    // anchored to the "Reject all" link, not to the frame edge.
+    const svg = possessed.querySelector('svg.ghost');
+    expect(svg).not.toBeNull();
+    expect(svg!.getAttribute('width')).toBe('120');
+    expect(svg!.getAttribute('height')).toBe('140');
+    // Its viewBox matches the 120 x 140 box so it is not distorted.
+    expect(svg!.getAttribute('viewBox')).toBe('0 0 120 140');
+  });
+
+  it('declares the ghost wrap and image at about 120 x 140 px (not the old ~60 x 75)', () => {
+    expect(declared('.ghost-wrap', 'width')).toBe('120px');
+    expect(declared('.ghost-wrap', 'height')).toBe('140px');
+    expect(declared('.ghost', 'width')).toBe('120px');
+    expect(declared('.ghost', 'height')).toBe('140px');
+  });
+
+  it('anchors the ghost to the possessed link and keeps the label above it (not covered)', () => {
+    // The ghost signs box is positioned relative to the possessed link.
+    expect(declared('.ghost-signs', 'position')).toBe('absolute');
+    expect(declared('.cookie-reject', 'position')).toBe('relative');
+    expect(declared('.cookie-reject', 'overflow')).toBe('visible');
+    // The label sits above the ghost so its text is never covered.
+    const labelZ = Number(declared('.cookie-reject-label', 'z-index'));
+    const ghostZ = Number(declared('.ghost-wrap', 'z-index'));
+    expect(labelZ).toBeGreaterThan(ghostZ);
+  });
+});
+
+describe('The Foyer — compact masthead below 600px', () => {
+  it('shrinks the masthead font under max-width: 600px so the brand title stays compact', () => {
+    const mobile = mediaBody('max-width: 600px');
+    expect(mobile).not.toBeNull();
+    const compactSize = declaredIn(mobile!, '.gazette-masthead', 'font-size');
+    expect(compactSize).not.toBeNull();
+    // Compact is strictly smaller than the 2.5rem desktop masthead.
+    const rem = (v: string) => parseFloat(v);
+    const desktop = declared('.gazette-masthead', 'font-size');
+    expect(desktop).toBe('2.5rem');
+    expect(rem(compactSize!)).toBeLessThan(rem(desktop!));
   });
 });
 
