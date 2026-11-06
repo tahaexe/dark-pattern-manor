@@ -1,0 +1,604 @@
+@import '../../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * Mothmilk Market — Room 8, The Pantry
+ * Reuses the manor look (tokens, frame, card) and the ghost / mist / flicker
+ * approach from Rooms 1-7. Confines all cracks and mist to the possessed
+ * sneaked basket line; the frame, the basket and the honest twin stay whole.
+ * ------------------------------------------------------------------ */
+
+.mothmilk {
+  position: relative;
+  z-index: 1;
+}
+
+/* Masthead */
+.mothmilk-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--spacing-md);
+}
+
+.mothmilk-address {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.mothmilk-masthead {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.mothmilk-tagline {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  margin: var(--spacing-xs) 0 0;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------ *
+ * The checkout basket (haunted). Dark wood card so the trick lives in the
+ * sneaked, returning line, never in low contrast.
+ * ------------------------------------------------------------------ */
+.basket-card {
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.basket-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ghost);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.basket-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+/* An ordinary basket line: the item name and its price, spaced apart. */
+.basket-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  color: var(--ghost);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+  padding: var(--spacing-sm) 0;
+  border-bottom: 1px solid var(--manor-line);
+}
+
+.basket-line-name {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Tabular figures so prices and the total line up and never change width. */
+.basket-line-price {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  font-weight: 700;
+  color: var(--candle);
+  white-space: nowrap;
+}
+
+/* The sneaked line's row: the possessed line button and its own Remove button
+   side by side, as siblings (never a button inside a button). */
+.basket-line-sneaked {
+  display: flex;
+  align-items: stretch;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * The possessed sneaked line (Sneaking).
+ * A real <button> (the possessed element and the ghost's positioning context),
+ * keyboard-reachable with the visible line text as its accessible name (no
+ * aria-label). Its "Remove" control is a SIBLING button in the same row —
+ * never a button inside a button.
+ * ------------------------------------------------------------------ */
+.basket-sneaked {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  /* A deep, warm red that still meets WCAG AA with the bright text on it. */
+  background: #7a1f1f;
+  border: 1px solid #a33a3a;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--ghost);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  transition: background var(--duration-hover) var(--easing);
+}
+
+.basket-sneaked:hover,
+.basket-sneaked:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* The line's text (name + price); the ghost anchors to the end of this, so it
+   peeks beside the line at its height, never over the text or the button. */
+.basket-sneaked-text {
+  position: relative;
+  z-index: 3;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+
+.basket-sneaked-text .basket-line-name {
+  color: var(--ghost);
+  flex: 0 1 auto;
+}
+
+/* The sneaked line's own Remove button, a sibling of the line button. */
+.basket-remove {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: transparent;
+  color: var(--ghost);
+  border: 1px solid var(--ghost);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.basket-remove:hover,
+.basket-remove:focus {
+  background: var(--ghost);
+  color: var(--ink);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The total. Plain text, tabular figures, NOT a live region.
+ * ------------------------------------------------------------------ */
+.basket-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  margin: 0;
+  padding-top: var(--spacing-sm);
+}
+
+.basket-total-label {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ghost);
+}
+
+.basket-total-amount {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--candle);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* The primary action: paying. Loud, bright primary. */
+.basket-pay {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1.125rem;
+  cursor: pointer;
+  align-self: flex-start;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  transition: all var(--duration-hover) var(--easing);
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.3);
+}
+
+.basket-pay:hover,
+.basket-pay:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 190, 119, 0.5);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost — hero of the haunted room.
+ * Anchored to the possessed sneaked line's text (.basket-sneaked-text), so it
+ * peeks just right of the line, vertically centred at its height. It never
+ * covers the line's text, its price or the Remove button (the text sits at
+ * z-index 3, above the ghost at z-index 1; the Remove button is a sibling
+ * outside the line button entirely).
+ * ------------------------------------------------------------------ */
+.ghost-signs {
+  position: absolute;
+  /* Right of the line text, vertically centred on it. */
+  left: 100%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ghost-wrap {
+  position: absolute;
+  left: 8px;
+  top: -70px;
+  width: 120px;
+  height: 140px;
+  z-index: 1;
+  transform-origin: 50% 100%;
+  animation: ghost-bob 4s ease-in-out infinite;
+}
+
+.ghost {
+  width: 120px;
+  height: 140px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(244, 239, 230, 0.35));
+}
+
+.ghost-body {
+  fill: color-mix(in srgb, var(--ghost) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.ghost-mouth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes ghost-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* Flicker on the possessed line itself — opacity 1 -> 0.85, at most twice a
+   second. */
+.basket-sneaked.signs-active .basket-sneaked-text {
+  animation: pantry-flicker 0.6s steps(1) infinite;
+}
+
+@keyframes pantry-flicker {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 90% { opacity: 0.85; }
+}
+
+/* Mist drifting around the ghost, never over text. */
+.mist {
+  position: absolute;
+  width: 130px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(244, 239, 230, 0.18) 0%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: mist-drift 10s ease-in-out infinite alternate;
+}
+
+.mist-left {
+  left: 0;
+  top: 10px;
+}
+
+.mist-above {
+  left: 30px;
+  top: -70px;
+}
+
+.mist-below {
+  left: 10px;
+  top: 70px;
+}
+
+@keyframes mist-drift {
+  0% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.5; transform: translate(6px, -4px); }
+  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* Named: the ghost unwinds upward and leaves; its mist goes with it. */
+.basket-sneaked.named .ghost-wrap {
+  animation: ghost-flee var(--duration-ghost-flee) var(--easing) forwards;
+}
+
+@keyframes ghost-flee {
+  0% { transform: translateY(0) scaleY(1); opacity: 0.9; }
+  100% { transform: translateY(-120px) scaleY(1.6); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: static dashed candle outline + label, no animation. The
+ * sneaked line still comes back after ~1.5 s (a state change), but with no
+ * fade or movement.
+ * ------------------------------------------------------------------ */
+/* 6 Nov (Neo): above 600 px the line's right end is the "Remove" button, and
+   the ghost anchored there covered it. It rises from the empty middle of the
+   sneaked line instead, between its name and its price. */
+@media (min-width: 601px) {
+  .ghost-signs {
+    left: 55%;
+  }
+
+  .ghost-wrap {
+    left: -60px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ghost-wrap,
+  .mist,
+  .basket-sneaked.signs-active .basket-sneaked-text,
+  .basket-sneaked.named .ghost-wrap {
+    animation: none !important;
+  }
+}
+
+.basket-sneaked.reduced-motion.signs-active {
+  outline: 2px dashed var(--candle);
+  outline-offset: 3px;
+}
+
+.basket-sneaked.reduced-motion .ghost-wrap {
+  animation: none !important;
+}
+
+.basket-sneaked.reduced-motion .mist {
+  animation: none !important;
+}
+
+.stirs-label {
+  position: absolute;
+  left: 8px;
+  top: 74px;
+  font-size: 0.75rem;
+  color: var(--candle);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------ *
+ * Honest twin — the same basket with only the two picked items and "Pay
+ * £3.60"; Ghost Protection offered outside the basket as an unticked, plainly
+ * priced option (real best practice, no Sneaking). Light parchment card with
+ * ink text, like Rooms 1-7's honest twin.
+ * ------------------------------------------------------------------ */
+.mothmilk-honest .basket-card {
+  background-color: #fbfaf7;
+  border: 1px solid var(--parchment-2);
+}
+
+.mothmilk-honest .basket-title {
+  color: var(--ink);
+}
+
+.mothmilk-honest .basket-line {
+  color: var(--ink);
+  border-bottom-color: var(--parchment-2);
+}
+
+.mothmilk-honest .basket-line-name {
+  color: var(--ink);
+}
+
+.mothmilk-honest .basket-line-price {
+  color: var(--ink);
+}
+
+.mothmilk-honest .basket-total-label {
+  color: var(--ink);
+}
+
+.mothmilk-honest .basket-total-amount {
+  color: var(--ink);
+}
+
+/* The Ghost Protection add-on offered OUTSIDE the basket, unticked. A calm
+   parchment option with a real checkbox and a plain price. */
+.addon-offer {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: #f3eee1;
+  border: 1px solid var(--parchment-2);
+  border-radius: var(--radius-md);
+}
+
+.addon-offer input[type='checkbox'] {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.1rem;
+  flex: 0 0 auto;
+  accent-color: var(--bronze);
+}
+
+.addon-offer label {
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+  cursor: pointer;
+}
+
+.addon-offer .addon-price {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* The honest Pay button — a plain, calm primary. */
+.basket-pay-honest {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  align-self: flex-start;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.basket-pay-honest:hover,
+.basket-pay-honest:focus {
+  background: var(--parchment);
+  color: var(--ink);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow screens: keep everything inside the frame at 412px wide; no
+ * horizontal overflow. Compact masthead so the title and the basket land in
+ * the first screen. At 412px the sneaked line stacks its Remove button below
+ * it, and a smaller ghost (about 72 x 84) rises from a strip reserved under
+ * the line's text, so it never covers the line's text, its price or the Remove
+ * button (exactly as Rooms 2-7 do).
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .mothmilk-masthead {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+
+  .mothmilk-header {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+  }
+
+  .basket-total-amount {
+    font-size: 1.5rem;
+  }
+
+  .basket-pay,
+  .basket-pay-honest {
+    width: 100%;
+    text-align: center;
+    align-self: stretch;
+  }
+
+  /* The sneaked line and its Remove button stack so each keeps the full width
+     and nothing overflows at 412px. */
+  .basket-line-sneaked {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .basket-remove {
+    width: 100%;
+  }
+
+  /* At 412px the sneaked line's text reserves a strip under it, and the smaller
+     ghost rises from that strip at its right end, so it never covers the line's
+     text, its price or the Remove button. */
+  .basket-sneaked-text {
+    padding-bottom: 88px;
+  }
+
+  .ghost-signs {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 72px;
+    height: 84px;
+  }
+
+  .ghost {
+    width: 72px;
+    height: 84px;
+  }
+
+  .mist {
+    width: 80px;
+    height: 40px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 60px;
+    top: -44px;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 10px;
+    top: -84px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 20px;
+    top: -30px;
+  }
+
+  .stirs-label {
+    left: auto;
+    right: 78px;
+    top: -44px;
+    width: 64px;
+    white-space: normal;
+    text-align: right;
+  }
+}
