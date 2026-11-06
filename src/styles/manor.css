@@ -292,7 +292,9 @@
     position: relative;
   }
 
-  .possessed::after {
+  /* Only where the room has no label of its own: rooms 1 and 2 render a .stirs-label beside their ghost, and this
+     fallback drew a second one under the outline (6 Nov, room 2's reduced-motion shot). */
+  .possessed:not(:has(.stirs-label))::after {
     content: 'Something stirs here';
     position: absolute;
     font-size: 0.75rem;

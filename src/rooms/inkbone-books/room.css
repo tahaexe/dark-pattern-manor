@@ -1,0 +1,478 @@
+@import '../../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * Inkbone Books — Room 2, The Library
+ * Reuses the manor look (tokens, frame, banner) and the ghost / mist /
+ * flicker approach from Room 1. Confines all cracks and mist to the possessed
+ * newsletter line; the frame and honest twin stay whole.
+ * ------------------------------------------------------------------ */
+
+.inkbone {
+  position: relative;
+  z-index: 1;
+}
+
+/* Masthead */
+.inkbone-header {
+  text-align: center;
+  margin-bottom: var(--spacing-xl);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--spacing-md);
+}
+
+.inkbone-address {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--spacing-sm);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.inkbone-masthead {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.inkbone-tagline {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  margin: var(--spacing-xs) 0 0;
+  font-style: italic;
+}
+
+/* ------------------------------------------------------------------ *
+ * The sign-up form (haunted). Dark wood card so the trick lives in the
+ * newsletter wording, never in low contrast.
+ * ------------------------------------------------------------------ */
+.signup-card {
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.signup-title {
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--candle);
+  margin: 0 0 var(--spacing-xs);
+}
+
+.signup-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.signup-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  /* Bright ink on the dark card — WCAG AA. */
+  color: var(--ghost);
+}
+
+.signup-input {
+  background: #fbfaf7;
+  color: var(--ink);
+  border: 1px solid var(--parchment-2);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+}
+
+.signup-input:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The possessed newsletter line (Trick wording).
+ * A real button so it is keyboard-reachable and has an accessible name. It
+ * carries no aria-label, so the accessible name is the visible sentence
+ * (Label in Name, WCAG 2.5.3). The checkbox box is NOT ticked; the trick is
+ * the double-negative sentence. The sentence itself is the positioning context
+ * for the ghost that peeks beside it.
+ * ------------------------------------------------------------------ */
+.newsletter-line {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+  margin: 0;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  font-family: var(--font-ui);
+  transition: background var(--duration-hover) var(--easing);
+}
+
+.newsletter-line:hover,
+.newsletter-line:focus {
+  background: rgba(240, 190, 119, 0.12);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.newsletter-box {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  border: 2px solid var(--parchment-2);
+  border-radius: var(--radius-sm);
+  background: transparent;
+}
+
+.newsletter-text {
+  /* High-contrast parchment on the dark card — the lie is the words, not the
+     legibility. */
+  color: var(--ghost);
+  font-size: 0.9375rem;
+  line-height: var(--line-height-normal);
+  position: relative;
+  z-index: 3;
+  /* Cap the sentence so the ghost (120 x 140) has its own space just right of
+     the sentence's end; the ghost is anchored to this element. */
+  display: block;
+  max-width: 60ch;
+}
+
+.newsletter-text em {
+  font-style: italic;
+  color: var(--candle);
+}
+
+.signup-submit {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  align-self: flex-start;
+  min-width: 160px;
+  transition: all var(--duration-hover) var(--easing);
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.3);
+}
+
+.signup-submit:hover,
+.signup-submit:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 190, 119, 0.5);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost — hero of the haunted room.
+ * Anchored to the possessed newsletter SENTENCE itself (.newsletter-text), so
+ * it peeks just right of the sentence's end, vertically centred on the line.
+ * It never covers the sentence, the box, the inputs, the labels or the button
+ * (the text sits at z-index 3, above the ghost at z-index 1).
+ * ------------------------------------------------------------------ */
+.ghost-signs {
+  position: absolute;
+  /* Right of the sentence's end, vertically centred on the line. */
+  left: 100%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ghost-wrap {
+  position: absolute;
+  left: 8px;
+  top: -70px;
+  width: 120px;
+  height: 140px;
+  z-index: 1;
+  transform-origin: 50% 100%;
+  animation: ghost-bob 4s ease-in-out infinite;
+}
+
+.ghost {
+  width: 120px;
+  height: 140px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(244, 239, 230, 0.35));
+}
+
+.ghost-body {
+  fill: color-mix(in srgb, var(--ghost) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.ghost-mouth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes ghost-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* Flicker on the possessed sentence itself — opacity 1 -> 0.85, at most twice
+   a second. */
+.newsletter-line.signs-active .newsletter-text {
+  animation: library-flicker 0.6s steps(1) infinite;
+}
+
+@keyframes library-flicker {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 90% { opacity: 0.85; }
+}
+
+/* Mist drifting around the ghost, never over text. */
+.mist {
+  position: absolute;
+  width: 130px;
+  height: 60px;
+  background: radial-gradient(circle, rgba(244, 239, 230, 0.18) 0%, transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+  animation: mist-drift 10s ease-in-out infinite alternate;
+}
+
+.mist-left {
+  left: 0;
+  top: 10px;
+}
+
+.mist-above {
+  left: 30px;
+  top: -70px;
+}
+
+.mist-below {
+  left: 10px;
+  top: 70px;
+}
+
+@keyframes mist-drift {
+  0% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.5; transform: translate(6px, -4px); }
+  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* Named: the ghost unwinds upward and leaves; its mist goes with it. */
+.newsletter-line.named .ghost-wrap {
+  animation: ghost-flee var(--duration-ghost-flee) var(--easing) forwards;
+}
+
+@keyframes ghost-flee {
+  0% { transform: translateY(0) scaleY(1); opacity: 0.9; }
+  100% { transform: translateY(-120px) scaleY(1.6); opacity: 0; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: static dashed candle outline + label, no animation.
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .ghost-wrap,
+  .mist,
+  .newsletter-line.signs-active .newsletter-text,
+  .newsletter-line.named .ghost-wrap {
+    animation: none !important;
+  }
+}
+
+.newsletter-line.reduced-motion.signs-active {
+  outline: 2px dashed var(--candle);
+  outline-offset: 3px;
+}
+
+.newsletter-line.reduced-motion .ghost-wrap {
+  animation: none !important;
+}
+
+.newsletter-line.reduced-motion .mist {
+  animation: none !important;
+}
+
+.stirs-label {
+  position: absolute;
+  left: 8px;
+  top: 74px;
+  font-size: 0.75rem;
+  color: var(--candle);
+  white-space: nowrap;
+  z-index: 3;
+}
+
+/* ------------------------------------------------------------------ *
+ * Honest twin — one plain, unticked opt-in (no Trick wording)
+ * Light parchment card with ink text, like Room 1's honest banner.
+ * ------------------------------------------------------------------ */
+.inkbone-honest .inkbone-header,
+.inkbone-honest .signup-title {
+  color: var(--ink);
+}
+
+.inkbone-honest .signup-card {
+  background-color: #fbfaf7;
+  border: 1px solid var(--parchment-2);
+}
+
+.inkbone-honest .signup-title {
+  color: var(--ink);
+}
+
+.inkbone-honest .signup-label {
+  color: var(--ink);
+}
+
+.newsletter-line-honest {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.newsletter-box-honest {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
+.newsletter-box-honest:focus {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.newsletter-text-honest {
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: var(--line-height-normal);
+}
+
+.inkbone-honest .signup-submit {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  box-shadow: none;
+}
+
+.inkbone-honest .signup-submit:hover,
+.inkbone-honest .signup-submit:focus {
+  background: var(--parchment);
+  color: var(--ink);
+  transform: none;
+  box-shadow: none;
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow screens: keep everything inside the frame at 412px wide; no
+ * horizontal overflow. Compact masthead so the title and the form land in the
+ * first screen. A smaller ghost (about 72 x 84) sits right of the sentence,
+ * with right padding reserved on the line so the text wraps before it.
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .inkbone-masthead {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+
+  .inkbone-header {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+  }
+
+  .signup-submit {
+    width: 100%;
+    align-self: stretch;
+  }
+
+  /* At 412 px the form is too narrow for a column beside the sentence (it
+     wrapped one word a line): the sentence keeps the full width, and the smaller
+     ghost rises from a strip reserved under it, at its right end, so it never
+     covers the sentence, the inputs or the button. */
+  .newsletter-text {
+    max-width: none;
+    padding-right: 0;
+    padding-bottom: 88px;
+  }
+
+  .ghost-signs {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: 72px;
+    height: 84px;
+  }
+
+  .ghost {
+    width: 72px;
+    height: 84px;
+  }
+
+  .mist {
+    width: 80px;
+    height: 40px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 60px;
+    top: -44px;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 10px;
+    top: -84px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 20px;
+    top: -30px;
+  }
+
+  .stirs-label {
+    left: auto;
+    right: 78px;
+    top: -44px;
+    width: 64px;
+    white-space: normal;
+    text-align: right;
+  }
+}
