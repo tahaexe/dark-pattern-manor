@@ -241,6 +241,77 @@
   50% { transform: translateY(-6px) rotate(1deg); }
 }
 
+/* ------------------------------------------------------------------ *
+ * The ghost's act — Hidden subscription performed.
+ * The ghost drags the small print further down with a hook, then lets it
+ * spring back, acting out the way the real price is kept out of sight — below
+ * the fold. Only the hook wrapper (.act-hook-wrap) moves: it translates down
+ * then springs back over a 5 s cycle (>= 4 s), transforms only. Its space is
+ * reserved inside the already-sized ghost-wrap (no layout shift), it sits
+ * beside the small print (never over its text or focus ring), is aria-hidden
+ * and pointer-events: none (never blocks input). The hook hangs from the
+ * ghost's body (left:100% of the label puts the ghost well right of the
+ * paragraph text at z-index 3).
+ * ------------------------------------------------------------------ */
+.act-hook-wrap {
+  position: absolute;
+  /* Hangs from the ghost's lower body, reaching down toward the small print.
+     Its box is reserved here; only its transform changes. */
+  left: 40px;
+  top: 92px;
+  width: 40px;
+  height: 96px;
+  pointer-events: none;
+  z-index: 2;
+  transform-origin: 50% 0;
+  /* Drag the small print down, then let it spring back, over a 5 s cycle. */
+  animation: parlour-hook-drag 5s ease-in-out infinite;
+}
+
+.act-hook {
+  width: 40px;
+  height: 96px;
+  display: block;
+  filter: drop-shadow(0 0 6px rgba(244, 239, 230, 0.4));
+}
+
+.act-hook-line {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The drag: the hook pulls down (the price sinks below the fold), then springs
+   back. Transforms only, so no layout shift. */
+@keyframes parlour-hook-drag {
+  0%, 100% { transform: translateY(0); }
+  40% { transform: translateY(18px); }
+  55% { transform: translateY(18px); }
+  /* The spring back overshoots a touch, then settles. */
+  70% { transform: translateY(-4px); }
+  80% { transform: translateY(0); }
+}
+
+/* When the ghost is named, the engine sets data-moment='right' (and then
+   data-fleeing) on .room-scene and the shared common-moment layer unwinds and
+   flees the whole .ghost-wrap. The hook drags on its own animation, so it is
+   halted here the moment the room is named — the engine's shared unwind takes
+   over and the hook leaves with the ghost. This stops the act; it does not
+   re-implement or override the shared flee (which still owns .ghost-wrap). */
+.room-scene[data-moment='right'] .act-hook-wrap {
+  animation: none;
+}
+
+/* A wrong pick fires the shared common moment (the candles gutter and the
+   ghost shakes its head) on .ghost-wrap. Pause the hook's own drag for that
+   beat so the shared wrong-card moment reads cleanly; it resumes afterward.
+   This neither re-implements nor overrides the shared moment. */
+.room-scene[data-moment='wrong'] .act-hook-wrap {
+  animation: none;
+}
+
 /* Flicker on the possessed small print itself — opacity 1 -> 0.85, at most
    twice a second. */
 .trial-smallprint.signs-active .trial-smallprint-label {
@@ -295,6 +366,7 @@
 @media (prefers-reduced-motion: reduce) {
   .ghost-wrap,
   .mist,
+  .act-hook-wrap,
   .trial-smallprint.signs-active .trial-smallprint-label {
     animation: none !important;
   }
@@ -310,6 +382,10 @@
 }
 
 .trial-smallprint.reduced-motion .mist {
+  animation: none !important;
+}
+
+.trial-smallprint.reduced-motion .act-hook-wrap {
   animation: none !important;
 }
 
@@ -441,6 +517,20 @@
   .ghost {
     width: 72px;
     height: 84px;
+  }
+
+  /* The smaller ghost scales its hook act to match (no layout shift: still a
+     transform on a reserved wrapper). */
+  .act-hook-wrap {
+    left: 24px;
+    top: 56px;
+    width: 24px;
+    height: 58px;
+  }
+
+  .act-hook {
+    width: 24px;
+    height: 58px;
   }
 
   .mist {

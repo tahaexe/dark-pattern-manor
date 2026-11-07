@@ -69,3 +69,27 @@
   - Add `'gloamline': () => import('../rooms/gloamline/room')`.
   - Run `npm run test`, `npm run check:rooms`, `npm run build` and
     `npm run check:size`; all must pass before the room is done.
+
+- [x] 6. Add the ghost's act (Hidden subscription performed)
+  - File: `src/rooms/gloamline/Haunted.tsx`, `src/rooms/gloamline/room.css`
+  - When `showSigns` (so only on the haunted page, never in `preview`), render
+    the ghost dragging the small print further down with a hook (`.act-hook`)
+    and then letting it spring back, over a cycle ≥ 4 s. Transforms and opacity
+    only, no layout shift (space reserved on a wrapper inside the already-sized
+    ghost wrap), `pointer-events: none`, every act element `aria-hidden`; the
+    hook sits beside the small print, never over its text or focus ring. Do not
+    re-implement or override the engine's shared atmosphere layer or common
+    moments; the act stops when named via the shared unwind
+    (`.room-scene[data-moment='right'] .act-hook-wrap { animation: none; }`)
+    and is absent from the honest twin and the comparison's haunted preview.
+  - Reduced motion: no movement; show the still pose (the hook resting on the
+    small print) with a short visible caption beside the ghost reading "the
+    price is hiding below", and keep the "Something stirs here" label.
+  - Risk: no layout shift — the act moves a transform on a wrapper and reserves
+    its space; it must not cover the small print's text or its focus ring
+    (`contrast_scan` stays at 0 flags).
+  - Test: extend `src/rooms/gloamline/gloamline.test.tsx` — the act's element
+    exists in the haunted view and is `aria-hidden`; it is absent in `preview`
+    and in the honest twin; under `prefers-reduced-motion` the still pose and
+    the "the price is hiding below" caption render alongside "Something stirs
+    here".

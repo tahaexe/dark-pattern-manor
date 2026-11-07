@@ -18,6 +18,19 @@ import './room.css';
  * contrast; the trick is the size, weight and placement of the terms, never
  * readability — the small print still meets AA.
  *
+ * The ghost performs the trick (Hidden subscription through motion): it drags
+ * the small print further down with a hook (`.act-hook`) and then lets it
+ * spring back, so the way the real price is kept out of sight — below the fold
+ * — is acted out. The hook lives only beside the possessed small print, uses
+ * transforms only over a cycle of 4 s or more, reserves its own space inside
+ * the already-sized ghost wrap (no layout shift), never blocks input
+ * (`pointer-events: none`) and never covers the small print's text or its
+ * focus ring. Every act element is `aria-hidden` and adds nothing to the
+ * accessible name or to live announcements. Under reduced motion the hook
+ * holds still, resting on the small print, with a short caption beside the
+ * ghost reading "the price is hiding below", keeping the "Something stirs
+ * here" label.
+ *
  * In `preview` mode (the static "before" side of the split) the component is
  * non-interactive and omits the possessed element's id, so the live page keeps
  * the only `parlour-smallprint`.
@@ -120,10 +133,43 @@ export default function Haunted({
                     <circle class="ghost-eye" cx="72" cy="60" r="4" />
                     <path class="ghost-mouth" d="M52 74 Q60 82 68 74" />
                   </svg>
+                  {/* The act: the ghost drags the small print further down
+                      with a hook, then lets it spring back — Hidden
+                      subscription acted out (the price kept out of sight,
+                      below the fold). The hook wrapper (.act-hook-wrap) is the
+                      only thing that moves: it translates down then springs
+                      back over a cycle >= 4 s, transforms only. Its space is
+                      reserved inside the already-sized ghost-wrap, so there is
+                      no layout shift. It sits beside the small print (never
+                      over its text or focus ring), is decorative and
+                      aria-hidden, and pointer-events: none so it never blocks
+                      input. */}
+                  <span class="act-hook-wrap" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 40 96"
+                      width="40"
+                      height="96"
+                      class="act-hook"
+                      xmlns="http://www.w3.org/2000/svg"
+                      aria-hidden="true"
+                    >
+                      {/* A thin line falling from the ghost, ending in a curl
+                          that hooks the small print and pulls it down. */}
+                      <path
+                        class="act-hook-line"
+                        d="M20 2 L20 64 Q20 86 34 84 Q22 82 24 68"
+                      />
+                    </svg>
+                  </span>
                 </span>
               </span>
             ) : null}
-            {showSigns && reducedMotion ? <span class="stirs-label">Something stirs here</span> : null}
+            {showSigns && reducedMotion ? (
+              <span class="stirs-label">Something stirs here</span>
+            ) : null}
+            {showSigns && reducedMotion ? (
+              <span class="act-caption">the price is hiding below</span>
+            ) : null}
           </span>
         </button>
       </div>

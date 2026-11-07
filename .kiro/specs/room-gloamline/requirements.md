@@ -54,6 +54,33 @@ cards, and the page turns honest beside its haunted twin.
    motion-based ghost signs with a static dashed candle outline and the label
    "Something stirs here".
 
+### Requirement 4: The ghost's act (Hidden subscription performed)
+
+The ghost's motion itself teaches the pattern: it acts out the way the real
+price is dragged out of sight, below the fold.
+
+1. WHILE the room is haunted (ghost signs active) and motion is allowed, THE
+   possessed element SHALL show the ghost dragging the small print further down
+   with a hook and then letting it spring back.
+2. THE act SHALL live only on or beside the possessed element; nothing else in
+   the room SHALL move or crack, and the act SHALL never cover the small
+   print's text, the task's controls or their focus rings.
+3. THE act SHALL never lower the contrast of any text; the hook SHALL sit
+   beside the small print, never over its label.
+4. THE act SHALL use transforms and opacity only and SHALL cause no layout
+   shift (any space it needs is reserved on a wrapper inside the already-sized
+   ghost wrap), SHALL run one cycle of at least 4 s, and SHALL never block
+   pointer or keyboard input to the small print.
+5. Every decorative part of the act SHALL be `aria-hidden` and SHALL add
+   nothing to the possessed element's accessible name or to live announcements.
+6. WHEN the ghost is named, THE act SHALL stop (the engine's common unwind takes
+   over), and THE act SHALL be absent from the honest twin and from the
+   comparison's haunted preview.
+7. WHERE `prefers-reduced-motion` is active, THE act SHALL run no movement and
+   SHALL instead show the still pose (the hook resting on the small print) with
+   a short visible caption beside the ghost reading "the price is hiding below",
+   keeping the existing "Something stirs here" label.
+
 ### Requirement 3: Fiction and honesty
 
 1. THE room SHALL use only fictional brand name, colours, logo shape, people,
@@ -68,3 +95,7 @@ cards, and the page turns honest beside its haunted twin.
   variant (a variant-agnostic test is treated as broken).
 - Every text meets WCAG AA contrast in both variants; axe-core reports zero
   violations on both.
+- The act's element exists in the haunted view, is `aria-hidden`, is absent in
+  `preview` and in the honest twin, and under `prefers-reduced-motion` the still
+  pose and its "the price is hiding below" caption render alongside "Something
+  stirs here".

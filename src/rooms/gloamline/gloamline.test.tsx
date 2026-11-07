@@ -230,6 +230,88 @@ describe('The Parlour — pattern rule (passes on honest, fails on haunted)', ()
   });
 });
 
+describe('The Parlour — the ghost act (Hidden subscription performed)', () => {
+  it('renders the dragging hook (.act-hook) in the haunted view, aria-hidden', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // The act lives inside the ghost-wrap, beside the possessed small print.
+    const wrap = container.querySelector('.trial-smallprint .ghost-wrap .act-hook-wrap');
+    expect(wrap).not.toBeNull();
+    // Decorative: aria-hidden, so it adds nothing to the accessible name.
+    expect(wrap!.getAttribute('aria-hidden')).toBe('true');
+    const hook = wrap!.querySelector('.act-hook');
+    expect(hook).not.toBeNull();
+    expect(hook!.querySelector('.act-hook-line')).not.toBeNull();
+    // Non-interactive in CSS: never blocks input to the small print.
+    expect(css).toMatch(/\.act-hook-wrap\s*\{[^}]*pointer-events:\s*none/);
+    // The drag cycle is at least 4 s (here 5 s).
+    expect(css).toMatch(/\.act-hook-wrap\s*\{[^}]*animation:\s*parlour-hook-drag\s*5s/);
+    // Transforms only — no layout-shifting properties in the keyframes.
+    const frames = css.match(/@keyframes parlour-hook-drag\s*\{[^]*?\n\}/);
+    expect(frames).not.toBeNull();
+    expect(frames![0]).toMatch(/transform:\s*translateY/);
+    expect(frames![0]).not.toMatch(/\b(margin|top|height|width|bottom)\s*:/);
+    // The act never adds to the possessed element's accessible name.
+    const possessed = container.querySelector('#parlour-smallprint') as HTMLButtonElement;
+    expect(possessed.getAttribute('aria-label')).toBeNull();
+    expect(possessed.textContent).not.toMatch(/the price is hiding below/i);
+  });
+
+  it('reserves the hook\u2019s space on a wrapper so the act causes no layout shift', () => {
+    // The box is reserved on .act-hook-wrap (absolute, sized), and only its
+    // transform changes in the keyframes — nothing reflows.
+    expect(css).toMatch(/\.act-hook-wrap\s*\{[^}]*position:\s*absolute/);
+    expect(css).toMatch(/\.act-hook-wrap\s*\{[^}]*width:\s*40px/);
+    expect(css).toMatch(/\.act-hook-wrap\s*\{[^}]*height:\s*96px/);
+  });
+
+  it('the act is absent in preview mode (the split\u2019s before side)', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+        preview
+      />,
+    );
+    // Preview shows no ghost signs at all, so no act element.
+    expect(container.querySelector('.act-hook-wrap')).toBeNull();
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+  });
+
+  it('the act is absent in the honest twin', () => {
+    const { container } = render(<Honest onCompleteTask={() => {}} />);
+    expect(container.querySelector('.act-hook-wrap')).toBeNull();
+    expect(container.querySelector('.ghost-wrap')).toBeNull();
+  });
+
+  it('the hook sits beside the small print, never over its label text', () => {
+    // The ghost-signs anchor is at left:100% of the label, and the act-hook-wrap
+    // is inside the ghost-wrap — so the hook is clear of the label (z-index 3)
+    // and its focus ring.
+    expect(css).toMatch(/\.ghost-signs\s*\{[^}]*left:\s*100%/);
+    expect(css).toMatch(/\.trial-smallprint-label\s*\{[^}]*z-index:\s*3/);
+  });
+
+  it('stops the act when the ghost is named, so the shared unwind takes over', () => {
+    // The engine sets data-moment='right' on .room-scene from `named` onward;
+    // this room halts the hook's own drag then, without touching the shared
+    // flee (which still owns .ghost-wrap).
+    expect(css).toMatch(
+      /\.room-scene\[data-moment='right'\]\s+\.act-hook-wrap\s*\{[^}]*animation:\s*none/,
+    );
+    // The room adds no flee of its own on .ghost-wrap (shared layer owns it).
+    expect(css).not.toMatch(/\.ghost-wrap\s*\{[^}]*animation:\s*[^;]*flee/);
+  });
+});
+
 describe('The Parlour — contrast and axe on both variants', () => {
   async function noViolations(container: HTMLElement) {
     const results = await axe.run(container, {
@@ -296,6 +378,19 @@ describe('The Parlour — reduced motion static indicator', () => {
     expect(screen.getByText('Something stirs here')).toBeDefined();
     expect(css).toMatch(/prefers-reduced-motion/);
     expect(css).toMatch(/animation:\s*none/);
+  });
+
+  it('under reduced motion the still hook pose and the "the price is hiding below" caption render', () => {
+    const { container } = render(<Room room={room} rng={() => 0} />);
+    // The still hook pose is present (no animation).
+    expect(container.querySelector('.act-hook-wrap')).not.toBeNull();
+    // Both the caption and the stirs label show.
+    expect(screen.getByText('the price is hiding below')).toBeDefined();
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    // The reduced-motion rule holds the hook still.
+    expect(css).toMatch(
+      /\.trial-smallprint\.reduced-motion\s+\.act-hook-wrap\s*\{[^}]*animation:\s*none/,
+    );
   });
 
   it('a wrong spell card under reduced motion shows the static indicator, no flicker animation', async () => {
