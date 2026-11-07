@@ -9,7 +9,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { createServer } from 'node:net';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -86,6 +86,7 @@ export function freePort() {
 export async function launchChrome({ width, height, port }) {
   const exe = findChrome();
   const debugPort = port ?? (await freePort());
+  sweepStaleProfiles();
   const profile = mkdtempSync(join(tmpdir(), 'manor-qa-'));
 
   const proc = spawn(
@@ -105,20 +106,53 @@ export async function launchChrome({ width, height, port }) {
     { stdio: 'ignore' },
   );
 
+  // The throwaway profile goes with the browser. On Windows Chrome still holds its files for a moment after
+  // kill(), so removing it at once failed silently and every run left a 30-80 MB folder in the temp dir:
+  // remove it once the process has exited, retrying while its helpers let go of the files.
+  const removeProfile = () => {
+    try {
+      rmSync(profile, { recursive: true, force: true, maxRetries: 20, retryDelay: 250 });
+    } catch {
+      /* ignore: sweepStaleProfiles() takes it on a later run */
+    }
+  };
   const close = () => {
+    if (proc.exitCode !== null || proc.signalCode !== null) {
+      removeProfile();
+      return;
+    }
+    proc.once('exit', removeProfile);
     try {
       proc.kill();
     } catch {
-      /* ignore */
-    }
-    try {
-      rmSync(profile, { recursive: true, force: true });
-    } catch {
-      /* ignore */
+      removeProfile();
     }
   };
 
   return { proc, debugPort, close };
+}
+
+/**
+ * Removes manor-qa profiles older than an hour from the temp dir (left by a crashed or killed run); a profile in
+ * use by a running browser is locked on Windows and stays. Best effort: never throws.
+ */
+export function sweepStaleProfiles(maxAgeMs = 60 * 60 * 1000) {
+  const root = tmpdir();
+  let names = [];
+  try {
+    names = readdirSync(root).filter((name) => name.startsWith('manor-qa-'));
+  } catch {
+    return;
+  }
+  const cutoff = Date.now() - maxAgeMs;
+  for (const name of names) {
+    const dir = join(root, name);
+    try {
+      if (statSync(dir).mtimeMs < cutoff) rmSync(dir, { recursive: true, force: true });
+    } catch {
+      /* locked or gone */
+    }
+  }
 }
 
 /** Poll the CDP /json/list endpoint until the page target appears. */
