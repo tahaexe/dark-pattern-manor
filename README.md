@@ -31,7 +31,7 @@ This project is built with Kiro, an AI-powered development environment. Steering
 - **walk_rooms** `{ rooms: "1-12", width: 1280, height: 720 }` — walks each room by keyboard: the instruction, the lantern, the possessed element reachable by Tab, the three cards and each wrong card's whisper, the right card, the comparison box, the slider really changing what is on top, every point haunted at 0 and honest at 100, the focused honest control, the one-press task, the Ghost Guide and the continue link; then the ending's twelve checklist lines. Returns JSON of the checks and any console errors.
 - **contrast_scan** `{ rooms: "1-12", width: 1280, height: 720 }` — for each room's comparison at 0 (haunted) and 100 (honest), screenshots the comparison box, reads its pixels from a canvas, and reports the WCAG contrast (70th percentile over each text box) of every visible text node, flagging anything below 4.5:1 (3:1 for large text). Returns JSON flags.
 
-Build first (`npm run build`), then Kiro calls the tools through the `manor-qa` entry in `.kiro/settings/mcp.json`. The server speaks only to `127.0.0.1`, writes no file, and sends no project data anywhere. Its protocol and contrast maths are tested by `npm run test:qa` (part of `npm test`).
+Build first (`npm run build`), then Kiro calls the tools through the `manor-qa` entry in `.kiro/settings/mcp.json`. The server speaks only to `127.0.0.1`, writes no file, and sends no project data anywhere. Its protocol and contrast maths are tested by `npm run test:qa` (part of `npm test`). `npm run qa:full` runs both browser tools over all twelve rooms, with and without reduced motion, and fails on any problem.
 
 ## Custom agents
 

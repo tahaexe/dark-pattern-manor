@@ -116,7 +116,7 @@ export const rooms: Record<string, () => Promise<{ default: RoomData }>> = {
 
 ### The initial-bundle size budget
 
-The initial application bundle must not exceed **100 KB compressed** (Requirement 7.3). A Node check — `scripts/check-bundle-size.mjs`, run as `npm run check:size` after `npm run build` — reads the Vite build manifest, sums the gzip (brotli) size of the entry chunk and its static imports (engine + shared UI, no room chunks), and exits non-zero if the total is above the 100 KB limit, printing the measured size and the limit. The GitHub Pages workflow runs the build then this check, so a bundle over budget fails the build rather than shipping. Because rooms are reached only through dynamic `import()`, room chunks are never counted in the entry total, and the budget stays stable as rooms are added.
+The initial application bundle must not exceed **100 KB compressed** (Requirement 7.3). A Node check — `scripts/check-bundle-size.mjs`, run as `npm run check:size` after `npm run build` — reads the Vite build manifest, sums the gzip (brotli) size of the entry chunk and its static imports (engine + shared UI, no room chunks), and exits non-zero if the total is above the 100 KB limit, printing the measured size and the limit. The GitHub Pages workflow runs the build then this check, so a bundle over budget fails the build rather than shipping. Because rooms are reached only through dynamic `import()`, room chunks are never counted in the entry total, and the budget stays stable as rooms are added. The atmosphere layer (below) is lazy-loaded with the room so it, too, stays out of the entry total.
 
 ### Privacy
 
@@ -297,6 +297,78 @@ export function doneCount(): number;
 
 Backed by a single `localStorage` key (e.g. `dpm:progress`). `completeRoom` is monotonic: it only adds to `completed` and `unlocked`, so the done count never decreases (state-machine property). No timer, score, strike counter, or reset mechanism exists (Requirement 5.1). The store sets no cookies and makes no network request (Requirement 2.9). It degrades safely when `localStorage` is unavailable (in-memory fallback) so the game never dead-ends.
 
+## The atmosphere layer and the common moments
+
+The manor has a shared living atmosphere and two haunted moments that are the
+same in every room. Both are specified in full in `.kiro/specs/atmosphere`; the
+engine's part is summarised here.
+
+### The atmosphere layer
+
+One component, `src/ui/Atmosphere.tsx` (with its pure core in
+`src/ui/atmosphere-core.ts` and styles in `src/styles/atmosphere.css`), draws on
+a single `<canvas>` placed inside the room's `aria-hidden` `.room` backdrop
+layer, beneath the manor frame, the task bar, the spell cards, the comparison
+box and every other control. It paints:
+
+- a slow drifting fog (two or three soft, large, low-alpha bands) and 30–60
+  dust motes caught in candlelight;
+- a warm radial candlelight that breathes — its opacity moving between 1 and
+  0.85 at most twice a second, the steering's flicker limit, never a flash.
+
+It is cheap: it starts only after the first paint (`requestIdleCallback`, or a
+short `setTimeout` fallback, so it never delays the largest paint), paints at
+most 30 fps, pauses while the tab is hidden, sizes its backing store to the
+device pixel ratio capped at 2, and stops the loop and removes its listeners on
+unmount. It adds no new dependency and is lazy-loaded with the room so the
+initial bundle stays under the `check:size` budget. The canvas is absolutely
+positioned inside the already-reserved `.room` box, so it causes no layout
+shift (a room's cumulative layout shift stays at or below 0.01). Under
+`prefers-reduced-motion: reduce` it runs no animation and draws a single still
+frame. When the room turns honest the layer **exhales** once over about a
+second — the fog thinning, the glow rising — and then stays calm.
+
+The engine wires it in as `<Atmosphere exhale={showSplit} reducedMotion={…} />`,
+a sibling of `.room-wall` inside `.room`; the `exhale` prop turns true when the
+comparison appears (the honest step).
+
+### The common moments
+
+The two moments every room shares are driven by the engine from the state it
+already holds — the wrong-pick nonce and the `named`/`honest`/`done` state — not
+by any per-room code. `Room.tsx` sets a `data-moment` attribute on
+`.room-scene`: `"wrong"` keyed on `whisperNonce` (via `data-moment-key`, so each
+wrong pick is a fresh value and the CSS animation restarts), `"right"` from the
+moment the room is named onward, and absent otherwise. Shared CSS in
+`src/styles/atmosphere.css` animates the `.ghost` / `.ghost-wrap` elements every
+room already renders, with transforms and opacity only:
+
+- **a wrong card** — the candles gutter (a brief ~300 ms dip of the warm
+  `.room::after` light) and the ghost shakes its head once;
+- **the right card** — the ghost stops mid-gesture and unwinds upward before it
+  flees (the room's own 600 ms ghost-flee still carries the exit), and the page
+  exhales.
+
+Under reduced motion there is no gutter, no head-shake and no unwind; the ghost
+simply fades. None of this hides content, so a wrong card still costs nothing
+and the no-fail rule holds. All twelve rooms already name their ghost elements
+`.ghost-wrap` / `.ghost`, so the shared selectors reach every room; where a room
+differed, the shared class would be added rather than the room's element
+renamed.
+
+### manor-qa learns motion
+
+`walk_rooms` and `contrast_scan` take an optional `reducedMotion` boolean
+(emulated through the browser's media emulation before each page loads,
+defaulting to false). The reduced-motion walk also asserts no element has a
+running animation (`document.getAnimations()` is empty or every animation is
+finished/paused) and that the static "Something stirs here" label is visible.
+`walk_rooms` reports each room's cumulative layout shift (a buffered
+`PerformanceObserver` for `layout-shift`) and fails a room whose shift exceeds
+0.01. The tools keep their names and result shapes; only their JSON Schemas gain
+the optional boolean. The pure rules (`wantsReducedMotion`, `clsWithinLimit`,
+`animationsAtRest`) live in `scripts/mcp/motion.mjs` with `node:test` coverage.
+
 ## Data Models
 
 The authored shape of a room is the `RoomData` object above. Constraints enforced by `check-rooms.mjs` and by fast-check property tests:
@@ -390,6 +462,11 @@ One assertion per transition in Requirement 2: `LANTERN` moves `haunted → insp
 - Engine-level (`src/engine/Room.axe.test.tsx`, Requirement 6.4): render one room in each of the six states (`haunted`, `inspecting`, `picking`, `named`, `honest`, `done`) and assert zero axe violations in every state, including the comparison box in the honest and done states.
 - Per-room (below, design decision 5): axe-core finds zero violations on both the haunted and honest variants of every room, with the `color-contrast` rule included (not disabled). With `prefers-reduced-motion` mocked on, assert no ghost sign animates (the possessed element shows the static dashed candle outline and the "Something stirs here" label instead).
 
+### The atmosphere and moment tests
+
+- **`src/ui/atmosphere-core.test.ts`** (vitest): the pure core — the 30 fps limiter (`shouldDraw`), the mote and fog parameters (`moteCount` in 30–60, `fogBands` 2 or 3, `backingScale` = min(dpr, 2)), the breathing bound (`breath` in [0.85, 1]), the reduced-motion still-frame decision (`renderPlan`), and the exhale easing (`exhaleProgress`).
+- **`src/engine/Room.moment.test.tsx`** (vitest): a wrong pick sets `data-moment="wrong"` with a `data-moment-key` that changes on a second wrong pick; the right card leaves `data-moment="right"` and clears the wrong moment.
+
 ### Engine interaction tests (`src/engine/Room.test.tsx`)
 
 - The full loop: lantern → inspecting → pick possessed → picking → correct card → honest → complete task → done; focus moves to the new state's heading; loading a room uses dynamic import.
@@ -426,6 +503,10 @@ On the first failure it prints the **room name** and the **rule** that failed, t
 ### Bundle-size validation script (`scripts/check-bundle-size.mjs`)
 
 Run as `npm run check:size` after `npm run build`. It reads the Vite build manifest, sums the compressed (gzip/brotli) size of the entry chunk plus its static imports — the engine and shared UI, with no room chunks counted — and fails the build if the total exceeds 100 KB, printing the measured size and the 100 KB limit (Requirement 7.3). The GitHub Pages workflow runs the build and then this check, so a bundle over budget never ships.
+
+### Real-browser QA (manor-qa)
+
+The `manor-qa` MCP server (`scripts/mcp`) walks and scans the built site in a real headless Chrome. Its `walk_rooms` and `contrast_scan` tools accept an optional `reducedMotion` boolean; the reduced-motion walk asserts animations are at rest and the static "Something stirs here" label is visible, and every walk reports and gates each room's cumulative layout shift (≤ 0.01). The pure motion rules live in `scripts/mcp/motion.mjs` under `node:test`.
 
 ### Test commands
 

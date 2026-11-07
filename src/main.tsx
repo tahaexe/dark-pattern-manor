@@ -4,6 +4,7 @@ import App from './app/App';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/look.css';
+import './styles/atmosphere.css';
 
 // Preload the two main font files so they are fetched as early as possible.
 // Vite rewrites these to hashed, same-origin URLs; font-display: optional in

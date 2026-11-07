@@ -2,10 +2,17 @@
 // against the real engine selectors, then open the ending and count its twelve
 // checklist lines. Returns JSON text: per room the checks and any failures,
 // plus any console errors. Writes nothing to disk.
+//
+// Motion QA: with reducedMotion true the session emulates
+// prefers-reduced-motion: reduce before each page loads; the walk then also
+// checks that the "Something stirs here" static label is visible and that no
+// animation is running. Every room also reports its cumulative layout shift
+// and fails if it exceeds 0.01.
 
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseRooms } from './rooms.mjs';
 import { openSession, distReady, NO_DIST_MESSAGE } from './session.mjs';
+import { wantsReducedMotion, clsWithinLimit, animationsAtRest } from './motion.mjs';
 
 /** A sample-point layer check: at the given slider end every point inside the
  *  comparison must belong to the wanted layer (ignoring the decorative bits). */
@@ -50,8 +57,12 @@ const FOCUS_SLIDER =
  * Drive one room from haunted to the honest comparison, by keyboard. Returns a
  * partial report with the picks and the checks gathered up to the comparison.
  * Shared with contrast_scan, which only needs the room freed.
+ *
+ * When `reducedMotion` is true, the walk checks the static "Something stirs
+ * here" label while the possessed element still shows its signs (before the
+ * ghost is named), since that label is the reduced-motion ghost sign.
  */
-export async function freeRoom(cdp, baseUrl, n) {
+export async function freeRoom(cdp, baseUrl, n, reducedMotion = false) {
   const r = { room: n, checks: {}, picks: [], fail: [] };
   const check = (name, val, want = 'ok') => {
     r.checks[name] = val;
@@ -61,6 +72,9 @@ export async function freeRoom(cdp, baseUrl, n) {
 
   await cdp.send('Page.navigate', { url: `${baseUrl}#/room/${n}` });
   await sleep(1800);
+  // Reset CLS after the navigation settles, so the reported shift is movement
+  // during play, not the initial room paint.
+  await cdp.ev('window.__clsReset && window.__clsReset()');
 
   r.name = await cdp.ev("(document.querySelector('.task-bar-title') || document.querySelector('h1') || {}).textContent");
 
@@ -80,6 +94,12 @@ export async function freeRoom(cdp, baseUrl, n) {
     found = await cdp.ev("document.activeElement.classList.contains('possessed')");
   }
   check('possessed reachable by Tab', found, true);
+
+  // Reduced motion: the possessed element shows the static "Something stirs
+  // here" label in place of the flicker/mist. Check it while still haunted.
+  if (reducedMotion) {
+    check('stirs label visible', await cdp.ev('__stirsVisible()'));
+  }
 
   await cdp.key('Enter');
   await sleep(500);
@@ -124,8 +144,8 @@ async function sigAt(cdp, end) {
 }
 
 /** Walk one room fully, including the slider, layers, task and guide checks. */
-async function walkRoom(cdp, baseUrl, n) {
-  const { r, check } = await freeRoom(cdp, baseUrl, n);
+async function walkRoom(cdp, baseUrl, n, reducedMotion = false) {
+  const { r, check } = await freeRoom(cdp, baseUrl, n, reducedMotion);
 
   // Drive the slider to both ends. The signature of which layer is on top must
   // differ between 0 and 100 — proof the slider really changes what is shown.
@@ -159,26 +179,42 @@ async function walkRoom(cdp, baseUrl, n) {
   check('continue link visible', await cdp.ev("__vis('.room-continue')"));
   r.next = await cdp.ev("(document.querySelector('.room-continue')||{}).getAttribute ? document.querySelector('.room-continue').getAttribute('href') : null");
 
+  // Reduced motion: once everything has settled, nothing should still be
+  // animating anywhere on the page.
+  if (reducedMotion) {
+    await sleep(400);
+    const states = await cdp.ev('__animStates()');
+    check('animations at rest', animationsAtRest(states), true);
+    r.checks['animation states'] = Array.isArray(states) ? states.join(',') || '(none)' : String(states);
+  }
+
+  // Cumulative layout shift for this room's walk.
+  const cls = await cdp.ev('window.__cls');
+  const clsNum = typeof cls === 'number' ? cls : Number(cls) || 0;
+  r.checks['cls'] = Number(clsNum.toFixed(4));
+  check('layout shift within 0.01', clsWithinLimit(clsNum), true);
+
   return r;
 }
 
 /**
  * The walk_rooms tool entry point.
- * @param {{ rooms?: string, width?: number, height?: number }} args
+ * @param {{ rooms?: string, width?: number, height?: number, reducedMotion?: boolean }} args
  * @returns {Promise<string>} JSON text
  */
 export async function runWalk(args = {}) {
   const rooms = parseRooms(args.rooms ?? '1-12');
   const width = Number(args.width ?? 1280);
   const height = Number(args.height ?? 720);
+  const reducedMotion = wantsReducedMotion(args);
 
   if (!distReady()) return NO_DIST_MESSAGE;
 
-  const session = await openSession({ width, height });
+  const session = await openSession({ width, height, reducedMotion });
   const report = [];
   try {
     for (const n of rooms) {
-      report.push(await walkRoom(session.cdp, session.baseUrl, n));
+      report.push(await walkRoom(session.cdp, session.baseUrl, n, reducedMotion));
     }
 
     // The ending after the rooms: count the checklist lines. The ending is
@@ -192,7 +228,7 @@ export async function runWalk(args = {}) {
     report.push({ ending: endHead, checklistItems: endItems, twelve: endItems === 12 });
 
     return JSON.stringify(
-      { base: session.baseUrl, width, height, rooms, report, errors: session.errors },
+      { base: session.baseUrl, width, height, reducedMotion, rooms, report, errors: session.errors },
       null,
       2,
     );

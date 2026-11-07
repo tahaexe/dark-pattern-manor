@@ -46,6 +46,12 @@ const roomsSchema = {
     },
     width: { type: 'integer', description: 'Viewport width in px.', default: 1280 },
     height: { type: 'integer', description: 'Viewport height in px.', default: 720 },
+    reducedMotion: {
+      type: 'boolean',
+      description:
+        'Emulate prefers-reduced-motion: reduce before loading each page. walk_rooms then also checks the static "Something stirs here" label and that no animation is running.',
+      default: false,
+    },
   },
   additionalProperties: false,
 };
@@ -61,14 +67,14 @@ const tools = [
   {
     name: 'walk_rooms',
     description:
-      'Walk each room by keyboard in headless Chrome against the built site in dist/: the instruction, the lantern, the possessed element reachable by Tab, the three cards and each wrong card\'s whisper, the right card, the comparison box, the slider really changing what is on top, every point haunted at 0 and honest at 100, the focused honest control, the one-press task, the Ghost Guide and the continue link; then the ending\'s twelve checklist lines. Returns JSON. Run `npm run build` first.',
+      'Walk each room by keyboard in headless Chrome against the built site in dist/: the instruction, the lantern, the possessed element reachable by Tab, the three cards and each wrong card\'s whisper, the right card, the comparison box, the slider really changing what is on top, every point haunted at 0 and honest at 100, the focused honest control, the one-press task, the Ghost Guide and the continue link; then the ending\'s twelve checklist lines. Reports each room\'s cumulative layout shift and fails a room above 0.01. With reducedMotion true it also checks the static "Something stirs here" label and that no animation runs. Returns JSON. Run `npm run build` first.',
     inputSchema: roomsSchema,
     run: (args) => runWalk(args),
   },
   {
     name: 'contrast_scan',
     description:
-      'Measure real-pixel WCAG contrast of the comparison\'s text in headless Chrome, at 0 (haunted) and 100 (honest). Screenshots the comparison box, reads pixels from a canvas, and flags any text below 4.5:1 (3:1 for large text). Returns JSON flags. Run `npm run build` first.',
+      'Measure real-pixel WCAG contrast of the comparison\'s text in headless Chrome, at 0 (haunted) and 100 (honest). Screenshots the comparison box, reads pixels from a canvas, and flags any text below 4.5:1 (3:1 for large text). With reducedMotion true it measures the reduced-motion rendering. Returns JSON flags. Run `npm run build` first.',
     inputSchema: roomsSchema,
     run: (args) => runContrastScan(args),
   },

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'preact/hooks';
+import type { ComponentType } from 'preact';
 import type { RoomData, SpellCard } from './types';
 import { initialState, reduce } from './machine';
 import type { RoomEvent, RoomState } from './machine';
@@ -8,6 +9,7 @@ import SpellPicker from '../ui/SpellPicker';
 import LiveRegion from '../ui/LiveRegion';
 import BeforeAfterSlider from '../ui/BeforeAfterSlider';
 import GuideCard from '../ui/GuideCard';
+import type { AtmosphereProps } from '../ui/Atmosphere';
 import {
   cold,
   fadeOutAmbience,
@@ -49,6 +51,25 @@ function usePrefersReducedMotion(): boolean {
   return reduced;
 }
 
+/**
+ * The atmosphere layer, lazy-loaded so its canvas code rides the room chunk and
+ * never weighs the initial bundle. It is purely decorative (an aria-hidden
+ * canvas on the backdrop), so rendering nothing until it arrives is invisible.
+ */
+function useLazyAtmosphere(): ComponentType<AtmosphereProps> | null {
+  const [Comp, setComp] = useState<ComponentType<AtmosphereProps> | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void import('../ui/Atmosphere').then((mod) => {
+      if (alive) setComp(() => mod.default);
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  return Comp;
+}
+
 /** The heading that labels each state, for focus and announcement. */
 const STATE_HEADING: Record<RoomState['tag'], string> = {
   haunted: 'Haunted',
@@ -60,6 +81,22 @@ const STATE_HEADING: Record<RoomState['tag'], string> = {
 };
 
 const HAUNTED_TAGS: ReadonlyArray<RoomState['tag']> = ['haunted', 'inspecting', 'picking'];
+
+/**
+ * The common haunted moment, derived from the state the engine already holds.
+ * `right` from the moment the room is named onward; `wrong` keyed on the
+ * wrong-pick nonce (so each wrong pick is a new key and the CSS animation
+ * restarts); none otherwise. Shared CSS reads `data-moment` on `.room-scene`.
+ */
+function momentOf(state: RoomState): { name: 'wrong' | 'right'; key: number } | null {
+  if (state.tag === 'named' || state.tag === 'honest' || state.tag === 'done') {
+    return { name: 'right', key: 0 };
+  }
+  if (state.tag === 'picking' && state.whisperNonce > 0) {
+    return { name: 'wrong', key: state.whisperNonce };
+  }
+  return null;
+}
 
 /** The reveal where the opening sweep rests. */
 const SWEEP_REST = 50;
@@ -75,6 +112,7 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   // is allowed.
   const [slider, setSlider] = useState(SWEEP_REST);
   const reducedMotion = usePrefersReducedMotion();
+  const Atmosphere = useLazyAtmosphere();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const doneRef = useRef(false);
   // The previous tag, so sound effects fire on the transition, not every render.
@@ -108,6 +146,7 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
 
   const signsActive = state.tag === 'haunted' || state.tag === 'inspecting';
   const showSplit = state.tag === 'honest' || state.tag === 'done';
+  const moment = momentOf(state);
 
   // The opening sweep. When the comparison first appears: under reduced motion
   // it stays at the rest point (no animation); otherwise it sweeps once from 0
@@ -232,9 +271,14 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   };
 
   return (
-    <div class="room-scene">
+    <div
+      class="room-scene"
+      data-moment={moment?.name}
+      data-moment-key={moment ? String(moment.key) : undefined}
+    >
       <div class="room" aria-hidden="true">
         <div class="room-wall"></div>
+        {Atmosphere ? <Atmosphere exhale={showSplit} reducedMotion={reducedMotion} /> : null}
       </div>
 
       <div class="task-bar">

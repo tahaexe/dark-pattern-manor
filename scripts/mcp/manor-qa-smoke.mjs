@@ -1,6 +1,6 @@
 // End-to-end smoke test of the manor-qa MCP server: spawn it, run initialize,
-// tools/list, check_rooms, and walk_rooms + contrast_scan on rooms 1-2, and
-// print a short summary. Run after a build:
+// tools/list, check_rooms, walk_rooms + contrast_scan on rooms 1-2, and one
+// reduced-motion walk of room 1, and print a short summary. Run after a build:
 //
 //   npm run build
 //   node scripts/mcp/manor-qa-smoke.mjs
@@ -56,6 +56,20 @@ function firstLines(text, n) {
   return String(text).split('\n').slice(0, n).join('\n');
 }
 
+/** Summarise a walk reply's JSON into one line. */
+function walkSummaryOf(text) {
+  try {
+    const parsed = JSON.parse(text);
+    const perRoom = (parsed.report || [])
+      .filter((r) => r.room)
+      .map((r) => `room ${r.room} ${r.fail && r.fail.length ? 'FAIL(' + r.fail.length + ')' : 'ok'}${r.checks && r.checks.cls !== undefined ? ' cls=' + r.checks.cls : ''}`);
+    const ending = (parsed.report || []).find((r) => r.ending);
+    return `${perRoom.join(', ')}${ending ? `; ending items ${ending.checklistItems}` : ''}; console errors ${parsed.errors?.length ?? 0}`;
+  } catch {
+    return firstLines(text, 2);
+  }
+}
+
 async function main() {
   const summary = [];
 
@@ -72,19 +86,15 @@ async function main() {
   summary.push(`check_rooms: ${checkText.trim().split('\n').pop()}`);
 
   const walk = await request('tools/call', { name: 'walk_rooms', arguments: { rooms: '1-2' } });
-  const walkText = textOf(walk);
-  let walkSummary = walkText;
-  try {
-    const parsed = JSON.parse(walkText);
-    const perRoom = (parsed.report || [])
-      .filter((r) => r.room)
-      .map((r) => `room ${r.room} ${r.fail && r.fail.length ? 'FAIL(' + r.fail.length + ')' : 'ok'}`);
-    const ending = (parsed.report || []).find((r) => r.ending);
-    walkSummary = `${perRoom.join(', ')}${ending ? `; ending items ${ending.checklistItems}` : ''}; console errors ${parsed.errors?.length ?? 0}`;
-  } catch {
-    walkSummary = firstLines(walkText, 2);
-  }
-  summary.push(`walk_rooms 1-2: ${walkSummary}`);
+  summary.push(`walk_rooms 1-2: ${walkSummaryOf(textOf(walk))}`);
+
+  // One reduced-motion walk: proves the emulation, the static-label check and
+  // the animations-at-rest check run end to end.
+  const walkRm = await request('tools/call', {
+    name: 'walk_rooms',
+    arguments: { rooms: '1', reducedMotion: true },
+  });
+  summary.push(`walk_rooms 1 (reducedMotion): ${walkSummaryOf(textOf(walkRm))}`);
 
   const scan = await request('tools/call', { name: 'contrast_scan', arguments: { rooms: '1-2' } });
   const scanText = textOf(scan);

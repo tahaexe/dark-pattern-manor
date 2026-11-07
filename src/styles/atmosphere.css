@@ -1,0 +1,94 @@
+/* ------------------------------------------------------------------ *
+ * The atmosphere layer and the common haunted moments.
+ *
+ * The atmosphere canvas lives inside the room's aria-hidden `.room` backdrop
+ * layer, under the manor frame and every control, so it never covers text or
+ * a control. The common moments animate the `.ghost` / `.ghost-wrap` elements
+ * every room already renders, driven by the engine's `data-moment` attribute
+ * on `.room-scene`. Transforms and opacity only.
+ * ------------------------------------------------------------------ */
+
+/* The atmosphere canvas fills the `.room` box (which already reserves the full
+   scene), so adding it causes no layout shift. It sits above `.room-wall`'s
+   painted backdrop and below all interface chrome (z-index >= 2). It never
+   receives pointer events. */
+.atmosphere-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Common moment — a WRONG card.
+ *
+ * The candles gutter (a brief ~300ms dip of the warm light on `.room::after`,
+ * the existing candlelight layer) and the ghost shakes its head once. The
+ * engine re-keys `data-moment-key` on each wrong pick, so the browser restarts
+ * these one-shot animations on every wrong pick.
+ * ------------------------------------------------------------------ */
+.room-scene[data-moment='wrong'] .room::after {
+  animation: candle-gutter 300ms var(--easing);
+}
+
+.room-scene[data-moment='wrong'] .ghost-wrap {
+  animation: ghost-shake 300ms var(--easing);
+}
+
+@keyframes candle-gutter {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  40% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes ghost-shake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-6deg);
+  }
+  75% {
+    transform: rotate(6deg);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Common moment — the RIGHT card.
+ *
+ * The ghost stops mid-gesture and unwinds upward before it flees. This is the
+ * lead-in; the room's own `ghost-flee` (600ms) still carries the exit, so the
+ * shared unwind is short and does not fight the room's flee.
+ * ------------------------------------------------------------------ */
+.room-scene[data-moment='right'] .ghost-wrap {
+  animation: ghost-unwind 220ms var(--easing);
+}
+
+@keyframes ghost-unwind {
+  0% {
+    transform: translateY(0) scaleY(1);
+  }
+  100% {
+    transform: translateY(-8px) scaleY(1.08);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: no gutter, no head-shake, no unwind. The ghost simply fades
+ * with each room's own reduced-motion rules; the atmosphere canvas draws a
+ * single still frame (handled in the component).
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .room-scene[data-moment='wrong'] .room::after,
+  .room-scene[data-moment='wrong'] .ghost-wrap,
+  .room-scene[data-moment='right'] .ghost-wrap {
+    animation: none;
+  }
+}

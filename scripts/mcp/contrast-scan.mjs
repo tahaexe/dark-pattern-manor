@@ -6,12 +6,18 @@
 //
 // The maths live in the pure contrast.mjs module; this file only gathers the
 // pixels from the real browser and calls contrastOfBox.
+//
+// Motion QA: with reducedMotion true the session emulates
+// prefers-reduced-motion: reduce before each page loads, so the scan can
+// measure the reduced-motion rendering. The scan itself is unchanged (it
+// measures pixels, not motion); the flag is echoed in the result.
 
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseRooms } from './rooms.mjs';
 import { openSession, distReady, NO_DIST_MESSAGE } from './session.mjs';
 import { freeRoom } from './walk.mjs';
 import { parseColor, contrastOfBox } from './contrast.mjs';
+import { wantsReducedMotion } from './motion.mjs';
 
 // In-page: collect every *visible* text node inside .comparison with its
 // colour, size, weight and box. The comparison box is scrolled into view
@@ -170,22 +176,23 @@ async function setSlider(cdp, end) {
 
 /**
  * The contrast_scan tool entry point.
- * @param {{ rooms?: string, width?: number, height?: number }} args
+ * @param {{ rooms?: string, width?: number, height?: number, reducedMotion?: boolean }} args
  * @returns {Promise<string>} JSON text
  */
 export async function runContrastScan(args = {}) {
   const rooms = parseRooms(args.rooms ?? '1-12');
   const width = Number(args.width ?? 1280);
   const height = Number(args.height ?? 720);
+  const reducedMotion = wantsReducedMotion(args);
 
   if (!distReady()) return NO_DIST_MESSAGE;
 
-  const session = await openSession({ width, height });
+  const session = await openSession({ width, height, reducedMotion });
   const flags = [];
   try {
     for (const n of rooms) {
       // Reach the comparison by freeing the room (shared with the walk).
-      await freeRoom(session.cdp, session.baseUrl, n);
+      await freeRoom(session.cdp, session.baseUrl, n, reducedMotion);
       await sleep(400);
 
       await setSlider(session.cdp, 0);
@@ -194,7 +201,7 @@ export async function runContrastScan(args = {}) {
       await setSlider(session.cdp, 100);
       await scanState(session.cdp, n, 'honest', flags);
     }
-    return JSON.stringify({ rooms, width, height, flags }, null, 2);
+    return JSON.stringify({ rooms, width, height, reducedMotion, flags }, null, 2);
   } finally {
     await session.teardown();
   }
