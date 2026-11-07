@@ -698,26 +698,52 @@
   left: var(--spacing-md);
 }
 
-/* The reveal edge: a thin vertical divider in the candle colour, positioned at
-   `--split` across the box, with a small round grip in the middle. Decorative
-   and aria-hidden; the slider and the pointer drag carry the real control. */
+/* The reveal edge. Keeping the goal of the last change — move the edge by
+   transform, never by `left`, so easing `--split` from 0 to the rest point
+   composites and never reflows (no per-step layout shift; the honest layer
+   already wipes with a `clip-path`, which does not shift) — but placing it
+   correctly this time.
+
+   The divider is a transparent, full-width TRACK spanning the whole box
+   (left/right/top/bottom: 0), moved by `transform: translateX(var(--split))`.
+   Because the track is as wide as the box, a percentage in translateX resolves
+   against the box's width, so translateX(50%) moves the track half the box —
+   the earlier bug moved a 2px element by 50% of its own 2px (1px), pinning the
+   edge at the left whatever the slider said. The track takes no pointer events;
+   the slider and the drag carry the real control.
+
+   The visible 2px candle edge and its glow are drawn as the track's ::before at
+   `left: -1px`, so the edge is centred on the split exactly as the old
+   `margin-left: -1px` did. The round grip sits at the track's left edge
+   (`left: 0`), centred on it by its own `translate(-50%, -50%)`, so it rides
+   along with the edge. */
 .comparison-divider {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  transform: translateX(var(--split, 50%));
+  pointer-events: none;
+  z-index: 3;
+}
+
+.comparison-divider::before {
+  content: '';
   position: absolute;
   top: 0;
   bottom: 0;
-  left: var(--split, 50%);
+  left: -1px;
   width: 2px;
-  margin-left: -1px;
   background: var(--candle);
   box-shadow: 0 0 8px rgba(240, 190, 119, 0.6);
   pointer-events: none;
-  z-index: 3;
 }
 
 .comparison-grip {
   position: absolute;
   top: 50%;
-  left: 50%;
+  left: 0;
   width: 28px;
   height: 28px;
   transform: translate(-50%, -50%);

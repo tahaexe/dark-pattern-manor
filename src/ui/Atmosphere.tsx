@@ -7,6 +7,7 @@ import {
   exhaleProgress,
   fogBands,
   moteCount,
+  moteGlow,
   renderPlan,
   shouldDraw,
   type FogBand,
@@ -34,6 +35,8 @@ function mulberry32(seed: number): () => number {
 
 /** Warm candle colour (matches --candle), used for glow and motes. */
 const CANDLE = { r: 240, g: 190, b: 119 };
+/** Fog colour (matches the parchment/ghost warm white). */
+const FOG = { r: 244, g: 239, b: 230 };
 
 /**
  * The atmosphere layer: one `<canvas>` on the room's backdrop, behind the
@@ -102,15 +105,17 @@ export default function Atmosphere({ exhale, reducedMotion }: AtmosphereProps) {
 
       ctx.clearRect(0, 0, cssW, cssH);
 
-      // The breathing warm glow: a soft radial centred high on the wall.
+      // The breathing warm glow: a soft radial centred high on the wall, lifted
+      // so the candlelight clearly warms the room (the backdrop mostly shows in
+      // the margins around and above the frame, where this glow lives).
       const b = (reducedMotion ? 1 : breath(now - started)) + glowLift;
       const cx = cssW * 0.5;
       const cy = cssH * 0.42;
-      const rad = Math.max(cssW, cssH) * 0.75;
+      const rad = Math.max(cssW, cssH) * 0.8;
       const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
       const g = Math.min(1, b);
-      grd.addColorStop(0, `rgba(${CANDLE.r},${CANDLE.g},${CANDLE.b},${0.1 * g})`);
-      grd.addColorStop(0.6, `rgba(${CANDLE.r},${CANDLE.g},${CANDLE.b},${0.04 * g})`);
+      grd.addColorStop(0, `rgba(${CANDLE.r},${CANDLE.g},${CANDLE.b},${0.22 * g})`);
+      grd.addColorStop(0.55, `rgba(${CANDLE.r},${CANDLE.g},${CANDLE.b},${0.1 * g})`);
       grd.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = grd;
       ctx.fillRect(0, 0, cssW, cssH);
@@ -121,9 +126,9 @@ export default function Atmosphere({ exhale, reducedMotion }: AtmosphereProps) {
         const x = ((band.phase + drift) % (cssW + band.h)) - band.h;
         const fg = ctx.createLinearGradient(0, band.y, 0, band.y + band.h);
         const a = band.a * fogScale;
-        fg.addColorStop(0, 'rgba(244,239,230,0)');
-        fg.addColorStop(0.5, `rgba(244,239,230,${a})`);
-        fg.addColorStop(1, 'rgba(244,239,230,0)');
+        fg.addColorStop(0, `rgba(${FOG.r},${FOG.g},${FOG.b},0)`);
+        fg.addColorStop(0.5, `rgba(${FOG.r},${FOG.g},${FOG.b},${a})`);
+        fg.addColorStop(1, `rgba(${FOG.r},${FOG.g},${FOG.b},0)`);
         ctx.fillStyle = fg;
         // Two soft overlapping blobs so the band is not a hard rectangle.
         ctx.beginPath();
@@ -132,7 +137,7 @@ export default function Atmosphere({ exhale, reducedMotion }: AtmosphereProps) {
         ctx.fill();
       }
 
-      // The dust motes caught in the candlelight.
+      // The dust motes caught in the candlelight: brighter where the glow is.
       for (const m of motes) {
         if (!reducedMotion) {
           const dt = 1 / 30;
@@ -145,8 +150,10 @@ export default function Atmosphere({ exhale, reducedMotion }: AtmosphereProps) {
           if (m.x < -2) m.x = cssW + 2;
           if (m.x > cssW + 2) m.x = -2;
         }
+        const glow = moteGlow(m.x, m.y, cx, cy, rad);
+        const a = Math.min(1, m.a * glow);
         ctx.beginPath();
-        ctx.fillStyle = `rgba(${CANDLE.r},${CANDLE.g},${CANDLE.b},${m.a})`;
+        ctx.fillStyle = `rgba(${CANDLE.r},${CANDLE.g},${CANDLE.b},${a})`;
         ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
         ctx.fill();
       }

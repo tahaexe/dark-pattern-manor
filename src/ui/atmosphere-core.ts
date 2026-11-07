@@ -99,23 +99,43 @@ export interface FogBand {
   phase: number;
 }
 
-/** Build `n` motes spread over the viewport, with gentle upward drift. */
+/**
+ * Build `n` motes spread over the viewport, with gentle upward drift.
+ *
+ * Dust caught in candlelight should read as little floating specks, so the
+ * motes are a touch larger (1.0–3.2 px) and brighter (alpha 0.28–0.72) than the
+ * first, barely-visible pass. The component brightens them further where the
+ * glow is strongest (see `moteGlow`), so the field reads as motes drifting
+ * through the warm light without ever painting over the interface — the canvas
+ * sits on the backdrop, under every card, control and line of text.
+ */
 export function buildMotes(n: number, w: number, h: number, rng: () => number): Mote[] {
   const out: Mote[] = [];
   for (let i = 0; i < n; i++) {
     out.push({
       x: rng() * w,
       y: rng() * h,
-      r: 0.6 + rng() * 1.6, // 0.6–2.2 px dust
+      r: 1.0 + rng() * 2.2, // 1.0–3.2 px dust, large enough to see float
       vx: (rng() - 0.5) * 6, // gentle horizontal sway, px/s
       vy: -(4 + rng() * 10), // slow upward drift, px/s
-      a: 0.15 + rng() * 0.35, // low alpha, 0.15–0.5
+      a: 0.28 + rng() * 0.44, // visible but calm, 0.28–0.72
     });
   }
   return out;
 }
 
-/** Build `bands` soft fog bands across the viewport. */
+/**
+ * Build `bands` soft fog bands across the viewport.
+ *
+ * The fog is the mood a player should notice drifting through the visible
+ * backdrop — above and beside the frame and across the painted window — so each
+ * band carries enough alpha (0.10–0.20) to read as fog on the dark painted room
+ * and drifts slowly (3–7 px/s) rather than the near-invisible 0.04–0.09 of the
+ * first pass. It stays soft (two overlapping blobs per band, gradient edges) so
+ * it never looks like a bar, and it rides on the backdrop under every control,
+ * so it lies with the backdrop, never over text. WCAG AA contrast is untouched:
+ * `contrast_scan` measures the `.comparison` box far above this layer.
+ */
 export function buildFog(bands: number, w: number, h: number, rng: () => number): FogBand[] {
   const out: FogBand[] = [];
   for (let i = 0; i < bands; i++) {
@@ -123,12 +143,37 @@ export function buildFog(bands: number, w: number, h: number, rng: () => number)
     out.push({
       y: band * i + band * (0.2 + rng() * 0.3),
       h: band * (0.6 + rng() * 0.5),
-      speed: (6 + rng() * 10) * (rng() < 0.5 ? -1 : 1), // px/s, either way
-      a: 0.04 + rng() * 0.05, // very low alpha, 0.04–0.09
+      speed: (3 + rng() * 4) * (rng() < 0.5 ? -1 : 1), // 3–7 px/s, either way
+      a: 0.1 + rng() * 0.1, // readable fog, 0.10–0.20
       phase: rng() * w,
     });
   }
   return out;
+}
+
+/**
+ * A mote's candlelight brightness multiplier at `(x, y)`, given the glow centre
+ * `(cx, cy)` and its radius `rad`: 1 at the centre, easing down to `floor` at
+ * the edge and beyond, so motes near the candlelight look brighter than those
+ * in the dark corners. Pure and clamped, so it is unit-testable and the
+ * component just multiplies the mote's base alpha by it.
+ */
+export function moteGlow(
+  x: number,
+  y: number,
+  cx: number,
+  cy: number,
+  rad: number,
+  floor = 0.55,
+): number {
+  if (!(rad > 0)) return 1;
+  const dx = x - cx;
+  const dy = y - cy;
+  const d = Math.sqrt(dx * dx + dy * dy) / rad; // 0 at centre, 1 at edge
+  const t = Math.min(1, Math.max(0, d));
+  // Ease the bright centre out to the floor at the edge.
+  const falloff = 1 - t * t;
+  return floor + (1 - floor) * falloff;
 }
 
 /** An ease-out over [0,1]. */

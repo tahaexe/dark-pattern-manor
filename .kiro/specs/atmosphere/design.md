@@ -99,6 +99,10 @@ export interface FogBand { y: number; h: number; speed: number; a: number; phase
 export function buildMotes(n: number, w: number, h: number, rng: () => number): Mote[];
 export function buildFog(bands: number, w: number, h: number, rng: () => number): FogBand[];
 
+/** A mote's candlelight brightness at (x,y): 1 at the glow centre, eased down
+ *  to `floor` at/beyond the glow radius; clamped to [floor, 1]. */
+export function moteGlow(x: number, y: number, cx: number, cy: number, rad: number, floor?: number): number;
+
 /** Exhale progress 0..1 at ms since the exhale began; eased, clamped. */
 export function exhaleProgress(msSinceStart: number): number;
 ```
@@ -108,21 +112,62 @@ Key decisions:
 - **`shouldDraw`** gates the rAF loop. The loop calls `requestAnimationFrame`
   every tick (≈60 fps) but only paints when `shouldDraw(now, lastDrawn)` is
   true, so the paint rate is capped at 30 fps (property P1). This is the cheap
-  way to cap fps without `setInterval` drift.
+  way to cap fps without `setInterval` drift. The visibility tuning below keeps
+  it to at most 30 fps and paused when hidden even after the look change.
 - **`moteCount`** scales with viewport area (`round(area / 26000)`), clamped to
   `[30, 60]`, so a phone gets ~30 and a wide desktop ~60, never outside the
-  bound (property P2).
+  bound (property P2). The count is unchanged by the visibility tuning — only
+  each mote's size, alpha and glow weighting change (see below).
 - **`backingScale`** is `min(max(1, dpr), 2)` (property P2). The canvas backing
   store is `cssW * scale × cssH * scale`; the 2D context is scaled by `scale`
   so draw code works in CSS pixels.
 - **`breath`** is `0.925 + 0.075 * cos(2π · BREATH_HZ · t/1000)`, which stays in
   `[0.85, 1]` and completes two cycles per second — the steering's flicker
-  limit, never a flash (property P3).
+  limit, never a flash (property P3). The breathing glow keeps this limit even
+  though it is lifted to be clearly visible; the limit is on the *oscillation*,
+  not the base brightness.
 - **`renderPlan`** returns `'draw-once'` under reduced motion, `'animate'`
   otherwise (property P4).
 - **`exhaleProgress`** eases `0→1` over `EXHALE_MS` (ease-out), clamped to 1 so
   after a second it rests; the component thins the fog alpha and lifts the glow
   by this progress, then holds.
+- **`moteGlow`** is the candlelight weighting a player should feel: motes near
+  the warm glow are brighter, motes in the dark corners calmer. It is
+  `floor + (1 - floor)·(1 - t²)` with `t = clamp(dist/rad, 0, 1)` (default
+  `floor` 0.55), so it is 1 at the glow centre, eases to the floor at the edge,
+  never below it, and is a safe 1 when `rad ≤ 0`. The component multiplies each
+  mote's base alpha by this.
+
+### Visibility tuning (made the mood clearly visible but calm)
+
+The first pass drew the atmosphere so faint that at 1280×720 and 412×915 the
+motes were barely visible and the fog hardly at all. The pure field builders now
+carry stronger, still-calm values so a player plainly sees a candlelit room with
+fog drifting through it, while every other guarantee (30 fps cap, paused when
+hidden, DPR ≤ 2, reduced-motion still frame, no layout shift, 0 contrast flags)
+holds:
+
+- **Fog** — `buildFog` gives each band alpha `0.10–0.20` (was `0.04–0.09`, too
+  faint to read on the dark painted room) and a slow drift speed magnitude of
+  `3–7 px/s` (was `6–16 px/s`), so two or three soft bands drift noticeably but
+  gently through the visible backdrop above and beside the frame and across the
+  painted window. The bands stay soft: two overlapping gradient-edged ellipses
+  per band, never a hard bar. The exhale still thins the fog to 40%.
+- **Motes** — `buildMotes` gives each mote radius `1.0–3.2 px` (was
+  `0.6–2.2 px`) and base alpha `0.28–0.72` (was `0.15–0.5`), so the dust is
+  large and bright enough to see float. The component then multiplies each
+  mote's alpha by `moteGlow(...)`, so they glow where the candlelight is and
+  settle in the dark, which reads as dust caught in the warm light.
+- **Glow** — the component's warm radial is lifted (inner stop ~`0.22·g`, mid
+  stop ~`0.10·g`, radius `0.8·max(w,h)`) so the candlelight clearly warms the
+  walls where the backdrop shows — the margins around and above the frame.
+  The oscillation stays `breath(t)` within `[0.85, 1]` at ≤ 2 Hz: never a flash.
+
+All of these live in the pure core (field values) or the component's draw code
+(glow stops, mote glow multiply); none of them changes the per-frame cost
+meaningfully — the same mote count, the same two/three bands, the same single
+radial — so the layer is still cheap, still ≤ 30 fps, still paused when hidden,
+and still a single still frame under reduced motion.
 
 ## The component — `src/ui/Atmosphere.tsx`
 
@@ -143,8 +188,9 @@ Props: `{ exhale: boolean; reducedMotion: boolean }`.
   but draws nothing) — and on `visibilitychange` the `lastDrawn` clock is reset
   so no catch-up burst occurs (Req 1.7). Otherwise, when
   `shouldDraw(now, lastDrawn)`: clear, draw the breathing glow at `breath(now)`
-  opacity, draw the fog bands (drifting by their speed, wrapped), draw the
-  motes (slow upward drift with gentle horizontal sway), update `lastDrawn`.
+  opacity (lifted stops so it reads), draw the fog bands (drifting by their
+  slow speed, wrapped), draw the motes (slow upward drift with gentle
+  horizontal sway, each alpha weighted by `moteGlow`), update `lastDrawn`.
 - **Draw-once branch** (reduced motion): draw a single still frame — the fog
   bands at rest and the glow at `BREATH_MAX` — and start no loop (Req 1.12).
 - **Exhale**: when the `exhale` prop flips to `true`, record `exhaleStart =
@@ -249,6 +295,25 @@ The breathing glow of the atmosphere canvas and the `candle-gutter` of
 `.room::after` are two different layers (canvas vs CSS pseudo-element); the
 gutter is a one-shot 300 ms dip, the breath is the canvas's steady ≤2 Hz
 oscillation, so they do not fight.
+
+## The before/after divider — composited, no layout shift
+
+The before/after comparison (`src/styles/manor.css`, `.comparison*`) reveals the
+honest twin with a `clip-path` on `.comparison-honest` and marks the reveal edge
+with a `.comparison-divider` (and its centred `.comparison-grip`). The opening
+sweep in `Room.tsx` eases the reveal `--split` from 0 to the rest point over
+~1.2 s. The divider was placed with `left: var(--split)`, so each sweep step
+moved a laid-out element and the browser logged a small **layout shift** per
+step — about 0.003–0.006 per room with motion on, and 0 under reduced motion
+(the sweep does not run). This predates the atmosphere; the clip-path wipe of
+the honest layer never shifted.
+
+The divider is now placed with `transform: translateX(var(--split))` and
+`left: -1px` (keeping the 2 px edge centred on the split, as the old
+`margin-left: -1px` did). Moving it then only composites — no reflow — so the
+sweep no longer logs any layout shift and `walk_rooms` reports CLS 0 in every
+room in both motion modes. The grip rides inside the divider, so it needs no
+move of its own.
 
 ## manor-qa motion — `scripts/mcp/motion.mjs` and the two tools
 
@@ -359,7 +424,12 @@ Kiro) runs the smoke script; the pure rules carry the automated coverage.
   `fogBands` returns 2 or 3; `backingScale` is `min(dpr, 2)` and never below 1;
   `breath(t)` stays in `[0.85, 1]` for a sweep of `t`; `renderPlan(true) ===
   'draw-once'` and `renderPlan(false) === 'animate'`; `exhaleProgress` is 0 at
-  0, monotonic, and clamped to 1 (properties P1–P4).
+  0, monotonic, and clamped to 1 (properties P1–P4). The visibility tuning adds
+  coverage: `buildMotes` radii are `1.0–3.2 px` and alphas `0.28–0.72`;
+  `buildFog` alphas are `0.10–0.20` and speed magnitudes `3–7 px/s`; `moteGlow`
+  is 1 at the centre, eases to its floor at the edge, stays within `[floor, 1]`
+  for any point (fast-check), brighter nearer the centre, and a safe 1 when the
+  radius is not positive.
 - **`src/engine/Room.moment.test.tsx`** (vitest): render the Foyer; after a
   wrong pick `.room-scene` has `data-moment="wrong"` with a `data-moment-key`;
   a second wrong pick changes the key; the correct pick leaves
@@ -369,7 +439,10 @@ Kiro) runs the smoke script; the pure rules carry the automated coverage.
   fails above; `animationsAtRest` passes for `[]`, `['finished']`,
   `['paused','finished']` and fails for `['running']` (properties P6–P8).
 - **The smoke script** proves the tools end to end with and without reduced
-  motion when a browser is present.
+  motion when a browser is present. `npm run qa:full` drives the same server
+  over stdio for non-interactive runs where the MCP tools cannot be approved;
+  it reports CLS per room in both motion modes (now 0 everywhere after the
+  divider fix) and 0 contrast flags with the brighter atmosphere.
 
 Existing suites (`Room.test.tsx`, the room tests, the protocol/contrast/rooms/
 static-server QA tests) stay green; the atmosphere canvas is inert in jsdom and

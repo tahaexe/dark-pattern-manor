@@ -1,7 +1,8 @@
 // The full manor-qa run: spawn the manor-qa MCP server over stdio and call
 // walk_rooms and contrast_scan for the given rooms (default 1-12), both without
 // and with reducedMotion. Prints a compact per-room summary (pass/fail, CLS,
-// reduced-motion checks, contrast flags) and exits non-zero on any failure.
+// reduced-motion checks, divider offsets, contrast flags) and exits non-zero on
+// any failure.
 // Not part of npm test (it needs Chrome and a build): run it before a release
 // and in non-interactive agent runs, where MCP tool calls cannot be approved.
 //
@@ -72,7 +73,13 @@ function summariseWalk(label, text) {
     const rm = r.checks && r.checks['animations at rest'] !== undefined
       ? ` animRest=${r.checks['animations at rest']} stirs=${r.checks['stirs label visible']}`
       : '';
-    console.log(`room ${r.room}: cls=${r.checks?.cls}${rm}${bad || ' ok'}`);
+    // Divider offsets per split, as edge/grip pixels from the ideal position.
+    const div = Array.isArray(r.dividerOffsets) && r.dividerOffsets.length
+      ? ` divider(edge/grip px)=[${r.dividerOffsets
+          .map((d) => `${d.split}:${d.edgeOff}/${d.gripOff}`)
+          .join(' ')}]`
+      : '';
+    console.log(`room ${r.room}: cls=${r.checks?.cls}${rm}${div}${bad || ' ok'}`);
   }
   console.log(`console errors: ${parsed.errors?.length ?? 0}; reducedMotion=${parsed.reducedMotion}`);
   return fails + (parsed.errors?.length ?? 0);

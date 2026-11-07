@@ -14,6 +14,7 @@ import {
   exhaleProgress,
   fogBands,
   moteCount,
+  moteGlow,
   renderPlan,
   shouldDraw,
 } from './atmosphere-core';
@@ -148,6 +149,42 @@ describe('exhaleProgress — eased and clamped', () => {
   });
 });
 
+describe('moteGlow — brighter near the candlelight, calmer in the dark', () => {
+  it('is 1 at the glow centre and eases to the floor at/beyond the edge', () => {
+    // At the centre the multiplier is full brightness.
+    expect(moteGlow(100, 100, 100, 100, 200)).toBeCloseTo(1, 6);
+    // At the edge it reaches the floor (default 0.55).
+    expect(moteGlow(300, 100, 100, 100, 200)).toBeCloseTo(0.55, 6);
+    // Beyond the edge it never drops below the floor.
+    expect(moteGlow(1000, 1000, 100, 100, 200)).toBeCloseTo(0.55, 6);
+  });
+
+  it('a mote nearer the centre is brighter than one farther out', () => {
+    const near = moteGlow(140, 100, 100, 100, 300);
+    const far = moteGlow(360, 100, 100, 100, 300);
+    expect(near).toBeGreaterThan(far);
+  });
+
+  it('stays within [floor, 1] for any point and respects a custom floor', () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: -2000, max: 2000, noNaN: true }),
+        fc.double({ min: -2000, max: 2000, noNaN: true }),
+        (x, y) => {
+          const v = moteGlow(x, y, 0, 0, 500, 0.4);
+          expect(v).toBeGreaterThanOrEqual(0.4 - 1e-9);
+          expect(v).toBeLessThanOrEqual(1 + 1e-9);
+        },
+      ),
+    );
+  });
+
+  it('is a safe 1 when the radius is not positive', () => {
+    expect(moteGlow(10, 10, 0, 0, 0)).toBe(1);
+    expect(moteGlow(10, 10, 0, 0, -5)).toBe(1);
+  });
+});
+
 describe('buildMotes / buildFog — field shape', () => {
   it('builds the requested number of motes within the viewport', () => {
     const rng = mulberry32(1);
@@ -163,13 +200,35 @@ describe('buildMotes / buildFog — field shape', () => {
     }
   });
 
+  it('motes are visible but calm: radius 1.0–3.2 px, alpha 0.28–0.72', () => {
+    const rng = mulberry32(7);
+    const motes = buildMotes(60, 1920, 1080, rng);
+    for (const m of motes) {
+      expect(m.r).toBeGreaterThanOrEqual(1.0 - 1e-9);
+      expect(m.r).toBeLessThanOrEqual(3.2 + 1e-9);
+      expect(m.a).toBeGreaterThanOrEqual(0.28 - 1e-9);
+      expect(m.a).toBeLessThanOrEqual(0.72 + 1e-9);
+    }
+  });
+
   it('builds the requested number of fog bands', () => {
     const rng = mulberry32(2);
     const bands = buildFog(3, 1280, 720, rng);
     expect(bands.length).toBe(3);
     for (const b of bands) {
-      expect(b.a).toBeGreaterThan(0);
-      expect(b.a).toBeLessThan(0.2); // very low alpha, never heavy
+      // Readable fog on the dark room, yet never heavy: alpha 0.10–0.20.
+      expect(b.a).toBeGreaterThanOrEqual(0.1 - 1e-9);
+      expect(b.a).toBeLessThanOrEqual(0.2 + 1e-9);
+    }
+  });
+
+  it('fog drifts slowly: speed magnitude 3–7 px/s, either direction', () => {
+    const rng = mulberry32(3);
+    const bands = buildFog(3, 1280, 720, rng);
+    for (const b of bands) {
+      const mag = Math.abs(b.speed);
+      expect(mag).toBeGreaterThanOrEqual(3 - 1e-9);
+      expect(mag).toBeLessThanOrEqual(7 + 1e-9);
     }
   });
 });
