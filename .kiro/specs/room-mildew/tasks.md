@@ -70,3 +70,24 @@
   - Add `mildew: () => import('../rooms/mildew/room')`.
   - Run `npm run test`, `npm run check:rooms`, `npm run build` and
     `npm run check:size`; all must pass before the room is done.
+
+- [ ] 6. Give the ghost an act that performs Hidden costs
+  - Files: `src/rooms/mildew/Haunted.tsx`, `src/rooms/mildew/room.css`,
+    `src/rooms/mildew/mildew.test.tsx`
+  - In the possessed fee block's ghost, add a long receipt that unrolls fee by
+    fee at the last step (`.act-receipt` with a roll, paper and fee stubs),
+    teaching Hidden costs through the motion itself: the fees come last. Use
+    transforms and opacity only, reserve the act's space inside the
+    absolutely-positioned ghost so there is no layout shift, keep it out of the
+    task's text, controls and focus rings, never block input
+    (`pointer-events: none`), run one cycle of at least four seconds, and keep
+    every act element `aria-hidden`. Freeze every act element on
+    `.room-scene[data-moment='right']` so the act stops for the shared unwind
+    and flee (do not re-implement or override the shared flee). Keep the act out
+    of the honest twin and the comparison's haunted preview. Under
+    `prefers-reduced-motion` show no movement — a still, half-unrolled pose —
+    with the caption "the fees come last" beside the ghost, alongside the
+    room's own "Something stirs here" label. Extend `mildew.test.tsx` to assert
+    the act element exists and is `aria-hidden` in the haunted view, is gone in
+    preview and honest, and that reduced motion renders the still pose and its
+    caption.

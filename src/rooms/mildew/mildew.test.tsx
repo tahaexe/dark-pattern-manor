@@ -247,6 +247,72 @@ describe('The Study — the ghost size and anchor', () => {
   });
 });
 
+describe("The Study — the ghost's act (receipt unrolls fee by fee)", () => {
+  afterEach(() => cleanup());
+
+  function renderHaunted(extra: Partial<{ preview: boolean; reducedMotion: boolean }> = {}) {
+    return render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={extra.reducedMotion ?? false}
+        preview={extra.preview}
+      />,
+    );
+  }
+
+  it('renders the unrolling receipt inside the possessed block, aria-hidden', () => {
+    const { container } = renderHaunted();
+    const possessed = container.querySelector('#study-fee-lines')!;
+    const receipt = possessed.querySelector('.act-receipt');
+    expect(receipt).not.toBeNull();
+    // Decorative: aria-hidden, so it adds nothing to the accessible name.
+    expect(receipt!.getAttribute('aria-hidden')).toBe('true');
+    // The paper and the fee stubs that pay out one by one.
+    expect(possessed.querySelector('.act-receipt-paper')).not.toBeNull();
+    expect(possessed.querySelectorAll('.act-receipt-fee').length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('keeps the act decorative and non-blocking (pointer-events: none, transforms only, >= 4s cycle)', () => {
+    // The act never blocks input and never shifts layout.
+    expect(css).toMatch(/\.act-receipt\s*\{[^}]*pointer-events:\s*none/);
+    // One cycle is 6s (>= 4s).
+    expect(css).toMatch(/\.act-receipt-paper\s*\{[^}]*animation:\s*study-receipt-unroll\s*6s/);
+    // The unroll uses transforms/opacity only (scaleY), never layout size.
+    expect(css).toMatch(/@keyframes study-receipt-unroll[^}]*transform:\s*scaleY/);
+    // The act freezes when the ghost is named (data-moment='right').
+    expect(css).toMatch(/\.room-scene\[data-moment='right'\]\s*\.act-receipt-paper/);
+  });
+
+  it('is absent from the comparison preview (the static "before" side)', () => {
+    const { container } = renderHaunted({ preview: true });
+    // Preview omits the possessed id and all ghost signs, so no act either.
+    expect(container.querySelector('#study-fee-lines')).toBeNull();
+    expect(container.querySelector('.act-receipt')).toBeNull();
+  });
+
+  it('is absent from the honest twin', () => {
+    const { container } = render(<Honest onCompleteTask={() => {}} />);
+    expect(container.querySelector('.act-receipt')).toBeNull();
+  });
+
+  it('under reduced motion holds a still pose with the caption "the fees come last"', () => {
+    const { container } = renderHaunted({ reducedMotion: true });
+    const possessed = container.querySelector('#study-fee-lines')!;
+    // The act element still renders, still decorative.
+    expect(possessed.querySelector('.act-receipt')).not.toBeNull();
+    // The caption names the gesture; the "Something stirs here" label stays too.
+    expect(screen.getByText('the fees come last')).toBeDefined();
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    // The caption is not a live region and adds nothing to announcements.
+    expect(container.querySelector('[aria-live]')).toBeNull();
+    // No movement: the reduced-motion rule freezes the act and holds a pose.
+    expect(css).toMatch(/\.fee-lines\.reduced-motion\s*\.act-receipt-paper[\s\S]*?animation:\s*none/);
+    expect(css).toMatch(/\.fee-lines\.reduced-motion\s*\.act-receipt-paper\s*\{[^}]*transform:\s*scaleY\(0\.5\)/);
+  });
+});
+
 describe('The Study — pattern rule (passes on honest, fails on haunted)', () => {
   afterEach(() => cleanup());
 

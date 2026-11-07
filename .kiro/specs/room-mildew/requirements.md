@@ -58,7 +58,28 @@ and the page turns honest beside its haunted twin.
    ghost signs with a static dashed candle outline and the room's own label
    "Something stirs here".
 
-### Requirement 3: Fiction and honesty
+### Requirement 4: The ghost's act performs Hidden costs
+
+1. WHILE the fee block is possessed (signs active and not in preview), THE
+   ghost SHALL perform an act that teaches the pattern through motion: a long
+   receipt unrolls from the ghost, fee by fee, at the last step, so the motion
+   itself shows that the fees come last. The act SHALL live only on or beside
+   the possessed element, use transforms and opacity only with no layout shift,
+   never cover or dim the task's text, controls or focus rings, never block
+   input, run one cycle of at least four seconds, and keep every act element
+   `aria-hidden` so it adds nothing to the accessible name or to live
+   announcements.
+2. WHEN the ghost is named (the engine sets `data-moment='right'` and
+   `data-fleeing` on `.room-scene`), THE room SHALL freeze every act element so
+   the act stops for the shared unwind and flee, without re-implementing or
+   overriding the shared flee. THE act SHALL be absent from the honest twin and
+   from the comparison's haunted preview.
+3. WHERE `prefers-reduced-motion` is active, THE act SHALL show no movement and
+   instead hold a still pose — the receipt half-unrolled — with a short visible
+   caption beside the ghost, "the fees come last", kept alongside the room's own
+   "Something stirs here" label.
+
+### Requirement 5: Fiction and honesty
 
 1. THE room SHALL use only fictional brand name, colours, logo shape, people,
    products and prices; the domain SHALL use the `.manor` suffix.
@@ -77,3 +98,7 @@ and the page turns honest beside its haunted twin.
   the honest step-1 card shows the same total up front.
 - Every text meets WCAG AA contrast in both variants; axe-core reports zero
   violations on both.
+- The act element (the unrolling receipt) exists and is `aria-hidden` in the
+  haunted view, is absent from the comparison's haunted preview and the honest
+  twin, and under `prefers-reduced-motion` renders a still half-unrolled pose
+  with the caption "the fees come last" beside the "Something stirs here" label.

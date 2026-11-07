@@ -124,11 +124,31 @@ const Haunted: FunctionComponent<HauntedProps> = ({
                     <circle class="ghost-eye" cx="72" cy="60" r="4" />
                     <path class="ghost-mouth" d="M52 74 Q60 82 68 74" />
                   </svg>
+                  {/* The ghost's act — Hidden costs performed. A long receipt
+                      unrolls from the ghost's hands at the last step, fee by
+                      fee, so the motion itself teaches the pattern: the fees
+                      come last. Decorative and non-interactive (aria-hidden,
+                      pointer-events: none); it reserves its own space in the
+                      ghost's margin, so no layout shift; transforms/opacity
+                      only; one 6 s cycle. Under reduced motion it holds a
+                      still, half-unrolled pose with a caption beside it. */}
+                  <span class="act-receipt" aria-hidden="true">
+                    <span class="act-receipt-roll"></span>
+                    <span class="act-receipt-paper">
+                      <span class="act-receipt-fee act-receipt-fee-1"></span>
+                      <span class="act-receipt-fee act-receipt-fee-2"></span>
+                      <span class="act-receipt-fee act-receipt-fee-3"></span>
+                      <span class="act-receipt-fee act-receipt-fee-total"></span>
+                    </span>
+                  </span>
                 </span>
               </span>
             ) : null}
             {showSigns && reducedMotion ? (
                   <span class="stirs-label">Something stirs here</span>
+                ) : null}
+            {showSigns && reducedMotion ? (
+                  <span class="act-caption">the fees come last</span>
                 ) : null}
 
             <span class="fee-line">
