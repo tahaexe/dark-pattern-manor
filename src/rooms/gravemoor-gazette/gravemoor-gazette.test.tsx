@@ -123,8 +123,7 @@ describe('The Foyer — the possessed element', () => {
   });
 });
 
-describe('The Foyer — the ghost size and anchor', () => {
-  it('renders the ghost SVG at about 120 x 140 px inside the possessed link', () => {
+describe('The Foyer — the ghost size and anchor', () => {  it('renders the ghost SVG at about 120 x 140 px inside the possessed link', () => {
     const { container } = render(
       <Haunted
         onSelectPossessed={() => {}}
@@ -241,6 +240,100 @@ describe('The Foyer — pattern rule (passes on honest, fails on haunted)', () =
   });
 });
 
+describe('The Foyer — the ghost act (Visual interference performed)', () => {
+  it('renders the breath puff and the finger-to-lips gesture in the haunted view, all aria-hidden', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    const possessed = container.querySelector('#foyer-reject')!;
+    const breath = possessed.querySelector('.act-breath');
+    const finger = possessed.querySelector('.act-finger');
+    expect(breath).not.toBeNull();
+    expect(finger).not.toBeNull();
+    // Every act element is decorative: aria-hidden and non-interactive.
+    expect(breath!.getAttribute('aria-hidden')).toBe('true');
+    expect(finger!.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('the act never covers or dims the label: the breath sits below the label z-index, pointer-events none', () => {
+    // The label stays on top (z-index 3); the breath glow is below it, so the
+    // "Reject all" text keeps full contrast and is never overlaid.
+    const labelZ = Number(declared('.cookie-reject-label', 'z-index'));
+    const breathZ = Number(declared('.act-breath', 'z-index'));
+    expect(breathZ).toBeLessThan(labelZ);
+    expect(declared('.act-breath', 'pointer-events')).toBe('none');
+    expect(declared('.act-finger', 'pointer-events')).toBe('none');
+  });
+
+  it('the act runs one cycle of at least 4 s with transforms/opacity only (no layout shift)', () => {
+    const breath = declared('.act-breath', 'animation');
+    const finger = declared('.act-finger', 'animation');
+    expect(breath).not.toBeNull();
+    expect(finger).not.toBeNull();
+    // The cycle duration is >= 4 s on both act elements.
+    const seconds = (anim: string) => {
+      const m = anim.match(/([\d.]+)s/);
+      return m ? parseFloat(m[1]) : 0;
+    };
+    expect(seconds(breath!)).toBeGreaterThanOrEqual(4);
+    expect(seconds(finger!)).toBeGreaterThanOrEqual(4);
+    // The keyframes move transform/opacity only — no properties that reflow.
+    expect(css).toMatch(/@keyframes\s+foyer-breath/);
+    expect(css).toMatch(/@keyframes\s+foyer-shush/);
+    const keyframeBody = (name: string): string => {
+      const start = css.search(new RegExp(`@keyframes\\s+${name}\\s*\\{`));
+      expect(start).toBeGreaterThanOrEqual(0);
+      const open = css.indexOf('{', start);
+      let depth = 0;
+      for (let i = open; i < css.length; i++) {
+        if (css[i] === '{') depth++;
+        else if (css[i] === '}') {
+          depth--;
+          if (depth === 0) return css.slice(open + 1, i);
+        }
+      }
+      return '';
+    };
+    for (const name of ['foyer-breath', 'foyer-shush']) {
+      const body = keyframeBody(name);
+      // Only transform and opacity are declared inside the act keyframes, so
+      // the act causes no reflow (no width/height/margin/inset properties).
+      const props = Array.from(body.matchAll(/(?:^|[{;])\s*([a-z-]+)\s*:/g)).map((m) => m[1]);
+      expect(props.length).toBeGreaterThan(0);
+      for (const prop of props) {
+        expect(['transform', 'opacity']).toContain(prop);
+      }
+    }
+  });
+
+  it('the act is absent in preview (the comparison\'s haunted before side)', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+        preview
+      />,
+    );
+    expect(container.querySelector('.act-breath')).toBeNull();
+    expect(container.querySelector('.act-finger')).toBeNull();
+    // And no ghost signs at all on the static before side.
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+  });
+
+  it('the act is absent from the honest twin', () => {
+    const { container } = render(<Honest onCompleteTask={() => {}} />);
+    expect(container.querySelector('.act-breath')).toBeNull();
+    expect(container.querySelector('.act-finger')).toBeNull();
+  });
+});
+
 describe('The Foyer — contrast and axe on both variants', () => {
   async function noViolations(container: HTMLElement) {
     const results = await axe.run(container, {
@@ -310,6 +403,20 @@ describe('The Foyer — reduced motion static indicator', () => {
     // CSS confirms animations are turned off under reduced motion.
     expect(css).toMatch(/prefers-reduced-motion/);
     expect(css).toMatch(/animation:\s*none/);
+  });
+
+  it('under reduced motion the act shows the still pose and the "look away" caption with the stirs label', () => {
+    render(<Room room={room} rng={identityRng} />);
+    // The still finger-to-lips pose renders (no animation under reduced motion).
+    const finger = document.querySelector('#foyer-reject .act-finger');
+    expect(finger).not.toBeNull();
+    // The reduced-motion caption names the gesture, beside the ghost.
+    expect(screen.getByText('it wants you to look away')).toBeDefined();
+    // The existing "Something stirs here" label is kept.
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    // CSS disables the act's animation under reduced motion.
+    expect(css).toMatch(/\.cookie-reject\.reduced-motion\s+\.act-breath/);
+    expect(css).toMatch(/\.cookie-reject\.reduced-motion\s+\.act-finger/);
   });
 
   it('a wrong spell card under reduced motion shows the static indicator, no flicker animation', async () => {

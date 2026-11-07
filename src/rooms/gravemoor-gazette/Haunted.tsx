@@ -7,8 +7,11 @@ import './room.css';
  * text link (Visual interference: the quiet option is made hard to see), while
  * "Accept all" is a full bright button. The ghost is the hero of the room: it
  * peeks over the possessed link without covering its text, with mist drifting
- * around it. All text stays at WCAG AA contrast; the trick is size, weight and
- * placement, never readability.
+ * around it, and performs the trick: it breathes a slow mist puff that dims the
+ * link's surround (never its text) while holding a finger to its lips — the
+ * "look away" gesture that teaches Visual interference through motion. All text
+ * stays at WCAG AA contrast; the trick is size, weight and placement, never
+ * readability.
  *
  * In `preview` mode (the static "before" side of the split) the component is
  * non-interactive and omits the possessed element's id, so the live page keeps
@@ -66,6 +69,13 @@ export default function Haunted({
             aria-hidden={preview ? 'true' : undefined}
             onClick={preview ? undefined : () => onSelectPossessed()}
           >
+            {/* The ghost's breath puff. It performs the Visual-interference
+                trick: a slow mist puff dims the link's SURROUND only (a
+                low-alpha glow behind the label), never the text. It sits below
+                the label's z-index and is aria-hidden and non-interactive, so
+                it neither covers nor blocks "Reject all" and adds nothing to
+                the accessible name. Reserved space only; transforms/opacity. */}
+            {showSigns ? <span class="act-breath" aria-hidden="true"></span> : null}
             <span class="cookie-reject-label">Reject all</span>
             {showSigns ? (
               <span class="ghost-signs" aria-hidden="true">
@@ -74,8 +84,17 @@ export default function Haunted({
                 <span class="mist mist-below"></span>
                 <span class="ghost-wrap">
                   <InkGhost />
+                  {/* The ghost holds a finger to its lips: the "look away"
+                      gesture that names the trick through motion. Decorative,
+                      aria-hidden, transforms/opacity only. */}
+                  <span class="act-finger" aria-hidden="true"></span>
                 </span>
-                {reducedMotion ? <span class="stirs-label">Something stirs here</span> : null}
+                {reducedMotion ? (
+                  <span class="stirs-label">Something stirs here</span>
+                ) : null}
+                {reducedMotion ? (
+                  <span class="act-caption">it wants you to look away</span>
+                ) : null}
               </span>
             ) : null}
           </button>
