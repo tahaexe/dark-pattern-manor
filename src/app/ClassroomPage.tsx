@@ -258,7 +258,18 @@ export default function ClassroomPage() {
             ))}
           </ul>
           <p class="classroom-closing">
-            <em>Every brand in the manor is invented. The game is open source (MIT).</em>
+            <em>
+              Every brand in the manor is invented. The game and this page are open source under the{' '}
+              <a
+                class="classroom-link"
+                href="https://github.com/tahaexe/dark-pattern-manor/blob/main/LICENSE"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                MIT License
+              </a>
+              : copy and adapt them for your class, keeping the licence notice.
+            </em>
           </p>
         </section>
 
