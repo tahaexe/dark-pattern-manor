@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "manor-qa": {
+      "command": "node",
+      "args": ["scripts/mcp/manor-qa.mjs"],
+      "disabled": false,
+      "autoApprove": ["check_rooms", "walk_rooms", "contrast_scan"]
+    }
+  }
+}
