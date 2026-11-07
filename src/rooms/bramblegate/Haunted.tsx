@@ -125,6 +125,26 @@ class CellarBoard extends Component<HauntedProps> {
                 <span class="mist mist-left"></span>
                 <span class="mist mist-above"></span>
                 <span class="mist mist-below"></span>
+
+                {/* The ghost's ACT (Hard to cancel): the motion itself teaches
+                    the pattern. The ghost drags the tiny "Cancel" line through
+                    a row of small doors that slam shut in front of it, so the
+                    way out keeps disappearing. Decorative and aria-hidden: it
+                    adds nothing to the accessible name and never announces.
+                    Transforms/opacity only; the maze strip's space is reserved
+                    by the CSS so the act causes no layout shift, and it never
+                    covers the line text, a button or the price. Under reduced
+                    motion the strip holds a single still pose (below) and does
+                    not animate. The engine stops the act on data-moment='right'
+                    (see room.css) so it is calm through the unwind and flee. */}
+                <span class={`maze${reducedMotion ? ' maze-still' : ''}`}>
+                  <span class="maze-door maze-door-1"></span>
+                  <span class="maze-door maze-door-2"></span>
+                  <span class="maze-door maze-door-3"></span>
+                  {/* The tiny cancel line the ghost drags through the maze. */}
+                  <span class="maze-line">Cancel</span>
+                </span>
+
                 <span class="ghost-wrap">
                   <svg
                     viewBox="0 0 120 140"
@@ -149,8 +169,17 @@ class CellarBoard extends Component<HauntedProps> {
               </span>
             ) : null}
             {showSigns && reducedMotion ? (
-                  <span class="stirs-label">Something stirs here</span>
-                ) : null}
+              <>
+                <span class="stirs-label">Something stirs here</span>
+                {/* The still pose's caption, beside the ghost: the line sits
+                    behind one closed door and the way out is hidden. Decorative
+                    and aria-hidden so it adds nothing to the accessible name or
+                    to live announcements. */}
+                <span class="act-caption" aria-hidden="true">
+                  the way out is hidden
+                </span>
+              </>
+            ) : null}
           </button>
         </div>
       </div>

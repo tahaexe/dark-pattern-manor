@@ -79,3 +79,27 @@
   - Add `bramblegate: () => import('../rooms/bramblegate/room')`.
   - Run `npm run test`, `npm run check:rooms`, `npm run build` and
     `npm run check:size`; all must pass before the room is done.
+
+- [x] 6. Give the ghost an act that performs Hard to cancel
+  - Files: `src/rooms/bramblegate/Haunted.tsx`, `src/rooms/bramblegate/room.css`,
+    `src/rooms/bramblegate/bramblegate.test.tsx`
+  - Add, inside the aria-hidden `.ghost-signs` beside the possessed cancel line,
+    a maze of three small doors and a tiny dragged "Cancel" line: the ghost
+    pulls the line toward the exit and the doors slam shut in front of it, so
+    the way out keeps disappearing (the Hard-to-cancel maze made motion). Use
+    transforms and opacity only, reserve the strip's space so there is no layout
+    shift, keep one cycle at 8s (≥ the 4s floor), never block input, and keep
+    every act element aria-hidden so it adds nothing to the accessible name or
+    to live announcements — and never cover the line text, a button, the price
+    or a focus ring. Stop the act when the ghost is named via
+    `.room-scene[data-moment='right'] .maze, .maze-door, .maze-line { animation:
+    none; }` so the shared unwind and flee play alone; keep the act out of the
+    honest twin and the comparison's haunted preview (`preview` has no signs).
+    Under `prefers-reduced-motion` show no movement but a single still pose —
+    the line behind one closed door — with a short visible caption beside the
+    ghost, "the way out is hidden", alongside the existing "Something stirs
+    here" label. Extend the room's test: the act exists in the haunted view and
+    is aria-hidden, is gone in preview and honest, and under reduced motion the
+    still pose and its caption render; the cancel line's text stays readable and
+    reachable while the act plays. Verify with `walk_rooms` and `contrast_scan`
+    for room 12 in both motion modes.

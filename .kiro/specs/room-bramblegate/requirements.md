@@ -62,6 +62,22 @@ honest beside its haunted twin.
 4. WHERE `prefers-reduced-motion` is active, THE room SHALL replace motion-based
    ghost signs with a static dashed candle outline and the room's own label
    "Something stirs here".
+5. THE ghost SHALL perform an act that enacts Hard to cancel, so the motion
+   itself teaches the pattern: it pulls the tiny cancel line through a maze of
+   small doors that slam shut in front of it. The act SHALL live only on or
+   beside the possessed element; it SHALL use transforms and opacity only and
+   reserve any space it needs, so it causes no layout shift; it SHALL never
+   cover or lower the contrast of the cancel line's text, a button, the price
+   or any focus ring; its one cycle SHALL last at least 4 seconds; it SHALL
+   never block input; and every decorative act element SHALL be aria-hidden,
+   adding nothing to any accessible name or live announcement. WHEN the ghost is
+   named (the engine sets `data-moment='right'` on `.room-scene`), every act
+   element SHALL stop animating so the shared unwind and flee play alone. The
+   act SHALL be absent from the honest twin and from the comparison's haunted
+   preview. WHERE `prefers-reduced-motion` is active, the act SHALL show no
+   movement but a single still pose — the cancel line resting behind one closed
+   door — with a short visible caption beside the ghost, "the way out is
+   hidden", kept alongside the existing "Something stirs here" label.
 
 ### Requirement 3: Fiction and honesty
 

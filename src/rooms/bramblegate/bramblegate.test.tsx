@@ -214,6 +214,62 @@ describe('The Cellar — pattern rule (passes on honest, fails on haunted)', () 
   });
 });
 
+describe('The Cellar — the ghost act (Hard to cancel)', () => {
+  afterEach(() => cleanup());
+
+  it('renders the maze act inside the possessed line and marks it aria-hidden', () => {
+    const { container } = render(<Haunted {...hauntedProps} />);
+    const possessed = container.querySelector('#cellar-cancel')!;
+    const maze = possessed.querySelector('.maze');
+    expect(maze).not.toBeNull();
+    // Three slamming doors and the dragged cancel line make up the act.
+    expect(possessed.querySelectorAll('.maze-door').length).toBe(3);
+    expect(possessed.querySelector('.maze-line')).not.toBeNull();
+    // The act is decorative: it lives inside the aria-hidden .ghost-signs and
+    // adds nothing to the accessible name or to any live announcement.
+    const signs = possessed.querySelector('.ghost-signs')!;
+    expect(signs.getAttribute('aria-hidden')).toBe('true');
+    expect(signs.contains(maze)).toBe(true);
+    // The maze text never leaks into the possessed element's accessible name.
+    expect(possessed.getAttribute('aria-label')).toBeNull();
+  });
+
+  it('the CSS gives the act one cycle of 4s or more and stops it when named', () => {
+    // One full cycle is 8s (>= the 4s floor) for both the doors and the line.
+    expect(css).toMatch(/\.maze-door\s*\{[^}]*animation:\s*maze-slam\s+8s/);
+    expect(css).toMatch(/\.maze-line\s*\{[^}]*animation:\s*maze-drag\s+8s/);
+    // When the ghost is named the engine sets data-moment='right'; every act
+    // element must go still (no mask kept moving through the flee).
+    expect(css).toMatch(
+      /\.room-scene\[data-moment='right'\][^{]*\.maze[^{]*\{[^}]*animation:\s*none/,
+    );
+  });
+
+  it('shows no act in preview (the comparison\'s haunted side)', () => {
+    const { container } = render(<Haunted {...hauntedProps} preview />);
+    expect(container.querySelector('.maze')).toBeNull();
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+    expect(container.querySelector('#cellar-cancel')).toBeNull();
+  });
+
+  it('shows no act in the honest twin', () => {
+    const { container } = render(<Honest onCompleteTask={() => {}} />);
+    expect(container.querySelector('.maze')).toBeNull();
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+  });
+
+  it('keeps the cancel line text readable and reachable while the act plays', () => {
+    render(<Haunted {...hauntedProps} />);
+    const possessed = screen.getByRole('button', { name: POSSESSED_NAME });
+    // The possessed line is still a focusable button with its full text as its
+    // accessible name — the act never covers or renames it.
+    expect(possessed.tagName).toBe('BUTTON');
+    expect((possessed as HTMLButtonElement).tabIndex).toBeGreaterThanOrEqual(0);
+    const text = (possessed.textContent || '').replace(/\s+/g, ' ').trim();
+    expect(text).toMatch(/To cancel, complete our 7-step exit survey/i);
+  });
+});
+
 describe('The Cellar — contrast and axe on both variants', () => {
   afterEach(() => cleanup());
 
@@ -278,6 +334,26 @@ describe('The Cellar — reduced motion static indicator', () => {
     expect(screen.getByText('Something stirs here')).toBeDefined();
     expect(css).toMatch(/prefers-reduced-motion/);
     expect(css).toMatch(/animation:\s*none/);
+  });
+
+  it('shows the act still pose and its caption with reduced motion', () => {
+    const { container } = render(<Room room={room} rng={identityRng} />);
+    const possessed = container.querySelector('#cellar-cancel')!;
+    // The maze renders in its still-pose variant (frozen behind one shut door).
+    const maze = possessed.querySelector('.maze.maze-still');
+    expect(maze).not.toBeNull();
+    expect(maze!.querySelectorAll('.maze-door').length).toBe(3);
+    // The still pose names itself beside the ghost: the way out is hidden.
+    const caption = possessed.querySelector('.act-caption');
+    expect(caption).not.toBeNull();
+    expect((caption!.textContent || '').trim()).toBe('the way out is hidden');
+    expect(caption!.getAttribute('aria-hidden')).toBe('true');
+    // Both the "Something stirs here" label and the caption are present.
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    // The CSS freezes the act under reduced motion (no running animation).
+    expect(css).toMatch(
+      /@media \(prefers-reduced-motion: reduce\)[\s\S]*\.maze[\s\S]*animation:\s*none/,
+    );
   });
 
   it('a wrong spell card under reduced motion shows the static indicator, no flicker animation', async () => {

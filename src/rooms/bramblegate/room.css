@@ -257,6 +257,124 @@
   50% { transform: translateY(-6px) rotate(1deg); }
 }
 
+/* ------------------------------------------------------------------ *
+ * The ghost's ACT (Hard to cancel): the motion itself teaches the pattern.
+ * The ghost drags the tiny "Cancel" line rightward along a row of small doors;
+ * one by one the doors slam shut in front of it, so the way out keeps
+ * disappearing — exactly the Hard-to-cancel maze. It lives only inside the
+ * zero-width, aria-hidden `.ghost-signs` anchor beside the possessed element,
+ * so it reserves no document space and shifts nothing (transforms/opacity
+ * only). It never covers the line text, a button or the price (the line text
+ * sits at z-index 3, above this at z-index 1). One full cycle lasts 8s, well
+ * over the 4s floor, and it never blocks input (pointer-events: none on the
+ * anchor). All of it is decorative and aria-hidden.
+ * ------------------------------------------------------------------ */
+.maze {
+  position: absolute;
+  /* Sits below the ghost's hem, in the empty space beside the line. Width is
+     fixed so the three doors and the dragged line have reserved room; the
+     anchor is zero-width/absolute, so this adds no layout shift. */
+  left: -4px;
+  top: 34px;
+  width: 128px;
+  height: 26px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* The small doors the ghost is pulled past. Each is a thin ink panel with a
+   warm candle edge; they slam shut in sequence (closed = full height). */
+.maze-door {
+  position: absolute;
+  bottom: 0;
+  width: 18px;
+  height: 22px;
+  transform-origin: 50% 100%;
+  background: color-mix(in srgb, var(--ink) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--candle) 60%, transparent);
+  border-radius: 2px 2px 0 0;
+  /* Start open (flat, invisible), then slam shut and hold. Staggered so the
+     doors close one after another as the ghost drags the line through. */
+  transform: scaleY(0.04);
+  opacity: 0.2;
+  animation: maze-slam 8s ease-in-out infinite;
+}
+
+.maze-door-1 { left: 28px; animation-delay: 0.6s; }
+.maze-door-2 { left: 58px; animation-delay: 2s; }
+.maze-door-3 { left: 88px; animation-delay: 3.4s; }
+
+/* The tiny "Cancel" line the ghost drags: it slides toward the exit, then is
+   yanked back each time a door slams, never getting through. It is a soft
+   candle-glow label, never readable UI (the real, reachable cancel line is the
+   possessed button above). */
+.maze-line {
+  position: absolute;
+  bottom: 2px;
+  left: 2px;
+  font-family: var(--font-ui);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--candle) 85%, transparent);
+  white-space: nowrap;
+  animation: maze-drag 8s ease-in-out infinite;
+}
+
+/* A door is flat and faint, then snaps to full height (slams shut) and holds a
+   beat before the next cycle. Transform + opacity only. */
+@keyframes maze-slam {
+  0%, 18% { transform: scaleY(0.04); opacity: 0.2; }
+  22% { transform: scaleY(1.06); opacity: 0.95; }
+  26%, 78% { transform: scaleY(1); opacity: 0.9; }
+  92%, 100% { transform: scaleY(0.04); opacity: 0.2; }
+}
+
+/* The line edges toward the exit, is pulled back as each door slams, and never
+   escapes — the whole way-out keeps being hidden. */
+@keyframes maze-drag {
+  0% { transform: translateX(0); opacity: 0.9; }
+  20% { transform: translateX(26px); opacity: 0.9; }
+  26% { transform: translateX(10px); opacity: 0.8; }
+  48% { transform: translateX(44px); opacity: 0.85; }
+  54% { transform: translateX(26px); opacity: 0.75; }
+  78% { transform: translateX(64px); opacity: 0.8; }
+  86% { transform: translateX(30px); opacity: 0.7; }
+  100% { transform: translateX(0); opacity: 0.9; }
+}
+
+/* The act stops the instant the ghost is named: the engine sets
+   data-moment='right' (and data-fleeing) on .room-scene and holds the haunted
+   page for the shared unwind and flee, so every act element must go still here
+   (Room 3's reviewer marked a mask that kept moving through the flee as a
+   must). */
+.room-scene[data-moment='right'] .maze,
+.room-scene[data-moment='right'] .maze-door,
+.room-scene[data-moment='right'] .maze-line {
+  animation: none;
+}
+
+/* The still pose (reduced motion, and the honest-side safety belt): no
+   movement. The line rests behind one closed door — the first door is shut in
+   front of it and the line sits just behind it, so "the way out is hidden".
+   The caption `.act-caption` names it beside the ghost. This `.maze-still`
+   class is applied from the component (so the still pose holds in any renderer,
+   e.g. jsdom tests, where the @media query is not evaluated); the matching
+   `@media (prefers-reduced-motion: reduce)` block below holds the same pose for
+   the real browser. Keep the two in step. */
+.maze-still .maze-door {
+  animation: none;
+  transform: scaleY(1);
+  opacity: 0.9;
+}
+
+.maze-still .maze-line {
+  animation: none;
+  /* Tucked just behind the first closed door. */
+  transform: translateX(22px);
+  opacity: 0.85;
+}
+
 /* Flicker on the possessed cancel line itself — opacity 1 -> 0.85, at most
    twice a second. */
 .cancel-line.signs-active .cancel-line-text {
@@ -343,8 +461,22 @@
 @media (prefers-reduced-motion: reduce) {
   .ghost-wrap,
   .mist,
+  .maze,
+  .maze-door,
+  .maze-line,
   .cancel-line.signs-active .cancel-line-text {
     animation: none !important;
+  }
+
+  /* The still pose: doors shut, the line tucked behind the first closed door. */
+  .maze .maze-door {
+    transform: scaleY(1);
+    opacity: 0.9;
+  }
+
+  .maze .maze-line {
+    transform: translateX(22px);
+    opacity: 0.85;
   }
 }
 
@@ -540,6 +672,30 @@
     left: auto;
     right: 20px;
     top: -30px;
+  }
+
+  /* The maze act follows the smaller ghost into the reserved strip, staying in
+     the empty space beside the line and never over the line text. */
+  .maze {
+    left: auto;
+    right: 0;
+    top: -22px;
+    width: 92px;
+    height: 20px;
+  }
+
+  .maze-door {
+    width: 14px;
+    height: 16px;
+  }
+
+  .maze-door-1 { left: auto; right: 64px; }
+  .maze-door-2 { left: auto; right: 40px; }
+  .maze-door-3 { left: auto; right: 16px; }
+
+  .maze-line {
+    left: auto;
+    right: 2px;
   }
 
 }
