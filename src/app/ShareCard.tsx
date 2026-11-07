@@ -20,6 +20,11 @@ export function siteUrl(): string {
  * has it; otherwise it copies the text and URL to the clipboard and announces
  * "Copied" in a polite live region. Nothing is sent anywhere else: no tracking,
  * no third-party script.
+ *
+ * The sentence doubles as a link to the teaching page (`#/teach`), so a reader
+ * of the card can reach the lesson materials. The shared text that is actually
+ * shared (`SHARE_TEXT`) is unchanged — only the rendered heading gains the
+ * in-page link.
  */
 export default function ShareCard() {
   const [copied, setCopied] = useState(false);
@@ -51,7 +56,9 @@ export default function ShareCard() {
   return (
     <section class="share-card" aria-labelledby="share-card-heading">
       <h2 id="share-card-heading" class="share-card-heading">
-        {SHARE_TEXT}
+        <a class="share-card-link" href="#/teach">
+          {SHARE_TEXT}
+        </a>
       </h2>
       <p class="share-card-url">{url}</p>
       <button type="button" class="share-card-button" onClick={onShare}>

@@ -144,6 +144,16 @@ describe('App', () => {
     expect(screen.getByText('Ghost hunt in your own browser')).toBeDefined();
   });
 
+  it('opening #/teach renders the teaching page, without finishing the game', async () => {
+    // The teaching page is for the teacher, who may not play all twelve rooms
+    // first, so it is never gated on progress.
+    setHashAndTrigger('#/teach');
+    render(<App />);
+    await waitFor(() => {
+      expect(screen.queryByText('Teaching with Dark Pattern Manor')).not.toBeNull();
+    }, { timeout: 1000 });
+  });
+
   it('shows the "The manor is quiet" link on the title only once all twelve rooms are complete', () => {
     render(<App />);
     // Not yet complete: no end link on the title screen.
@@ -184,6 +194,7 @@ describe('parseHash', () => {
     expect(parseHash('#/')).toEqual({ route: 'title', room: 1 });
     expect(parseHash('#/look')).toEqual({ route: 'look', room: 1 });
     expect(parseHash('#/end')).toEqual({ route: 'end', room: 1 });
+    expect(parseHash('#/teach')).toEqual({ route: 'teach', room: 1 });
     expect(parseHash('#/room/1')).toEqual({ route: 'room', room: 1 });
     expect(parseHash('#/room/12')).toEqual({ route: 'room', room: 12 });
     expect(parseHash('#/room/13')).toBeNull();

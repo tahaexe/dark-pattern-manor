@@ -7,7 +7,7 @@ import { loadRoom, roomSlugs } from '../engine/registry';
 import type { RoomData } from '../engine/types';
 import SoundToggle from '../audio/SoundToggle';
 
-type Route = 'title' | 'room' | 'look' | 'end';
+type Route = 'title' | 'room' | 'look' | 'end' | 'teach';
 
 /** Room number → slug, in product order. Only built rooms resolve. */
 const ROOM_ORDER = roomSlugs();
@@ -18,6 +18,7 @@ export function parseHash(raw: string): { route: Route; room: number } | null {
   if (hash === '' || hash === '/') return { route: 'title', room: 1 };
   if (hash === '/look') return { route: 'look', room: 1 };
   if (hash === '/end') return { route: 'end', room: 1 };
+  if (hash === '/teach') return { route: 'teach', room: 1 };
   if (hash.startsWith('/room/')) {
     const n = parseInt(hash.split('/')[2], 10);
     if (!isNaN(n) && n >= 1 && n <= 12) return { route: 'room', room: n };
@@ -36,6 +37,9 @@ export default function App() {
   // The ending is loaded on demand, the same way a room chunk is, so it never
   // weighs on the initial bundle.
   const [Ending, setEnding] = useState<ComponentType | null>(null);
+  // The teaching page is loaded on demand the same way, so it stays out of the
+  // initial bundle too.
+  const [Classroom, setClassroom] = useState<ComponentType | null>(null);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -90,6 +94,23 @@ export default function App() {
     };
   }, [route]);
 
+  // Load the teaching-page chunk on demand when entering the teach route.
+  useEffect(() => {
+    if (route !== 'teach') return;
+    let active = true;
+    setLoadError(false);
+    import('./ClassroomPage')
+      .then((mod) => {
+        if (active) setClassroom(() => mod.default);
+      })
+      .catch(() => {
+        if (active) setLoadError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [route]);
+
   // Focus the title heading when returning to the title screen (not on the
   // first load, where focus already starts at the top of the page and a
   // programmatic focus only drew a ring around the title).
@@ -123,6 +144,26 @@ export default function App() {
         <TitleScreen />
       ) : route === 'look' ? (
         <LookPage />
+      ) : route === 'teach' ? (
+        Classroom ? (
+          <Classroom />
+        ) : (
+          <div class="room-scene room-scene-pending">
+            <div class="room" aria-hidden="true">
+              <div class="room-wall"></div>
+            </div>
+            {loadError ? (
+              <div class="room-load-error" role="alert">
+                <h1 tabindex={-1}>The manor resists</h1>
+                <p>This page could not be summoned. Try again in a moment.</p>
+              </div>
+            ) : (
+              <div class="room-loading" role="status">
+                <h1 tabindex={-1}>Lighting the candles…</h1>
+              </div>
+            )}
+          </div>
+        )
       ) : route === 'end' ? (
         Ending ? (
           <Ending />

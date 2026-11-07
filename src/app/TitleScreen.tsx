@@ -8,7 +8,7 @@ import './title-screen.css';
  * the rooms use sits full-bleed behind a candlelit column: the large heading,
  * the tagline, the floating ink-line ghost, one line of three honest facts,
  * and a primary control whose label and destination follow the player's
- * progress.
+ * progress. A small footer link points teachers to the teaching page.
  *
  * Everything navigates with plain `#/…` anchors, so the app's hash router
  * drives every transition. No room chunk is loaded: the next unfinished room's
@@ -74,6 +74,12 @@ export default function TitleScreen() {
             </a>
           )}
         </div>
+
+        <p class="title-footer">
+          <a class="title-footer-link" href="#/teach">
+            For teachers
+          </a>
+        </p>
       </div>
     </div>
   );

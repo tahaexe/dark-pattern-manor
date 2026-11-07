@@ -135,6 +135,27 @@
   line-height: var(--line-height-tight);
 }
 
+/* The share sentence doubles as a link to the teaching page. It keeps the
+   heading's look (same face, size and colour) and only adds the manor's link
+   affordances. */
+.share-card-link {
+  color: var(--ink);
+  text-decoration: underline;
+  border-bottom: 1px solid var(--ink);
+}
+
+.share-card-link:hover,
+.share-card-link:focus {
+  color: var(--bronze);
+}
+
+.share-card-link:focus-visible,
+.share-card-link:focus {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 .share-card-url {
   font-family: var(--font-ui);
   font-size: var(--font-size-sm);

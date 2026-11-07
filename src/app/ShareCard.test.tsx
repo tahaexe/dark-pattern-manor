@@ -20,6 +20,12 @@ describe('ShareCard', () => {
     expect(screen.getByText(expected)).toBeDefined();
   });
 
+  it('links the share sentence to the teaching page', () => {
+    render(<ShareCard />);
+    const link = screen.getByRole('link', { name: SHARE_TEXT }) as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('#/teach');
+  });
+
   it('uses the Web Share API when navigator.share is present, and not the clipboard', async () => {
     const share = vi.fn().mockResolvedValue(undefined);
     (navigator as unknown as { share: typeof share }).share = share;

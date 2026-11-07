@@ -62,6 +62,12 @@ describe('TitleScreen', () => {
     expect(screen.queryByText('Enter the manor')).toBeNull();
   });
 
+  it('carries a small footer link for teachers to #/teach', () => {
+    render(<TitleScreen />);
+    const link = screen.getByRole('link', { name: 'For teachers' }) as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('#/teach');
+  });
+
   it('the ghost is aria-hidden', () => {
     const { container } = render(<TitleScreen />);
     const ghost = container.querySelector('.title-ghost');

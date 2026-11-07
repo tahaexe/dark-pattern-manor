@@ -211,6 +211,38 @@
   border-radius: var(--radius-md);
 }
 
+/* A small footer link for teachers, quieter than the primary actions but still
+   a 44px target with a candle focus ring and AA-contrast candle text over the
+   darkened vignette. */
+.title-footer {
+  margin: var(--spacing-md) 0 0;
+}
+
+.title-footer-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  color: var(--candle);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.title-footer-link:hover,
+.title-footer-link:focus {
+  color: var(--gold);
+}
+
+.title-footer-link:focus-visible,
+.title-footer-link:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 3px;
+  border-radius: var(--radius-md);
+}
+
 /* Under reduced motion the ghost holds still and the button does not lift. */
 @media (prefers-reduced-motion: reduce) {
   .title-ghost {

@@ -1,0 +1,315 @@
+/* The teaching page: a quiet document in the manor's look, reached at #/teach.
+   Frame, tokens and fonts only — no new raster image and no new font. It reads
+   well at 1920 x 1080 and stays readable at 412px with no horizontal overflow.
+   The page animates nothing of its own; the shared atmosphere honours reduced
+   motion, and the print block below turns off everything for paper.
+
+   Like the ending, only this route's own styles live here and travel in the
+   lazily-loaded classroom chunk. */
+
+.classroom .classroom-card {
+  max-width: 900px;
+}
+
+.classroom-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 var(--spacing-md);
+  line-height: var(--line-height-tight);
+}
+
+.classroom-title:focus,
+.classroom-title:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 4px;
+  border-radius: var(--radius-md);
+}
+
+.classroom-lead,
+.classroom-para {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  color: var(--ink);
+  line-height: var(--line-height-relaxed);
+  margin: 0 0 var(--spacing-lg);
+}
+
+.classroom-lead {
+  font-size: var(--font-size-lg);
+}
+
+.classroom-lead strong,
+.classroom-para strong {
+  color: var(--ink);
+}
+
+/* The "Print this page" button: the manor's candle button, placed under the
+   heading. Hidden in print by the [data-print-hide] rule below. */
+.classroom-print {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  margin: 0 0 var(--spacing-xl);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform var(--duration-hover) var(--easing),
+    box-shadow var(--duration-hover) var(--easing);
+}
+
+.classroom-print:hover,
+.classroom-print:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(240, 190, 119, 0.4);
+}
+
+.classroom-print:focus-visible,
+.classroom-print:focus {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.classroom-section {
+  margin: var(--spacing-xl) 0;
+}
+
+.classroom-heading {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 var(--spacing-md);
+  line-height: var(--line-height-tight);
+}
+
+.classroom-sub {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  color: var(--ink-soft);
+  margin: 0 0 var(--spacing-md);
+  line-height: var(--line-height-normal);
+}
+
+/* The lesson table: full width, ink rules on parchment, the Time column narrow.
+   Wrapped in an overflow-x:auto box so it never forces the page wider than the
+   viewport on a phone. */
+.classroom-table-wrap {
+  overflow-x: auto;
+  margin: 0 0 var(--spacing-lg);
+}
+
+.classroom-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  color: var(--ink);
+  line-height: var(--line-height-relaxed);
+}
+
+.classroom-table th,
+.classroom-table td {
+  border: 1px solid var(--parchment-edge);
+  padding: var(--spacing-md);
+  text-align: left;
+  vertical-align: top;
+}
+
+.classroom-table thead th {
+  font-family: var(--font-display);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  background: color-mix(in srgb, var(--parchment-edge) 30%, transparent);
+}
+
+.classroom-table-time {
+  white-space: nowrap;
+  font-weight: 700;
+}
+
+.classroom-questions,
+.classroom-checklist {
+  margin: 0 0 var(--spacing-lg);
+  padding-left: 1.4em;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  line-height: var(--line-height-relaxed);
+}
+
+.classroom-question,
+.classroom-checklist-item {
+  margin-bottom: var(--spacing-md);
+  break-inside: avoid;
+}
+
+.classroom-checklist-room {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.classroom-sources {
+  list-style: none;
+  margin: 0 0 var(--spacing-lg);
+  padding: 0;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  line-height: var(--line-height-relaxed);
+}
+
+.classroom-source {
+  margin-bottom: var(--spacing-md);
+}
+
+.classroom-link {
+  color: var(--ink);
+  text-decoration: underline;
+  border-bottom: 1px solid var(--ink);
+  word-break: break-all;
+}
+
+.classroom-link:hover,
+.classroom-link:focus {
+  color: var(--bronze);
+}
+
+.classroom-link:focus-visible,
+.classroom-link:focus {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.classroom-closing {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  color: var(--ink-soft);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+.classroom-back {
+  margin-top: var(--spacing-xl);
+}
+
+.classroom-back a {
+  color: var(--ink);
+  text-decoration: underline;
+  border-bottom: 1px solid var(--ink);
+}
+
+.classroom-back a:hover,
+.classroom-back a:focus {
+  color: var(--bronze);
+}
+
+@media (max-width: 600px) {
+  .classroom .classroom-card {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .classroom-print {
+    transition: none;
+  }
+
+  .classroom-print:hover,
+  .classroom-print:focus {
+    transform: none;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Print: ink on white, no backdrop, no candles, no motion. The checklist
+ * starts on a fresh page and every external link prints its URL after it, so a
+ * teacher can hand the page out on paper.
+ * ------------------------------------------------------------------ */
+@media print {
+  /* No backdrop, no atmosphere canvas, no sound toggle, no print button. */
+  .classroom .room,
+  .classroom .room-wall,
+  .atmosphere,
+  .sound-toggle,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  /* Nothing moves on paper. */
+  .classroom,
+  .classroom * {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* The frame becomes a plain white sheet with black ink. */
+  .classroom .manor-frame.classroom-card {
+    max-width: none;
+    width: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  /* The gilded corner flourishes are decorative; drop them. */
+  .classroom .manor-frame.classroom-card::before,
+  .classroom .manor-frame.classroom-card::after {
+    display: none !important;
+  }
+
+  .classroom,
+  .classroom .classroom-card,
+  .classroom-title,
+  .classroom-heading,
+  .classroom-sub,
+  .classroom-lead,
+  .classroom-para,
+  .classroom-questions,
+  .classroom-checklist,
+  .classroom-sources,
+  .classroom-closing,
+  .classroom-table,
+  .classroom-table th,
+  .classroom-table td,
+  .classroom-checklist-room,
+  .classroom-back a,
+  .classroom-link {
+    color: #000 !important;
+    background: #fff !important;
+  }
+
+  .classroom-table th,
+  .classroom-table td {
+    border-color: #000 !important;
+  }
+
+  /* The printable checklist starts on a new page. */
+  .classroom-checklist-section {
+    break-before: page;
+  }
+
+  /* External links print their destination after the text; internal #/ links
+     do not, so the handout is not littered with in-app anchors. */
+  .classroom-link[href^='http']::after {
+    content: ' (' attr(href) ')';
+    word-break: break-all;
+  }
+
+  .classroom-link {
+    text-decoration: underline;
+    border-bottom: 0;
+  }
+}
