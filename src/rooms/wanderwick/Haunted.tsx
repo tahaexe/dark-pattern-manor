@@ -44,11 +44,19 @@ interface BoardState {
  * figures in the UI face so "Asked 2 times" never reads as "Asked I times" and
  * never changes width.
  *
+ * The ghost performs the trick through motion: it knocks on the pop-up again
+ * after each "Not now", so the pop-up gives a small bump every time it nags
+ * back. The knock lives only on/beside the possessed pop-up, uses transforms
+ * and opacity only, reserves its own space (no layout shift), never blocks
+ * input and never covers the question text or the buttons — the motion itself
+ * teaches Nagging (it will ask again).
+ *
  * Under `prefers-reduced-motion` the ghost signs are a static dashed outline
- * and the "Something stirs here" label with no animation; the pop-up still
- * comes back after ~3 s, but with no fade or movement. In `preview` mode (the
- * static "before" side of the split) the screen is non-interactive, omits the
- * possessed id and starts no timer.
+ * and the "Something stirs here" label with no animation; the knock holds a
+ * still pose — the ghost mid-knock — with a short visible caption beside it,
+ * "it will ask again"; the pop-up still comes back after ~3 s, but with no
+ * fade or movement. In `preview` mode (the static "before" side of the split)
+ * the screen is non-interactive, omits the possessed id and starts no timer.
  */
 class NaggingBoard extends Component<HauntedProps, BoardState> {
   private timerId: ReturnType<typeof setTimeout> | undefined;
@@ -109,7 +117,7 @@ class NaggingBoard extends Component<HauntedProps, BoardState> {
               is in the DOM until it returns. */}
           {promptOpen ? (
             <div
-              class="nag-popup"
+              class={`nag-popup${askCount > 1 ? ' nag-popup-bump' : ''}`}
               role="dialog"
               aria-labelledby="nursery-prompt-question"
             >
@@ -165,11 +173,20 @@ class NaggingBoard extends Component<HauntedProps, BoardState> {
                         <circle class="ghost-eye" cx="72" cy="60" r="4" />
                         <path class="ghost-mouth" d="M52 74 Q60 82 68 74" />
                       </svg>
+                      {/* The ghost's knocking fist: a small ink knuckle that
+                          raps toward the pop-up, driving the knock act. It
+                          reserves its own space, is aria-hidden and
+                          non-interactive, moves by transform only and never
+                          covers the question text or the buttons. */}
+                      <span class="act-knock" aria-hidden="true"></span>
                     </span>
                   </span>
                 ) : null}
                 {showSigns && reducedMotion ? (
                       <span class="stirs-label">Something stirs here</span>
+                    ) : null}
+                {showSigns && reducedMotion ? (
+                      <span class="act-caption">it will ask again</span>
                     ) : null}
               </button>
 

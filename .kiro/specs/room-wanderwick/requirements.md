@@ -61,6 +61,22 @@ turns honest beside its haunted twin.
    ghost signs with a static dashed candle outline and the room's own label
    "Something stirs here"; the pop-up still comes back after ~3 s but with no
    fade or movement.
+5. THE haunted variant SHALL give the ghost an act that performs the trick: the
+   ghost knocks on the pop-up again after each "Not now" (the pop-up gives a
+   small bump each time it nags back), so the motion itself teaches Nagging.
+   The act SHALL live only on or beside the possessed pop-up (nothing else in
+   the room moves or cracks), use transforms and opacity only with no layout
+   shift, run a cycle of 4 s or more, never block input, and never cover the
+   question text, the buttons or their focus rings or lower any text's
+   contrast; every act element SHALL be aria-hidden and add nothing to the
+   accessible name or to live announcements. WHEN the ghost is named (the
+   engine sets `data-moment='right'` on `.room-scene`), THE act SHALL stop so it
+   does not move through the shared unwind and flee, and THE act SHALL be absent
+   from the honest twin and from the comparison's haunted preview. WHERE
+   `prefers-reduced-motion` is active, THE act SHALL show no movement and
+   instead hold a still pose (the ghost mid-knock) with a short visible caption
+   beside the ghost, "it will ask again" (keeping the "Something stirs here"
+   label).
 
 ### Requirement 3: Fiction and honesty
 

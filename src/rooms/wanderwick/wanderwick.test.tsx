@@ -364,6 +364,109 @@ describe('The Nursery — the ghost size and anchor', () => {
   });
 });
 
+describe('The Nursery — the ghost knocks again (the act)', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.runOnlyPendingTimers();
+    vi.useRealTimers();
+  });
+
+  it('renders the knocking knuckle in the haunted view, aria-hidden', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    const knock = container.querySelector('.act-knock');
+    expect(knock).not.toBeNull();
+    // Decorative: aria-hidden, inside the ghost (itself aria-hidden), adding
+    // nothing to any accessible name or announcement.
+    expect(knock!.closest('[aria-hidden="true"]')).not.toBeNull();
+    expect(knock!.closest('.ghost-wrap')).not.toBeNull();
+    // The knock is only on/beside the possessed pop-up, never elsewhere.
+    expect(knock!.closest('#nursery-prompt')).not.toBeNull();
+  });
+
+  it('is absent in preview (the split\'s before side)', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+        preview
+      />,
+    );
+    expect(container.querySelector('.act-knock')).toBeNull();
+    // Preview also omits the possessed id and the whole ghost signs.
+    expect(container.querySelector('#nursery-prompt')).toBeNull();
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+  });
+
+  it('is absent in the honest twin', () => {
+    const { container } = render(<Honest onCompleteTask={() => {}} />);
+    expect(container.querySelector('.act-knock')).toBeNull();
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+  });
+
+  it('the pop-up bumps only once it has nagged back (askCount > 1)', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // First ask: no bump class yet.
+    expect(container.querySelector('.nag-popup')!.className).not.toContain('nag-popup-bump');
+    // After "Not now" it returns ~3 s later with the bump.
+    fireEvent.click(screen.getByRole('button', { name: NOT_NOW_NAME }));
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+    expect(container.querySelector('.nag-popup')!.className).toContain('nag-popup-bump');
+  });
+
+  it('the act stops when named: the CSS stills the knock and bump on data-moment right', () => {
+    expect(css).toMatch(
+      /\.room-scene\[data-moment='right'\]\s+\.act-knock[\s\S]*animation:\s*none/,
+    );
+    expect(css).toMatch(/\.nag-popup-bump/);
+    // One cycle lasts 4 s or more (never a flash).
+    expect(css).toMatch(/\.act-knock\s*\{[\s\S]*animation:\s*nursery-knock\s+4s/);
+  });
+
+  it('under reduced motion the knock holds a still pose and shows the caption', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion
+      />,
+    );
+    // The still pose: the knock element exists, the "Something stirs here"
+    // label and the act caption both render beside the ghost.
+    expect(container.querySelector('.act-knock')).not.toBeNull();
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    expect(screen.getByText('it will ask again')).toBeDefined();
+    // The caption is decorative text, not a live region or announcement.
+    const caption = container.querySelector('.act-caption')!;
+    expect(caption.getAttribute('aria-live')).toBeNull();
+    expect(caption.getAttribute('role')).toBeNull();
+    // The CSS holds the still pose with no animation under reduced motion.
+    expect(css).toMatch(/prefers-reduced-motion[\s\S]*\.act-knock[\s\S]*animation:\s*none/);
+  });
+});
+
 describe('The Nursery — pattern rule (passes on honest, fails on haunted)', () => {
   beforeEach(() => {
     vi.useFakeTimers();

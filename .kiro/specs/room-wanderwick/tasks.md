@@ -79,3 +79,26 @@
   - Add `wanderwick: () => import('../rooms/wanderwick/room')`.
   - Run `npm run test`, `npm run check:rooms`, `npm run build` and
     `npm run check:size`; all must pass before the room is done.
+
+- [x] 6. Give the ghost a knocking act (perform the trick)
+  - File: `src/rooms/wanderwick/Haunted.tsx`, `src/rooms/wanderwick/room.css`
+  - Make the ghost knock on the pop-up again after each "Not now": add the
+    ghost's ink knuckle (`.act-knock`) that raps toward the prompt on a >= 4 s
+    cycle, and give the pop-up a small one-shot bump (`.nag-popup-bump`) each
+    time it nags back (askCount > 1), so the motion teaches Nagging. Keep the
+    act on/beside the possessed pop-up only, transforms and opacity only, with
+    no layout shift; never cover the question text, the buttons or their focus
+    rings; keep every act element aria-hidden with nothing added to the
+    accessible name or announcements; never move focus and never add a repeated
+    announcement. Stop the act on `.room-scene[data-moment='right']` (both the
+    knock and the bump) so it never moves through the shared unwind and flee,
+    and keep it absent from the honest twin and the comparison's haunted
+    preview (preview omits the signs). Under `prefers-reduced-motion` show no
+    movement: hold the still pose (the ghost mid-knock) and render a short
+    caption beside the ghost, "it will ask again", alongside the existing
+    "Something stirs here" label.
+  - Tests: extend `src/rooms/wanderwick/wanderwick.test.tsx` — the knock element
+    exists in the haunted view and is aria-hidden; it is gone in `preview` and
+    in the honest variant; under reduced motion the still pose and its caption
+    render; the pop-up carries the bump class only when it has nagged back; the
+    room still reports zero axe violations.
