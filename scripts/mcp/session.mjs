@@ -35,7 +35,12 @@ export function distReady() {
 //    `.act-caption`, the label's box, the boxes of its clipping ancestors
 //    (overflow hidden/clip or a clip-path) and whether it stays within the
 //    viewport's WIDTH, so the walk can prove no visible label is cut (via the
-//    pure labelWithinClip rule).
+//    pure labelWithinClip rule);
+//  - __heldMotion() → the running animations inside the haunted page's frame,
+//    each with its target's classes, the animation name and whether the target
+//    is `.ghost-wrap` or inside it, so the walk can prove that during the named
+//    hold nothing but the shared flee keeps moving (via the pure
+//    heldMotionOffenders rule).
 export const HELPERS = `
 window.__el = (x) => (typeof x === 'string' ? document.querySelector(x) : x);
 window.__vis = (x) => {
@@ -130,6 +135,49 @@ window.__labelClipData = () => {
     });
   }
   return out;
+};
+
+// The running animations inside the haunted page's frame during the named
+// hold. After the right card lands the engine holds the haunted page for the
+// shared unwind and flee of .ghost-wrap; the named-hold rule (motion.mjs) then
+// fails a room if anything OTHER than .ghost-wrap (or something inside it) is
+// still animating in the frame — a leftover act, mist or flicker. We read
+// document.getAnimations(), keep the ones whose play state is 'running' and
+// whose target element sits inside .manor-frame (the live haunted page, not a
+// preview), and report each target's classes, the animation's name and whether
+// the target is .ghost-wrap or inside it (the one place the shared flee is
+// allowed). A pseudo-element animation (e.g. ::after) reports its owning
+// element, which is what we want to name.
+window.__heldMotion = () => {
+  try {
+    if (!document.getAnimations) return [];
+    const frames = [...document.querySelectorAll('.manor-frame')].filter(
+      (f) => !f.classList.contains('manor-frame-preview'),
+    );
+    if (!frames.length) return [];
+    const inFrame = (el) => frames.some((f) => f.contains(el));
+    const nameOf = (a) => {
+      if (typeof a.animationName === 'string' && a.animationName) return a.animationName;
+      if (a.transitionProperty) return 'transition:' + a.transitionProperty;
+      return a.id || '';
+    };
+    const classesOf = (el) => {
+      const c = el.className;
+      if (c && typeof c === 'object' && 'baseVal' in c) return c.baseVal || el.tagName;
+      return (typeof c === 'string' && c) || el.tagName || '';
+    };
+    const out = [];
+    for (const a of document.getAnimations()) {
+      if (a.playState !== 'running') continue;
+      const target = a.effect && a.effect.target ? a.effect.target : null;
+      if (!target || !inFrame(target)) continue;
+      const wrap = target.closest ? target.closest('.ghost-wrap') : null;
+      out.push({ name: nameOf(a), classes: classesOf(target), insideGhostWrap: !!wrap });
+    }
+    return out;
+  } catch (_e) {
+    return [];
+  }
 };
 `;
 

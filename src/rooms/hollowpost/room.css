@@ -593,3 +593,17 @@
 .act-caption {
   top: calc(100% + 1.6em);
 }
+
+/* ------------------------------------------------------------------ *
+ * Named hold: freeze this room’s signs so only the shared flee moves.
+ * Once the right card lands the engine names the room and holds the haunted
+ * page (data-moment='right') for the shared unwind and flee of .ghost-wrap.
+ * During that hold nothing else in the frame may keep moving, so this room
+ * stops the possessed banner's mist puff (the shared .possessed::before); the
+ * banner's flicker, the drifting mist and the tapping act were already frozen.
+ * The shared flee on .ghost-wrap is untouched; only the hold is affected, so
+ * the signs look exactly the same at every other moment.
+ * ------------------------------------------------------------------ */
+.room-scene[data-moment='right'] .ticket-countdown::before {
+  animation: none;
+}

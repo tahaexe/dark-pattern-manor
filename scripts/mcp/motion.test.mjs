@@ -8,6 +8,7 @@ import {
   clsWithinLimit,
   animationsAtRest,
   labelWithinClip,
+  heldMotionOffenders,
   CLS_LIMIT,
   CLIP_TOLERANCE,
 } from './motion.mjs';
@@ -160,6 +161,85 @@ test('property: a label contained in a clip (within tolerance) always passes', (
         const top = ct + Math.min(padT, ch - lh - 1);
         const label = box(left, top, left + lw, top + lh);
         assert.equal(labelWithinClip(label, [clip]), true);
+      },
+    ),
+  );
+});
+
+// --- heldMotionOffenders (named-hold rule) -------------------------------
+
+test('no running animations means a clean hold', () => {
+  assert.deepEqual(heldMotionOffenders([]), []);
+});
+
+test('the shared flee on .ghost-wrap itself is allowed', () => {
+  const running = [{ name: 'ghost-flee', classes: 'ghost-wrap', insideGhostWrap: true }];
+  assert.deepEqual(heldMotionOffenders(running), []);
+});
+
+test('an animation on an element INSIDE the ghost-wrap is allowed', () => {
+  // e.g. an act element that lives within .ghost-wrap and is carried by the
+  // shared flee; insideGhostWrap is true.
+  const running = [{ name: 'dining-mask-tilt', classes: 'act-mask', insideGhostWrap: true }];
+  assert.deepEqual(heldMotionOffenders(running), []);
+});
+
+test("a room's act still animating OUTSIDE the ghost-wrap is an offender", () => {
+  const running = [
+    { name: 'library-trace', classes: 'trick-not trick-not-2', insideGhostWrap: false },
+  ];
+  assert.deepEqual(heldMotionOffenders(running), [
+    { classes: 'trick-not trick-not-2', name: 'library-trace' },
+  ]);
+});
+
+test('mist and flicker still moving are both offenders, named individually', () => {
+  const running = [
+    { name: 'mist-drift', classes: 'mist mist-left', insideGhostWrap: false },
+    { name: 'foyer-flicker', classes: 'cookie-reject-label', insideGhostWrap: false },
+    { name: 'ghost-flee', classes: 'ghost-wrap', insideGhostWrap: true },
+  ];
+  assert.deepEqual(heldMotionOffenders(running), [
+    { classes: 'mist mist-left', name: 'mist-drift' },
+    { classes: 'cookie-reject-label', name: 'foyer-flicker' },
+  ]);
+});
+
+test('missing classes or name default to empty strings', () => {
+  const running = [{ insideGhostWrap: false }];
+  assert.deepEqual(heldMotionOffenders(running), [{ classes: '', name: '' }]);
+});
+
+test('a non-array input yields no offenders (fails safe)', () => {
+  assert.deepEqual(heldMotionOffenders(null), []);
+  assert.deepEqual(heldMotionOffenders(undefined), []);
+  assert.deepEqual(heldMotionOffenders('nope'), []);
+});
+
+test('null entries are skipped', () => {
+  const running = [null, { classes: 'mist', name: 'mist-drift', insideGhostWrap: false }];
+  assert.deepEqual(heldMotionOffenders(running), [{ classes: 'mist', name: 'mist-drift' }]);
+});
+
+test('property: an offender is exactly a running animation not inside the ghost-wrap', () => {
+  fc.assert(
+    fc.property(
+      fc.array(
+        fc.record({
+          name: fc.string(),
+          classes: fc.string(),
+          insideGhostWrap: fc.boolean(),
+        }),
+      ),
+      (running) => {
+        const offenders = heldMotionOffenders(running);
+        const expected = running.filter((a) => a.insideGhostWrap !== true).length;
+        assert.equal(offenders.length, expected);
+        // Every reported offender was NOT inside the ghost-wrap.
+        for (const o of offenders) {
+          assert.equal(typeof o.classes, 'string');
+          assert.equal(typeof o.name, 'string');
+        }
       },
     ),
   );

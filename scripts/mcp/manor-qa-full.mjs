@@ -2,8 +2,8 @@
 // walk_rooms and contrast_scan for the given rooms (default 1-12), at the
 // desktop (1280x720) and phone (412x915) sizes, each without and with
 // reducedMotion. Prints a compact per-room summary (pass/fail, CLS,
-// reduced-motion checks, static-label clipping, divider offsets, contrast
-// flags) and exits non-zero on any failure.
+// reduced-motion checks, static-label clipping, named-hold motion, divider
+// offsets, contrast flags) and exits non-zero on any failure.
 // Not part of npm test (it needs Chrome and a build): run it before a release
 // and in non-interactive agent runs, where MCP tool calls cannot be approved.
 //
@@ -83,13 +83,18 @@ function summariseWalk(label, text) {
     const lbl = r.checks && r.checks['static labels not clipped'] !== undefined
       ? ` labels=${r.checks['static labels']}/clipOk=${r.checks['static labels not clipped']}`
       : '';
+    // The named-hold motion: how many animations were still running in the
+    // frame during the hold (with motion on), and whether the hold was clean.
+    const hold = r.checks && r.checks['named hold: only the shared flee moves'] !== undefined
+      ? ` hold=${r.checks['held-hold animations']}/clean=${r.checks['named hold: only the shared flee moves']}`
+      : '';
     // Divider offsets per split, as edge/grip pixels from the ideal position.
     const div = Array.isArray(r.dividerOffsets) && r.dividerOffsets.length
       ? ` divider(edge/grip px)=[${r.dividerOffsets
           .map((d) => `${d.split}:${d.edgeOff}/${d.gripOff}`)
           .join(' ')}]`
       : '';
-    console.log(`room ${r.room}: cls=${r.checks?.cls}${rm}${lbl}${div}${bad || ' ok'}`);
+    console.log(`room ${r.room}: cls=${r.checks?.cls}${rm}${lbl}${hold}${div}${bad || ' ok'}`);
   }
   console.log(`console errors: ${parsed.errors?.length ?? 0}; reducedMotion=${parsed.reducedMotion}`);
   return fails + (parsed.errors?.length ?? 0);

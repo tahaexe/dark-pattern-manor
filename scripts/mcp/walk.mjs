@@ -9,6 +9,15 @@
 // animation is running. Every room also reports its cumulative layout shift
 // and fails if it exceeds 0.01.
 //
+// Named-hold QA: once the right card lands the engine names the room and holds
+// the haunted page (data-moment='right', then data-fleeing) for about 600 ms
+// so the shared unwind and flee of `.ghost-wrap` is seen before the honest
+// twin appears. During that hold nothing else in the haunted page may keep
+// moving. The walk samples the running animations inside the frame during the
+// hold (with motion on) and fails a room if any animation runs on a target
+// that is neither `.ghost-wrap` nor inside it — a leftover act, mist or
+// flicker — naming each offender's classes and the animation name.
+//
 // Label QA: the static labels ("Something stirs here" and any act caption,
 // class act-caption) must sit fully inside the room's page — inside every
 // clipping ancestor (overflow hidden/clip or a clip-path) and inside the
@@ -27,7 +36,13 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseRooms } from './rooms.mjs';
 import { openSession, distReady, NO_DIST_MESSAGE } from './session.mjs';
-import { wantsReducedMotion, clsWithinLimit, animationsAtRest, labelWithinClip } from './motion.mjs';
+import {
+  wantsReducedMotion,
+  clsWithinLimit,
+  animationsAtRest,
+  labelWithinClip,
+  heldMotionOffenders,
+} from './motion.mjs';
 import { dividerAtSplit, dividerOffset, DIVIDER_TOLERANCE } from './divider.mjs';
 
 /** The slider points the divider is measured at. */
@@ -133,6 +148,33 @@ async function checkLabelsNotClipped(cdp, r, check, width, height) {
 }
 
 /**
+ * During the named hold — right after the right card lands and before the
+ * honest twin appears — sample the running animations inside the haunted
+ * page's frame and apply the named-hold rule: only the shared flee of
+ * `.ghost-wrap` (the wrap itself or something inside it) may keep moving.
+ * Records the count and fails the room, naming each offender's classes and the
+ * animation name, when anything else is still animating.
+ *
+ * Only meaningful with motion on (under reduced motion the engine runs no
+ * unwind or flee and the room's own animations are off), so the caller passes
+ * `reducedMotion` and this is a no-op record under reduced motion.
+ */
+async function checkNamedHold(cdp, r, check, reducedMotion) {
+  if (reducedMotion) return;
+  const running = await cdp.ev('__heldMotion()');
+  const list = Array.isArray(running) ? running : [];
+  r.checks['held-hold animations'] = list.length;
+  const offenders = heldMotionOffenders(list);
+  check('named hold: only the shared flee moves', offenders.length === 0, true);
+  if (offenders.length) {
+    r.heldMotion = offenders;
+    r.fail.push(
+      ...offenders.map((o) => `named hold still moving: .${o.classes} (${o.name || 'animation'})`),
+    );
+  }
+}
+
+/**
  * Drive one room from haunted to the honest comparison, by keyboard. Returns a
  * partial report with the picks and the checks gathered up to the comparison.
  * Shared with contrast_scan, which only needs the room freed.
@@ -195,23 +237,36 @@ export async function freeRoom(cdp, baseUrl, n, reducedMotion = false, width = 1
   check('cards visible', await cdp.ev("[...document.querySelectorAll('.spell-card')].map((c)=>__vis(c)).every((v)=>v==='ok')"), true);
 
   // Try each card; wrong cards whisper, the right one frees the room.
+  let heldSampled = false;
   for (let c = 0; c < 3; c++) {
     const stillPicking = await cdp.ev("/Name the trick/i.test(__heads())");
     if (!stillPicking) break;
     await cdp.ev(`document.querySelectorAll('.spell-card')[${c}] && document.querySelectorAll('.spell-card')[${c}].focus()`);
     await cdp.key('Enter');
-    await sleep(700);
+    // A wrong pick whispers and leaves the cards; the right pick names the room
+    // and the engine holds the haunted page (about 600 ms) for the shared
+    // unwind and flee. Sample the frame's running animations DURING that hold,
+    // before the honest twin appears, so the named-hold check sees whatever is
+    // still moving. Give the `named` state a moment to render, then sample well
+    // within the ~600 ms hold.
+    await sleep(140);
     const still = await cdp.ev("!!document.querySelector('.spell-card')");
     if (still) {
       const w = await cdp.ev("__vis('.spell-card-whisper')");
       const hint = await cdp.ev("(document.querySelector('.spell-card-whisper')||{}).textContent||''");
       r.picks.push({ card: cards ? cards[c] : c, right: false, whisper: w, hint: (hint || '').slice(0, 60) });
       if (w !== 'ok') r.fail.push(`whisper after card ${c}: ${w}`);
+      // Let the whisper settle before the next pick.
+      await sleep(560);
     } else {
       r.picks.push({ card: cards ? cards[c] : c, right: true });
+      // The right card landed: sample the named hold now (motion on only).
+      await checkNamedHold(cdp, r, check, reducedMotion);
+      heldSampled = true;
       break;
     }
   }
+  if (!heldSampled) r.checks['held-hold animations'] = r.checks['held-hold animations'] ?? 'not sampled';
 
   // The ghost flees; wait for the comparison and the opening sweep to settle.
   await sleep(2400);

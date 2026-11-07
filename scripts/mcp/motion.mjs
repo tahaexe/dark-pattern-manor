@@ -1,8 +1,9 @@
 // Pure motion rules for the walk_rooms and contrast_scan tools: reading the
 // optional reducedMotion argument, the cumulative-layout-shift gate, the
-// "animations are at rest" rule, and the label-clipping rule. No I/O, no
-// browser — imported directly by the motion tests and by walk.mjs /
-// contrast-scan.mjs.
+// "animations are at rest" rule, the label-clipping rule, and the named-hold
+// rule (nothing but the shared flee of `.ghost-wrap` may keep moving once the
+// right card lands). No I/O, no browser — imported directly by the motion
+// tests and by walk.mjs / contrast-scan.mjs.
 
 /**
  * Read `reducedMotion` from tool arguments. Defaults to false; a non-boolean
@@ -80,4 +81,41 @@ export function labelWithinClip(label, clips, tolerance = CLIP_TOLERANCE) {
     }
   }
   return true;
+}
+
+/**
+ * The named-hold rule.
+ *
+ * Once the right card lands, the engine names the room and holds the haunted
+ * page (`.room-scene[data-moment='right']`, then `[data-fleeing='true']`) for
+ * about 600 ms so the shared unwind and flee of `.ghost-wrap` is seen before
+ * the honest twin appears. During that hold nothing else in the haunted page
+ * may keep moving: not the room's own act (its `.act-*` elements or an act's
+ * styled targets), not the possessed element's mist, not its flicker. The only
+ * animation allowed to run is the engine's shared exit, which lives on
+ * `.ghost-wrap` itself (the unwind and the one flee).
+ *
+ * This pure rule takes the running animations the walk gathered inside the
+ * haunted page's frame — each `{ name, classes, insideGhostWrap }`, where
+ * `insideGhostWrap` is true when the animated element is `.ghost-wrap` or sits
+ * inside it — and returns the offenders: every running animation whose target
+ * is NOT `.ghost-wrap` and NOT inside it. A room passes the rule when this list
+ * is empty. Each offender keeps its element classes and the animation name so
+ * the walk's JSON can name exactly what is still moving.
+ *
+ * @param {Array<{ name?: string, classes?: string, insideGhostWrap?: boolean }>} running
+ * @returns {Array<{ classes: string, name: string }>}
+ */
+export function heldMotionOffenders(running) {
+  if (!Array.isArray(running)) return [];
+  const offenders = [];
+  for (const a of running) {
+    if (!a || typeof a !== 'object') continue;
+    if (a.insideGhostWrap === true) continue;
+    offenders.push({
+      classes: typeof a.classes === 'string' ? a.classes : '',
+      name: typeof a.name === 'string' ? a.name : '',
+    });
+  }
+  return offenders;
 }

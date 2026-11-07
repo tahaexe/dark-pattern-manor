@@ -139,3 +139,12 @@
     }
   }
 }
+
+/* The named hold (the engine keeps the haunted page ~600 ms for the flee): the
+ * possessed element's drifting mist stops in every room, so only the shared
+ * unwind and flee move. Each room also freezes its own act, flicker and mist
+ * puff; this shared line catches the mist the rooms share (the walk's held-
+ * motion check found room 12's three mists still drifting on a rerun). */
+.room-scene[data-moment='right'] .mist {
+  animation: none;
+}

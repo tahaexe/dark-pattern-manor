@@ -511,3 +511,21 @@
 .act-caption {
   top: calc(100% + 1.6em);
 }
+
+/* ------------------------------------------------------------------ *
+ * Named hold: freeze this room’s signs so only the shared flee moves.
+ * Once the right card lands the engine names the room and holds the haunted
+ * page (data-moment='right') for the shared unwind and flee of .ghost-wrap.
+ * During that hold nothing else in the frame may keep moving, so this room
+ * stops the possessed link's mist puff (the shared .possessed::before), its
+ * flicker, the drifting mist and the breath act. The breath finger lives inside
+ * .ghost-wrap and leaves with the shared flee, so it is not frozen.
+ * The shared flee on .ghost-wrap is untouched; only the hold is affected, so
+ * the signs look exactly the same at every other moment.
+ * ------------------------------------------------------------------ */
+.room-scene[data-moment='right'] .cookie-reject::before,
+.room-scene[data-moment='right'] .cookie-reject-label,
+.room-scene[data-moment='right'] .mist,
+.room-scene[data-moment='right'] .act-breath {
+  animation: none;
+}
