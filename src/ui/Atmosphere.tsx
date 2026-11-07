@@ -66,7 +66,11 @@ export default function Atmosphere({ exhale, reducedMotion }: AtmosphereProps) {
     if (!canvas || typeof canvas.getContext !== 'function') return; // jsdom: inert
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // Inert when there is no real 2D context, including a partial stub (e.g.
+    // jsdom's canvas without node-canvas) that lacks the drawing methods this
+    // layer uses. Guarding on createRadialGradient keeps the component a no-op
+    // in the test environment, as the design requires.
+    if (!ctx || typeof ctx.createRadialGradient !== 'function') return;
 
     let raf = 0;
     let idle: number | ReturnType<typeof setTimeout> | null = null;

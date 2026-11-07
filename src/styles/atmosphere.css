@@ -61,11 +61,25 @@
 }
 
 /* ------------------------------------------------------------------ *
- * Common moment — the RIGHT card.
+ * Common moment — the RIGHT card: the unwind then the one shared flee.
  *
- * The ghost stops mid-gesture and unwinds upward before it flees. This is the
- * lead-in; the room's own `ghost-flee` (600ms) still carries the exit, so the
- * shared unwind is short and does not fight the room's flee.
+ * The engine holds the `named` state (with the haunted page and its ghost
+ * still mounted) long enough for the ghost to flee, then advances to the honest
+ * twin. Two beats, both shared here so every room flees the same way and no
+ * room re-implements it:
+ *
+ *  1. `data-moment='right'` — the ghost stops mid-gesture and unwinds upward
+ *     (220 ms), the lead-in. It is set from `named` onward.
+ *  2. `data-fleeing` — set only during `named`. The ghost flees upward, fading,
+ *     over `--duration-ghost-flee` (600 ms), transform and opacity only. The
+ *     unwind runs first, so the single `.ghost-wrap` animation here is the
+ *     flee: it starts after the brief unwind and carries the exit.
+ *
+ * `data-fleeing` wins over the plain `right` unwind selector (both target
+ * `.ghost-wrap`; this rule comes later and is equally specific), so once the
+ * flee is set the ghost is unwinding-then-fleeing in one declaration via the
+ * delayed flee. The engine clears `data-fleeing` when it advances to honest,
+ * where the haunted view (and its ghost) unmount with the exhale.
  * ------------------------------------------------------------------ */
 .room-scene[data-moment='right'] .ghost-wrap {
   animation: ghost-unwind 220ms var(--easing);
@@ -80,15 +94,48 @@
   }
 }
 
+/* The one shared flee. The 220 ms unwind plays first (animation-delay), then
+   the ghost flees upward and fades over the 600 ms token, holding its final
+   (gone) frame until the engine swaps in the honest twin. */
+.room-scene[data-fleeing='true'] .ghost-wrap {
+  animation: ghost-unwind 220ms var(--easing),
+    ghost-flee var(--duration-ghost-flee) var(--easing) 220ms forwards;
+}
+
+@keyframes ghost-flee {
+  0% {
+    transform: translateY(-8px) scaleY(1.08);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-120px) scaleY(1.6);
+    opacity: 0;
+  }
+}
+
 /* ------------------------------------------------------------------ *
- * Reduced motion: no gutter, no head-shake, no unwind. The ghost simply fades
- * with each room's own reduced-motion rules; the atmosphere canvas draws a
- * single still frame (handled in the component).
+ * Reduced motion: no gutter, no head-shake, no unwind and no flee. The ghost
+ * simply fades (over ~200 ms, matching the engine's shorter reduced-motion
+ * hold) before the honest twin appears. The atmosphere canvas draws a single
+ * still frame (handled in the component).
  * ------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
   .room-scene[data-moment='wrong'] .room::after,
   .room-scene[data-moment='wrong'] .ghost-wrap,
   .room-scene[data-moment='right'] .ghost-wrap {
     animation: none;
+  }
+
+  .room-scene[data-fleeing='true'] .ghost-wrap {
+    animation: ghost-fade 200ms var(--easing) forwards;
+  }
+
+  @keyframes ghost-fade {
+    0% {
+      opacity: 0.9;
+    }
+    100% {
+      opacity: 0;
+    }
   }
 }

@@ -60,7 +60,7 @@ describe('Room component — full loop', () => {
     const correct = await screen.findByRole('button', { name: 'Visual interference' });
     expect(correct).toBeDefined();
 
-    // Pick the correct card → named → auto advance → honest.
+    // Pick the correct card → named → (ghost flees) → auto advance → honest.
     fireEvent.click(correct);
 
     // The honest twin and guide appear.
@@ -83,6 +83,44 @@ describe('Room component — full loop', () => {
     await waitFor(() => {
       expect(document.activeElement).toBe(heading);
     });
+  });
+});
+
+describe('Room component — the ghost flees before the honest twin appears', () => {
+  let spy: ReturnType<typeof mockReducedMotion> | undefined;
+
+  beforeEach(() => {
+    __resetForTests();
+    // Reduced motion keeps the hold short and deterministic (no rAF), so the
+    // room still advances named → honest with no player input.
+    spy = mockReducedMotion();
+  });
+
+  afterEach(() => {
+    spy?.mockRestore();
+  });
+
+  it('keeps the ghost in the document during named, then gone once honest', async () => {
+    const room = await foyer();
+    const { container } = render(<Room room={room} rng={identityRng} />);
+    fireEvent.click(screen.getByRole('button', { name: /Lantern/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reject all' }));
+    const correct = await screen.findByRole('button', { name: 'Visual interference' });
+
+    // Picking the correct card enters `named` synchronously. The haunted page
+    // and its ghost are still mounted so the flee can play; the scene is marked
+    // fleeing for the shared flee animation.
+    fireEvent.click(correct);
+    const scene = container.querySelector('.room-scene') as HTMLElement;
+    expect(scene.getAttribute('data-fleeing')).toBe('true');
+    expect(container.querySelector('.ghost-wrap')).not.toBeNull();
+
+    // After the hold the room advances to honest with no further input; the
+    // live haunted view (and its ghost) are gone.
+    await screen.findByRole('heading', { level: 2, name: 'Visual interference' });
+    expect(scene.hasAttribute('data-fleeing')).toBe(false);
+    const liveGhost = container.querySelector('.manor-frame:not(.manor-frame-preview) .ghost-wrap');
+    expect(liveGhost).toBeNull();
   });
 });
 

@@ -1,8 +1,9 @@
 // The full manor-qa run: spawn the manor-qa MCP server over stdio and call
-// walk_rooms and contrast_scan for the given rooms (default 1-12), both without
-// and with reducedMotion. Prints a compact per-room summary (pass/fail, CLS,
-// reduced-motion checks, divider offsets, contrast flags) and exits non-zero on
-// any failure.
+// walk_rooms and contrast_scan for the given rooms (default 1-12), at the
+// desktop (1280x720) and phone (412x915) sizes, each without and with
+// reducedMotion. Prints a compact per-room summary (pass/fail, CLS,
+// reduced-motion checks, static-label clipping, divider offsets, contrast
+// flags) and exits non-zero on any failure.
 // Not part of npm test (it needs Chrome and a build): run it before a release
 // and in non-interactive agent runs, where MCP tool calls cannot be approved.
 //
@@ -17,6 +18,12 @@ import { dirname, resolve } from 'node:path';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SERVER = resolve(HERE, 'manor-qa.mjs');
 const ROOMS = process.argv[2] || '1-12';
+
+// The two sizes every room must hold at: desktop and a phone.
+const SIZES = [
+  { width: 1280, height: 720, label: '1280x720' },
+  { width: 412, height: 915, label: '412x915' },
+];
 
 const child = spawn(process.execPath, [SERVER], { stdio: ['pipe', 'pipe', 'inherit'] });
 const pending = new Map();
@@ -35,7 +42,7 @@ rl.on('line', (line) => {
 });
 
 let id = 0;
-function request(method, params, timeoutMs = 600000) {
+function request(method, params, timeoutMs = 900000) {
   const myId = ++id;
   return new Promise((resolvePromise, reject) => {
     const timer = setTimeout(() => reject(new Error(`timeout: ${method}`)), timeoutMs);
@@ -73,13 +80,16 @@ function summariseWalk(label, text) {
     const rm = r.checks && r.checks['animations at rest'] !== undefined
       ? ` animRest=${r.checks['animations at rest']} stirs=${r.checks['stirs label visible']}`
       : '';
+    const lbl = r.checks && r.checks['static labels not clipped'] !== undefined
+      ? ` labels=${r.checks['static labels']}/clipOk=${r.checks['static labels not clipped']}`
+      : '';
     // Divider offsets per split, as edge/grip pixels from the ideal position.
     const div = Array.isArray(r.dividerOffsets) && r.dividerOffsets.length
       ? ` divider(edge/grip px)=[${r.dividerOffsets
           .map((d) => `${d.split}:${d.edgeOff}/${d.gripOff}`)
           .join(' ')}]`
       : '';
-    console.log(`room ${r.room}: cls=${r.checks?.cls}${rm}${div}${bad || ' ok'}`);
+    console.log(`room ${r.room}: cls=${r.checks?.cls}${rm}${lbl}${div}${bad || ' ok'}`);
   }
   console.log(`console errors: ${parsed.errors?.length ?? 0}; reducedMotion=${parsed.reducedMotion}`);
   return fails + (parsed.errors?.length ?? 0);
@@ -106,32 +116,45 @@ async function main() {
   let problems = 0;
   await request('initialize', { protocolVersion: '2024-11-05' });
 
-  problems += summariseWalk(
-    `${ROOMS}`,
-    textOf(await request('tools/call', { name: 'walk_rooms', arguments: { rooms: ROOMS } })),
-  );
-  problems += summariseWalk(
-    `${ROOMS} reducedMotion`,
-    textOf(
-      await request('tools/call', {
-        name: 'walk_rooms',
-        arguments: { rooms: ROOMS, reducedMotion: true },
-      }),
-    ),
-  );
-  problems += summariseScan(
-    `${ROOMS}`,
-    textOf(await request('tools/call', { name: 'contrast_scan', arguments: { rooms: ROOMS } })),
-  );
-  problems += summariseScan(
-    `${ROOMS} reducedMotion`,
-    textOf(
-      await request('tools/call', {
-        name: 'contrast_scan',
-        arguments: { rooms: ROOMS, reducedMotion: true },
-      }),
-    ),
-  );
+  for (const size of SIZES) {
+    const { width, height, label } = size;
+    problems += summariseWalk(
+      `${ROOMS} @ ${label}`,
+      textOf(
+        await request('tools/call', {
+          name: 'walk_rooms',
+          arguments: { rooms: ROOMS, width, height },
+        }),
+      ),
+    );
+    problems += summariseWalk(
+      `${ROOMS} @ ${label} reducedMotion`,
+      textOf(
+        await request('tools/call', {
+          name: 'walk_rooms',
+          arguments: { rooms: ROOMS, width, height, reducedMotion: true },
+        }),
+      ),
+    );
+    problems += summariseScan(
+      `${ROOMS} @ ${label}`,
+      textOf(
+        await request('tools/call', {
+          name: 'contrast_scan',
+          arguments: { rooms: ROOMS, width, height },
+        }),
+      ),
+    );
+    problems += summariseScan(
+      `${ROOMS} @ ${label} reducedMotion`,
+      textOf(
+        await request('tools/call', {
+          name: 'contrast_scan',
+          arguments: { rooms: ROOMS, width, height, reducedMotion: true },
+        }),
+      ),
+    );
+  }
 
   console.log(`\n=== manor-qa-full: ${problems === 0 ? 'ALL CLEAR' : problems + ' problem(s)'} ===`);
   return problems;

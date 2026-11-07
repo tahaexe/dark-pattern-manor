@@ -30,7 +30,12 @@ export function distReady() {
 //  - __animStates() → the play state of every running/finished animation, so
 //    the reduced-motion walk can assert none is running;
 //  - __stirsVisible() → whether the possessed element's "Something stirs here"
-//    static label is visible (the reduced-motion sign).
+//    static label is visible (the reduced-motion sign);
+//  - __labelClipData() → for the "Something stirs here" label and any
+//    `.act-caption`, the label's box, the boxes of its clipping ancestors
+//    (overflow hidden/clip or a clip-path) and whether it stays within the
+//    viewport's WIDTH, so the walk can prove no visible label is cut (via the
+//    pure labelWithinClip rule).
 export const HELPERS = `
 window.__el = (x) => (typeof x === 'string' ? document.querySelector(x) : x);
 window.__vis = (x) => {
@@ -79,6 +84,52 @@ window.__stirsVisible = () => {
     }
   }
   return 'missing';
+};
+
+// Clipping data for the static labels: the "Something stirs here" label and any
+// act caption (class act-caption). For each rendered label we report its box,
+// the boxes of every ancestor that clips overflow (overflow-x/y hidden or clip,
+// or a clip-path other than none), and whether it stays within the viewport's
+// WIDTH. The walk applies the pure labelWithinClip rule to decide pass/fail; a
+// label cut by any clip ancestor, or extending past the left/right edge of the
+// viewport, fails. The horizontal edge is what the frame cuts (the game never
+// scrolls sideways, so a label past the edge can never be reached); a label
+// merely below the fold is reachable by scrolling and is not a cut, so the
+// vertical position is not required to be within the first screen.
+window.__labelClipData = () => {
+  const out = [];
+  const nodes = [...document.querySelectorAll('.stirs-label, .act-caption')];
+  for (const el of nodes) {
+    const r = el.getBoundingClientRect();
+    // Skip labels that are not rendered (display:none etc.).
+    if (r.width < 1 && r.height < 1) continue;
+    const clips = [];
+    let p = el.parentElement;
+    while (p) {
+      const cs = getComputedStyle(p);
+      const clipsOverflow =
+        cs.overflowX === 'hidden' ||
+        cs.overflowX === 'clip' ||
+        cs.overflowY === 'hidden' ||
+        cs.overflowY === 'clip' ||
+        (cs.clipPath && cs.clipPath !== 'none');
+      if (clipsOverflow) {
+        const pr = p.getBoundingClientRect();
+        clips.push({ left: pr.left, right: pr.right, top: pr.top, bottom: pr.bottom, who: p.className || p.tagName });
+      }
+      p = p.parentElement;
+    }
+    const label = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+    const withinWidth = r.left >= -1 && r.right <= innerWidth + 1;
+    out.push({
+      sel: el.className || el.tagName,
+      text: (el.textContent || '').trim().slice(0, 40),
+      label,
+      clips,
+      withinWidth,
+    });
+  }
+  return out;
 };
 `;
 

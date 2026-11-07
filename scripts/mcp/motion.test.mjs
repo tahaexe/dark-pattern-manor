@@ -3,7 +3,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fc from 'fast-check';
-import { wantsReducedMotion, clsWithinLimit, animationsAtRest, CLS_LIMIT } from './motion.mjs';
+import {
+  wantsReducedMotion,
+  clsWithinLimit,
+  animationsAtRest,
+  labelWithinClip,
+  CLS_LIMIT,
+  CLIP_TOLERANCE,
+} from './motion.mjs';
 
 // --- wantsReducedMotion (P8) ---------------------------------------------
 
@@ -85,4 +92,75 @@ test('any running or pending animation is NOT at rest', () => {
 test('a non-array is treated as not at rest', () => {
   assert.equal(animationsAtRest(null), false);
   assert.equal(animationsAtRest(undefined), false);
+});
+
+// --- labelWithinClip ------------------------------------------------------
+
+const box = (left, top, right, bottom) => ({ left, top, right, bottom });
+
+test('a label with no clip ancestors always passes', () => {
+  assert.equal(labelWithinClip(box(0, 0, 100, 20), []), true);
+});
+
+test('a label fully inside its one clip ancestor passes', () => {
+  const clip = box(0, 0, 200, 200);
+  assert.equal(labelWithinClip(box(10, 10, 110, 30), [clip]), true);
+});
+
+test('a label that overflows the clip ancestor on the right is cut', () => {
+  const clip = box(0, 0, 100, 200);
+  // The label runs from x=60 to x=180, well past the clip's right edge at 100.
+  assert.equal(labelWithinClip(box(60, 10, 180, 30), [clip]), false);
+});
+
+test('a label cut on any side fails', () => {
+  const clip = box(0, 0, 100, 100);
+  assert.equal(labelWithinClip(box(-20, 10, 40, 30), [clip]), false); // left
+  assert.equal(labelWithinClip(box(10, -20, 40, 10), [clip]), false); // top
+  assert.equal(labelWithinClip(box(10, 90, 40, 140), [clip]), false); // bottom
+});
+
+test('a label must sit inside every clip ancestor', () => {
+  const outer = box(0, 0, 300, 300);
+  const inner = box(0, 0, 80, 300);
+  // Inside the outer box but past the inner (narrower) box's right edge.
+  assert.equal(labelWithinClip(box(40, 10, 140, 30), [outer, inner]), false);
+  assert.equal(labelWithinClip(box(10, 10, 70, 30), [outer, inner]), true);
+});
+
+test('overflow within the tolerance is allowed (sub-pixel rounding)', () => {
+  const clip = box(0, 0, 100, 100);
+  // Just over the right edge by less than the tolerance.
+  assert.equal(labelWithinClip(box(10, 10, 100 + CLIP_TOLERANCE - 0.01, 30), [clip]), true);
+  assert.equal(labelWithinClip(box(10, 10, 100 + CLIP_TOLERANCE + 1, 30), [clip]), false);
+});
+
+test('a missing label or non-array clips fails safe', () => {
+  assert.equal(labelWithinClip(null, []), false);
+  assert.equal(labelWithinClip(box(0, 0, 10, 10), null), false);
+});
+
+test('property: a label contained in a clip (within tolerance) always passes', () => {
+  fc.assert(
+    fc.property(
+      fc.record({
+        cl: fc.integer({ min: 0, max: 100 }),
+        ct: fc.integer({ min: 0, max: 100 }),
+        cw: fc.integer({ min: 50, max: 300 }),
+        ch: fc.integer({ min: 20, max: 300 }),
+        padL: fc.integer({ min: 0, max: 40 }),
+        padT: fc.integer({ min: 0, max: 10 }),
+        lw: fc.integer({ min: 1, max: 20 }),
+        lh: fc.integer({ min: 1, max: 10 }),
+      }),
+      ({ cl, ct, cw, ch, padL, padT, lw, lh }) => {
+        const clip = box(cl, ct, cl + cw, ct + ch);
+        // A label well inside the clip (guarding against exceeding the right/bottom).
+        const left = cl + Math.min(padL, cw - lw - 1);
+        const top = ct + Math.min(padT, ch - lh - 1);
+        const label = box(left, top, left + lw, top + lh);
+        assert.equal(labelWithinClip(label, [clip]), true);
+      },
+    ),
+  );
 });

@@ -104,6 +104,17 @@ const SWEEP_REST = 50;
 /** The opening sweep's duration in ms (~1.2 s). */
 const SWEEP_MS = 1200;
 
+/**
+ * How long the room holds `named` so the ghost's flee is seen before the honest
+ * twin appears. With motion the ghost unwinds then flees upward over the shared
+ * `--duration-ghost-flee` (about 600 ms in total); under reduced motion there
+ * is no unwind and no flee — the ghost simply fades over ~200 ms. After this
+ * delay the view dispatches ADVANCE, so the reducer stays pure (the timer lives
+ * here and is cleared on unmount). The named → honest step takes no player input.
+ */
+const FLEE_MS = 600;
+const FLEE_REDUCED_MS = 200;
+
 export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   const reduceBound = (state: RoomState, event: RoomEvent) => reduce(state, event, room);
   const [state, dispatch] = useReducer(reduceBound, room, initialState);
@@ -125,12 +136,17 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   // The opening sweep runs once per room, keyed off the first honest render.
   const sweptRef = useRef(false);
 
-  // Auto-advance named -> honest with no player input.
+  // Hold `named` for the ghost's flee, then advance to honest with no player
+  // input. The haunted page and its ghost stay visible through `named`; the
+  // shared CSS plays the unwind and the one flee (or, under reduced motion, a
+  // short fade) during this delay. The timer is cleared on unmount so the
+  // reducer never advances a room the player has left.
   useEffect(() => {
-    if (state.tag === 'named') {
-      dispatch({ type: 'ADVANCE' });
-    }
-  }, [state.tag]);
+    if (state.tag !== 'named') return;
+    const delay = reducedMotion ? FLEE_REDUCED_MS : FLEE_MS;
+    const id = setTimeout(() => dispatch({ type: 'ADVANCE' }), delay);
+    return () => clearTimeout(id);
+  }, [state.tag, reducedMotion]);
 
   // Persist progress exactly once on reaching done.
   useEffect(() => {
@@ -145,7 +161,12 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
     headingRef.current?.focus();
   }, [state.tag]);
 
-  const signsActive = state.tag === 'haunted' || state.tag === 'inspecting';
+  // Signs (the ghost, its mist and flicker) are rendered while the room is
+  // haunted or inspecting AND through `named`, so the ghost is present to play
+  // its flee before the honest twin appears. `fleeing` is true only during
+  // `named`, driving the shared flee.
+  const fleeing = state.tag === 'named';
+  const signsActive = state.tag === 'haunted' || state.tag === 'inspecting' || fleeing;
   const showSplit = state.tag === 'honest' || state.tag === 'done';
   const moment = momentOf(state);
 
@@ -279,6 +300,7 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
       class="room-scene"
       data-moment={moment?.name}
       data-moment-key={moment ? String(moment.key) : undefined}
+      data-fleeing={fleeing ? 'true' : undefined}
     >
       <div class="room" aria-hidden="true">
         <div class="room-wall"></div>
@@ -294,6 +316,15 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
       </div>
 
       <h2 class="visually-hidden">{STATE_HEADING[state.tag]}</h2>
+
+      {/* The polite live region sits directly under the task bar, above the
+          swapping room content (the haunted frame, the spell picker and the
+          honest comparison all mount below it). Because it is above everything
+          that changes between states, it never moves when the haunted frame
+          gives way to the honest comparison — so holding `named` for the ghost
+          flee adds no layout shift (the whisper strip no longer jumps up when
+          the frame unmounts; the room's cumulative layout shift stays at 0). */}
+      <LiveRegion state={state} />
 
       {!showSplit ? (
         <div class="manor-frame">
@@ -314,8 +345,6 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
           rng={rng}
         />
       ) : null}
-
-      <LiveRegion state={state} />
 
       {showSplit ? (
         <>

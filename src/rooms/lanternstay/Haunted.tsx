@@ -122,11 +122,11 @@ const Haunted: FunctionComponent<HauntedProps> = ({
                         <path class="ghost-mouth" d="M52 74 Q60 82 68 74" />
                       </svg>
                     </span>
-                    {reducedMotion ? (
-                      <span class="stirs-label">Something stirs here</span>
-                    ) : null}
                   </span>
                 ) : null}
+                {showSigns && reducedMotion ? (
+                      <span class="stirs-label">Something stirs here</span>
+                    ) : null}
               </span>
             </button>
 

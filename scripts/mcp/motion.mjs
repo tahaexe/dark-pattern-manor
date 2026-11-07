@@ -1,7 +1,8 @@
 // Pure motion rules for the walk_rooms and contrast_scan tools: reading the
-// optional reducedMotion argument, the cumulative-layout-shift gate, and the
-// "animations are at rest" rule. No I/O, no browser — imported directly by the
-// motion tests and by walk.mjs / contrast-scan.mjs.
+// optional reducedMotion argument, the cumulative-layout-shift gate, the
+// "animations are at rest" rule, and the label-clipping rule. No I/O, no
+// browser — imported directly by the motion tests and by walk.mjs /
+// contrast-scan.mjs.
 
 /**
  * Read `reducedMotion` from tool arguments. Defaults to false; a non-boolean
@@ -41,4 +42,42 @@ export function animationsAtRest(playStates) {
   if (!Array.isArray(playStates)) return false;
   if (playStates.length === 0) return true;
   return playStates.every((s) => s === 'finished' || s === 'paused' || s === 'idle');
+}
+
+/**
+ * How many pixels a label may stick out past a clipping edge before it counts
+ * as cut. Sub-pixel rounding from getBoundingClientRect is common, so a small
+ * tolerance avoids false positives while still catching a visibly clipped word.
+ */
+export const CLIP_TOLERANCE = 1;
+
+/**
+ * The label-clipping rule. Given a label's bounding box and the bounding boxes
+ * of every ancestor that clips its overflow (overflow hidden/clip or a
+ * clip-path), the label passes only when it sits inside every one of those
+ * boxes (within `tolerance`). If the label escapes any clip box by more than
+ * the tolerance on any side, it is cut and the rule fails.
+ *
+ * Boxes are `{ left, right, top, bottom }` in viewport pixels. With no clip
+ * ancestors the label passes (nothing cuts it).
+ *
+ * @param {{left:number,right:number,top:number,bottom:number}} label
+ * @param {Array<{left:number,right:number,top:number,bottom:number}>} clips
+ * @param {number} [tolerance]
+ * @returns {boolean}
+ */
+export function labelWithinClip(label, clips, tolerance = CLIP_TOLERANCE) {
+  if (!label || !Array.isArray(clips)) return false;
+  for (const c of clips) {
+    if (!c) continue;
+    if (
+      label.left < c.left - tolerance ||
+      label.right > c.right + tolerance ||
+      label.top < c.top - tolerance ||
+      label.bottom > c.bottom + tolerance
+    ) {
+      return false;
+    }
+  }
+  return true;
 }

@@ -89,14 +89,14 @@ export default function Haunted({
                       aria-hidden, transforms/opacity only. */}
                   <span class="act-finger" aria-hidden="true"></span>
                 </span>
-                {reducedMotion ? (
-                  <span class="stirs-label">Something stirs here</span>
-                ) : null}
-                {reducedMotion ? (
-                  <span class="act-caption">it wants you to look away</span>
-                ) : null}
               </span>
             ) : null}
+            {showSigns && reducedMotion ? (
+                  <span class="stirs-label">Something stirs here</span>
+                ) : null}
+            {showSigns && reducedMotion ? (
+                  <span class="act-caption">it wants you to look away</span>
+                ) : null}
           </button>
         </div>
       </div>

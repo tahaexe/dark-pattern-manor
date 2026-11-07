@@ -192,7 +192,7 @@ export async function runContrastScan(args = {}) {
   try {
     for (const n of rooms) {
       // Reach the comparison by freeing the room (shared with the walk).
-      await freeRoom(session.cdp, session.baseUrl, n, reducedMotion);
+      await freeRoom(session.cdp, session.baseUrl, n, reducedMotion, width, height);
       await sleep(400);
 
       await setSlider(session.cdp, 0);

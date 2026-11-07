@@ -9,6 +9,14 @@
 // animation is running. Every room also reports its cumulative layout shift
 // and fails if it exceeds 0.01.
 //
+// Label QA: the static labels ("Something stirs here" and any act caption,
+// class act-caption) must sit fully inside the room's page — inside every
+// clipping ancestor (overflow hidden/clip or a clip-path) and inside the
+// viewport. The walk gathers each visible label's box, its clip ancestors'
+// boxes and viewport containment, and applies the pure labelWithinClip rule.
+// It runs in both motion modes but has teeth under reduced motion, where these
+// labels are the ghost's static sign; a cut label fails the room.
+//
 // Divider QA: at each slider point (0, 25, 50, 75, 100) the walk measures the
 // visible divider edge (the track's left edge after its transform, where the
 // ::before edge sits) and the round grip's centre against the comparison box,
@@ -19,7 +27,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseRooms } from './rooms.mjs';
 import { openSession, distReady, NO_DIST_MESSAGE } from './session.mjs';
-import { wantsReducedMotion, clsWithinLimit, animationsAtRest } from './motion.mjs';
+import { wantsReducedMotion, clsWithinLimit, animationsAtRest, labelWithinClip } from './motion.mjs';
 import { dividerAtSplit, dividerOffset, DIVIDER_TOLERANCE } from './divider.mjs';
 
 /** The slider points the divider is measured at. */
@@ -101,15 +109,40 @@ const MEASURE_DIVIDER = `(() => {
 })()`;
 
 /**
+ * Read the static-label clip data and decide whether every visible label sits
+ * inside its clipping ancestors and within the viewport's width. Records the
+ * result on the room report and fails the room on any cut label, naming it and
+ * the size. The horizontal edge is what the frame cuts (the game never scrolls
+ * sideways); a label merely below the fold is reachable by scrolling and is not
+ * a cut, so vertical position is not required to be within the first screen.
+ */
+async function checkLabelsNotClipped(cdp, r, check, width, height) {
+  const data = await cdp.ev('__labelClipData()');
+  const labels = Array.isArray(data) ? data : [];
+  r.checks['static labels'] = labels.length;
+  const cut = [];
+  for (const d of labels) {
+    const insideClips = labelWithinClip(d.label, d.clips);
+    if (!insideClips || !d.withinWidth) {
+      const why = !insideClips ? 'clipped by ancestor' : 'past the viewport width';
+      cut.push(`${d.sel} ("${d.text}") ${why} at ${width}x${height}`);
+    }
+  }
+  check('static labels not clipped', cut.length === 0, true);
+  if (cut.length) r.fail.push(...cut.map((c) => `label cut: ${c}`));
+}
+
+/**
  * Drive one room from haunted to the honest comparison, by keyboard. Returns a
  * partial report with the picks and the checks gathered up to the comparison.
  * Shared with contrast_scan, which only needs the room freed.
  *
  * When `reducedMotion` is true, the walk checks the static "Something stirs
  * here" label while the possessed element still shows its signs (before the
- * ghost is named), since that label is the reduced-motion ghost sign.
+ * ghost is named), since that label is the reduced-motion ghost sign. The
+ * label-clip check also runs here, while the labels are on the page.
  */
-export async function freeRoom(cdp, baseUrl, n, reducedMotion = false) {
+export async function freeRoom(cdp, baseUrl, n, reducedMotion = false, width = 1280, height = 720) {
   const r = { room: n, checks: {}, picks: [], fail: [] };
   const check = (name, val, want = 'ok') => {
     r.checks[name] = val;
@@ -147,6 +180,12 @@ export async function freeRoom(cdp, baseUrl, n, reducedMotion = false) {
   if (reducedMotion) {
     check('stirs label visible', await cdp.ev('__stirsVisible()'));
   }
+
+  // Static labels (the stirs label and any act caption) must not be cut by a
+  // clipping ancestor or the viewport. Checked here, while the labels are on
+  // the page (they render while the possessed element shows signs). Runs in
+  // both modes; under reduced motion the labels exist, so this has teeth.
+  await checkLabelsNotClipped(cdp, r, check, width, height);
 
   await cdp.key('Enter');
   await sleep(500);
@@ -215,8 +254,8 @@ async function checkDividerAt(cdp, split, r, check) {
 }
 
 /** Walk one room fully, including the slider, layers, task and guide checks. */
-async function walkRoom(cdp, baseUrl, n, reducedMotion = false) {
-  const { r, check } = await freeRoom(cdp, baseUrl, n, reducedMotion);
+async function walkRoom(cdp, baseUrl, n, reducedMotion = false, width = 1280, height = 720) {
+  const { r, check } = await freeRoom(cdp, baseUrl, n, reducedMotion, width, height);
 
   // Drive the slider to both ends. The signature of which layer is on top must
   // differ between 0 and 100 — proof the slider really changes what is shown.
@@ -301,7 +340,7 @@ export async function runWalk(args = {}) {
   const report = [];
   try {
     for (const n of rooms) {
-      report.push(await walkRoom(session.cdp, session.baseUrl, n, reducedMotion));
+      report.push(await walkRoom(session.cdp, session.baseUrl, n, reducedMotion, width, height));
     }
 
     // The ending after the rooms: count the checklist lines. The ending is
