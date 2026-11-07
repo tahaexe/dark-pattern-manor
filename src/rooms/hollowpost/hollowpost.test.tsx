@@ -263,6 +263,115 @@ describe('The Conservatory — the ghost size and anchor', () => {
   });
 });
 
+describe('The Conservatory — the ghost act (Fake urgency performed)', () => {
+  it('renders the tapping act element beside the ghost in the haunted view', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // The act (the ghost tapping the watch) lives inside the ghost-wrap, on the
+    // possessed banner only.
+    const act = container.querySelector('.ticket-countdown-label .ghost-wrap .act-tap');
+    expect(act).not.toBeNull();
+  });
+
+  it('every act element is aria-hidden (adds nothing to the accessible name)', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // The act sits inside .ghost-signs, which is aria-hidden; the act-tap itself
+    // carries no text and is decorative.
+    const signs = container.querySelector('.ghost-signs');
+    expect(signs!.getAttribute('aria-hidden')).toBe('true');
+    const act = container.querySelector('.act-tap');
+    expect(act).not.toBeNull();
+    expect(act!.textContent).toBe('');
+  });
+
+  it('the clock carries the act-clock marker so the seconds jump at each tap', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    const clock = container.querySelector('.ticket-countdown-clock');
+    expect(clock!.className).toContain('act-clock');
+    // The jump is motion only — the act keyframes exist and last >= 4 s.
+    expect(css).toMatch(/@keyframes conservatory-tap/);
+    expect(css).toMatch(/@keyframes conservatory-clock-jump/);
+    expect(css).toMatch(/\.act-tap\s*\{[^}]*animation:[^;]*4s/);
+    expect(css).toMatch(/\.ticket-countdown-clock\.act-clock\s*\{[^}]*animation:[^;]*4s/);
+  });
+
+  it('the act stops when the ghost is named (data-moment=right freezes it)', () => {
+    // Every act element is frozen under .room-scene[data-moment='right'] so
+    // nothing taps or jumps through the shared unwind and flee.
+    expect(css).toMatch(/\.room-scene\[data-moment=['"]right['"]\][^{]*\.act-tap/);
+    expect(css).toMatch(
+      /\.room-scene\[data-moment=['"]right['"]\][^{]*\.ticket-countdown-clock\.act-clock/,
+    );
+    const rightBlock = css.match(
+      /\.room-scene\[data-moment=['"]right['"]\][\s\S]*?\{([\s\S]*?)\}/,
+    );
+    expect(rightBlock).not.toBeNull();
+    expect(rightBlock![1]).toMatch(/animation:\s*none/);
+  });
+
+  it('the act is absent from the comparison preview (no id, non-interactive)', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+        preview
+      />,
+    );
+    // In preview the ghost signs (and so the act) are not rendered at all.
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+    expect(container.querySelector('.act-tap')).toBeNull();
+    expect(container.querySelector('#conservatory-countdown')).toBeNull();
+  });
+
+  it('the act is absent from the honest twin', () => {
+    const { container } = render(<Honest onCompleteTask={() => {}} />);
+    expect(container.querySelector('.act-tap')).toBeNull();
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+  });
+
+  it('under reduced motion the still pose and its "this clock lies" caption render', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion
+      />,
+    );
+    // No movement: the act element is present (held in a still pose by CSS) and
+    // the caption beside the ghost names the trick, alongside the existing
+    // "Something stirs here" label.
+    expect(container.querySelector('.act-tap')).not.toBeNull();
+    expect(screen.getByText('this clock lies')).toBeDefined();
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    // The reduced-motion branch disables the act animation.
+    expect(css).toMatch(/prefers-reduced-motion/);
+    expect(css).toMatch(/\.ticket-countdown\.reduced-motion\s+\.act-tap/);
+  });
+});
+
 describe('The Conservatory — pattern rule (passes on honest, fails on haunted)', () => {
   beforeEach(() => {
     vi.useFakeTimers();

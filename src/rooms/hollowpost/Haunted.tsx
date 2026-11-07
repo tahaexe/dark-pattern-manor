@@ -102,7 +102,14 @@ class CountdownBanner extends Component<HauntedProps, CountdownState> {
           >
             <span class="ticket-countdown-label">
               Offer ends in{' '}
-              <span class="ticket-countdown-clock">{format(this.state.secondsLeft)}</span>
+              {/* The clock. When the ghost taps it (the act), the digits jump:
+                  a short transform/opacity nudge synced to the tap cycle. The
+                  real ticking is still the one honest setInterval; this jump is
+                  decorative motion only and never changes the banner's width
+                  (tabular figures, no layout shift). */}
+              <span class={`ticket-countdown-clock${showSigns ? ' act-clock' : ''}`}>
+                {format(this.state.secondsLeft)}
+              </span>
               {showSigns ? (
                 <span class="ghost-signs" aria-hidden="true">
                   <span class="mist mist-left"></span>
@@ -128,10 +135,25 @@ class CountdownBanner extends Component<HauntedProps, CountdownState> {
                       <circle class="ghost-eye" cx="72" cy="60" r="4" />
                       <path class="ghost-mouth" d="M52 74 Q60 82 68 74" />
                     </svg>
+                    {/* The ghost's act (Fake urgency performed): a long ink
+                        finger reaches down and taps the countdown like a pocket
+                        watch, over a 4 s cycle. At each tap the clock jumps.
+                        Decorative and aria-hidden, transforms/opacity only, in
+                        reserved space, never covering the banner text, the
+                        price or the button, and adding nothing to the
+                        accessible name or to any live announcement. */}
+                    <span class="act-tap" aria-hidden="true"></span>
                   </span>
                 </span>
               ) : null}
-              {showSigns && reducedMotion ? <span class="stirs-label">Something stirs here</span> : null}
+              {showSigns && reducedMotion ? (
+                <span class="stirs-label">Something stirs here</span>
+              ) : null}
+              {/* Reduced motion: no movement; the ghost holds the watch in a
+                  still pose and a short caption names the trick beside it. */}
+              {showSigns && reducedMotion ? (
+                <span class="act-caption">this clock lies</span>
+              ) : null}
             </span>
           </button>
 

@@ -58,6 +58,28 @@ cards, and the page turns honest beside its haunted twin.
    own label "Something stirs here", AND the countdown stays still (shows 04:59,
    no ticking).
 
+### Requirement 4: The ghost's act (Fake urgency performed)
+
+1. WHILE the countdown banner is possessed and ghost signs are active (not in
+   preview and not reduced motion), THE ghost SHALL perform an act that
+   teaches Fake urgency through motion: it taps the countdown like a pocket
+   watch and at each tap the seconds jump. The act SHALL live only on or beside
+   the possessed banner; nothing else in the room moves or cracks; it SHALL use
+   transforms and opacity only with no layout shift (reserving any space it
+   needs); one cycle SHALL last at least 4 s; it SHALL never block input, never
+   cover the task's text, controls or their focus rings, and never lower text
+   contrast; and every act element SHALL be aria-hidden, adding nothing to the
+   accessible name or to any live announcement (the countdown stays a
+   non-live region).
+2. WHERE `prefers-reduced-motion` is active, THE act SHALL show no movement and
+   instead hold a still pose — the ghost holding the watch — with a short
+   visible caption beside the ghost, "this clock lies", in addition to the
+   existing "Something stirs here" label.
+3. WHEN the ghost is named (the engine sets `data-moment='right'` and
+   `data-fleeing` on `.room-scene`), THE act SHALL stop at once so nothing
+   keeps tapping or jumping through the shared unwind and flee. The act SHALL
+   be absent from the honest twin and from the comparison's haunted preview.
+
 ### Requirement 3: Fiction and honesty
 
 1. THE room SHALL use only fictional brand name, colours, logo shape, people,

@@ -79,3 +79,26 @@
   - Add `hollowpost: () => import('../rooms/hollowpost/room')`.
   - Run `npm run test`, `npm run check:rooms`, `npm run build` and
     `npm run check:size`; all must pass before the room is done.
+
+- [ ] 6. Give the ghost an act (Fake urgency performed)
+  - Files: `src/rooms/hollowpost/Haunted.tsx`, `src/rooms/hollowpost/room.css`,
+    `src/rooms/hollowpost/hollowpost.test.tsx`
+  - Add an act so the motion itself teaches the pattern: the ghost taps the
+    countdown like a pocket watch and at each tap the seconds jump. Keep it on
+    or beside the possessed banner only; transforms and opacity only; reserve
+    its space (no layout shift); one cycle >= 4 s; never block input, never
+    cover the task's text, controls or focus rings, never lower contrast; every
+    act element aria-hidden, adding nothing to the accessible name or to any
+    live announcement (the countdown stays a non-live region, no extra
+    announcements). Under `prefers-reduced-motion` show no movement: hold a
+    still pose (the ghost holding the watch) with a short caption beside the
+    ghost, "this clock lies", plus the existing "Something stirs here" label.
+    Stop the act when named: add
+    `.room-scene[data-moment='right'] <every act element> { animation: none; }`.
+    The act is absent from the honest twin and from the comparison's haunted
+    preview. Use the shared atmosphere layer and common moments (wrong-card
+    gutter and head-shake, right-card unwind and page exhale) from the engine;
+    do not re-implement or override them here.
+  - Tests: the act element exists in the haunted view and is aria-hidden; it is
+    gone in preview and on the honest twin; under reduced motion the still pose
+    and its "this clock lies" caption render (alongside "Something stirs here").

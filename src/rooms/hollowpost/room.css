@@ -1,4 +1,4 @@
-@import '../../styles/tokens.css';
+@import "../../styles/tokens.css";
 
 /* ------------------------------------------------------------------ *
  * Hollowpost Tickets — Room 5, The Conservatory
@@ -50,7 +50,11 @@
  * invented, resetting deadline, never in low contrast.
  * ------------------------------------------------------------------ */
 .ticket-card {
-  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  background: linear-gradient(
+    to bottom,
+    var(--manor-wood),
+    var(--manor-wood-2)
+  );
   border: 1px solid var(--manor-line);
   border-radius: var(--radius-md);
   padding: var(--spacing-lg);
@@ -105,7 +109,7 @@
 /* Tabular figures so the mm:ss clock never changes width — no layout shift. */
 .ticket-countdown-clock {
   font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum' 1;
+  font-feature-settings: "tnum" 1;
   letter-spacing: 0.02em;
 }
 
@@ -211,8 +215,13 @@
 }
 
 @keyframes ghost-bob {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50% { transform: translateY(-6px) rotate(1deg); }
+  0%,
+  100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(1deg);
+  }
 }
 
 /* Flicker on the possessed banner itself — opacity 1 -> 0.85, at most twice a
@@ -222,8 +231,15 @@
 }
 
 @keyframes conservatory-flicker {
-  0%, 60%, 100% { opacity: 1; }
-  70%, 90% { opacity: 0.85; }
+  0%,
+  60%,
+  100% {
+    opacity: 1;
+  }
+  70%,
+  90% {
+    opacity: 0.85;
+  }
 }
 
 /* Mist drifting around the ghost, never over text. */
@@ -231,7 +247,11 @@
   position: absolute;
   width: 130px;
   height: 60px;
-  background: radial-gradient(circle, rgba(244, 239, 230, 0.18) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(244, 239, 230, 0.18) 0%,
+    transparent 70%
+  );
   filter: blur(8px);
   pointer-events: none;
   animation: mist-drift 10s ease-in-out infinite alternate;
@@ -253,15 +273,120 @@
 }
 
 @keyframes mist-drift {
-  0% { opacity: 0.3; transform: translate(0, 0); }
-  50% { opacity: 0.5; transform: translate(6px, -4px); }
-  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+  0% {
+    opacity: 0.3;
+    transform: translate(0, 0);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translate(6px, -4px);
+  }
+  100% {
+    opacity: 0.3;
+    transform: translate(-4px, 2px);
+  }
 }
 
-/* The flee is shared: the engine holds `named` and the common-moment layer
+/* ------------------------------------------------------------------ *
+ * The ghost's act — Fake urgency performed (Requirement 4)
+ * The ghost taps the countdown like a pocket watch; at each tap the seconds
+ * jump. The act lives only on/beside the possessed banner, uses transforms and
+ * opacity only, reserves its own space (no layout shift), never blocks input
+ * (pointer-events: none) and never covers the banner's text, the price or the
+ * button. Every act element is aria-hidden and adds nothing to the accessible
+ * name or to any live announcement. One cycle is 4 s (>= 4 s).
+ * ------------------------------------------------------------------ */
+
+/* The tapping finger: a long thin ink stroke that descends from the ghost and
+   taps down toward the banner, then lifts, once per 4 s cycle. It sits inside
+   the ghost-wrap (reserved space) and is non-interactive. */
+.act-tap {
+  position: absolute;
+  left: 50%;
+  bottom: -18px;
+  width: 5px;
+  height: 34px;
+  transform: translate(-50%, 0) rotate(2deg);
+  transform-origin: 50% 0;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ghost) 90%, transparent);
+  box-shadow: 0 0 6px rgba(244, 239, 230, 0.4);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.9;
+  animation: conservatory-tap 4s ease-in-out infinite;
+}
+
+/* The tap: the finger dips down (the tap) and lifts back, twice per cycle so
+   the "jumps" come in a steady beat. Transform/opacity only. */
+@keyframes conservatory-tap {
+  0%,
+  100% {
+    transform: translate(-50%, 0) rotate(2deg);
+    opacity: 0.85;
+  }
+  10% {
+    transform: translate(-50%, 10px) rotate(2deg);
+    opacity: 1;
+  }
+  20% {
+    transform: translate(-50%, 0) rotate(2deg);
+    opacity: 0.85;
+  }
+  55% {
+    transform: translate(-50%, 10px) rotate(2deg);
+    opacity: 1;
+  }
+  65% {
+    transform: translate(-50%, 0) rotate(2deg);
+    opacity: 0.85;
+  }
+}
+
+/* The seconds jump at each tap: the clock digits give a small vertical nudge
+   in time with the tap. Tabular figures keep the width fixed, so this nudge is
+   motion only — no layout shift, and the text never loses contrast. */
+.ticket-countdown-clock.act-clock {
+  display: inline-block;
+  animation: conservatory-clock-jump 4s ease-in-out infinite;
+}
+
+@keyframes conservatory-clock-jump {
+  0%,
+  9%,
+  100% {
+    transform: translateY(0);
+  }
+  11% {
+    transform: translateY(-3px);
+  }
+  18% {
+    transform: translateY(0);
+  }
+  54% {
+    transform: translateY(0);
+  }
+  56% {
+    transform: translateY(-3px);
+  }
+  63% {
+    transform: translateY(0);
+  }
+}
+
+/* Named: the act stops at once. The engine sets data-moment='right' (and
+   data-fleeing) on .room-scene and holds the haunted page for the shared
+   unwind and flee; every act element freezes so nothing keeps tapping or
+   jumping through the flee. The flee itself is shared: the common-moment layer
    (atmosphere.css) owns the ghost's unwind and one flee on
    `.room-scene[data-fleeing='true'] .ghost-wrap`. This room adds no flee of
    its own so there is exactly one flee. */
+.room-scene[data-moment='right'] .act-tap,
+.room-scene[data-moment='right'] .ticket-countdown-clock.act-clock,
+.room-scene[data-moment='right'] .mist,
+.room-scene[data-moment='right'] .ticket-countdown-label {
+  animation: none;
+}
 
 /* ------------------------------------------------------------------ *
  * Reduced motion: static dashed candle outline + label, no animation. The
@@ -271,6 +396,8 @@
 @media (prefers-reduced-motion: reduce) {
   .ghost-wrap,
   .mist,
+  .act-tap,
+  .ticket-countdown-clock.act-clock,
   .ticket-countdown.signs-active .ticket-countdown-label {
     animation: none !important;
   }
@@ -289,6 +416,19 @@
   animation: none !important;
 }
 
+/* The act holds a still pose under reduced motion: no movement. The ghost's
+   finger rests on the watch (still pose) and the clock does not jump; the
+   caption "this clock lies" names the trick beside the ghost. */
+.ticket-countdown.reduced-motion .act-tap,
+.ticket-countdown.reduced-motion .ticket-countdown-clock.act-clock {
+  animation: none !important;
+}
+
+.ticket-countdown.reduced-motion .act-tap {
+  /* The still tap pose: the finger resting down on the watch. */
+  transform: translate(-50%, 10px) rotate(2deg);
+  opacity: 1;
+}
 
 /* ------------------------------------------------------------------ *
  * Honest twin — the same ticket page with the price, the concert date and a
@@ -426,7 +566,6 @@
     right: 20px;
     top: -30px;
   }
-
 }
 
 /* ------------------------------------------------------------------ *
