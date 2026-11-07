@@ -28,6 +28,10 @@ One shared layer (src/ui/Atmosphere.tsx) draws the living mood on the room's bac
 
 Two haunted moments are the same in every room and are driven by the engine (from the wrong-pick nonce and the named state via a data attribute on `.room-scene`), not by each room: a wrong card makes the candles gutter (a brief dip, ~300 ms) and the ghost shake its head once; the right card makes the ghost stop mid-gesture and unwind upward before it flees (keeping the 600 ms flee) and the page exhale. With prefers-reduced-motion: reduce there is no gutter, no shake and no unwind — the ghost simply fades. Transforms and opacity only; nothing hides content and a wrong card still costs nothing.
 
+## Sound
+
+Sound is subtle atmosphere, never a scare, and is synthesized entirely in code with the Web Audio API — no audio files, no network — through one master gain held quiet (the whole ambience about -20 dBFS, the cues about -12 dBFS, so nothing clips). While a room is haunted the ambience layers a room tone, wind through the hall, a distant clock and the house settling, plus one quiet voice per room chosen by its slug; three fuller cues mark the wrong card (a candle gutter under the whisper), the right card (the ghost's unwinding sigh into the flee) and the honest page (a warm resolved chord). No jump scares, no screams, no sudden loud sounds; every layer is quiet and slowly varying so the bed never loops audibly. With prefers-reduced-motion the sound keeps playing — sound is not motion. The game is fully playable in silence, and turning Sound off stops everything at once.
+
 ## Look: Candlelit ink
 
 **Mood:** A candlelit Victorian manor drawn in ink—dark aubergine wood, warm amber candlelight, parchment and antique gold, ghosts as thin white ink lines.

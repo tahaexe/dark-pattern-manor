@@ -1,11 +1,12 @@
 /**
  * Sound for Dark Pattern Manor.
  *
- * A quiet haunted ambience and six short cues, all synthesized with the Web
- * Audio API — no audio files, no downloads, nothing to license. Everything is
- * atmosphere layered on a game that is fully playable in silence.
+ * A quiet, layered haunted ambience with a voice for each room, and six short
+ * cues, all synthesized with the Web Audio API — no audio files, no downloads,
+ * nothing to license. Everything is atmosphere layered on a game that is fully
+ * playable in silence.
  *
- * Rules this module keeps:
+ * Rules this module keeps (the invariants, kept at the top):
  *  - One AudioContext, created lazily and only inside a user gesture, never at
  *    import or page load, so the browser never blocks it and nothing plays
  *    before the player has acted. When the platform reports no user activation
@@ -14,12 +15,16 @@
  *    address directly never creates the context before a gesture.
  *  - If no AudioContext constructor exists (jsdom has none), every function is
  *    a silent no-op that throws nothing.
- *  - Everything passes through one master gain, held quiet: the ambience about
- *    -20 dBFS, the cues about -12 dBFS, so the sum never clips.
+ *  - Everything passes through one master gain, held quiet: the whole ambience
+ *    (the sum of all its layers) about -20 dBFS, the cues about -12 dBFS, so
+ *    the sum never clips.
  *  - The on/off choice is remembered in localStorage under "dpm-sound"; a
  *    throwing localStorage falls back to the default (on) and never throws.
  *  - No cookies, no third-party network request: the only persisted state is
  *    the one localStorage key.
+ *  - Sound off stops everything — every layer and every cue — at once.
+ *  - The soundscape is subtle: every layer is quiet and slowly varying so the
+ *    bed never loops audibly; no jump scares, no screams, no sudden loud sounds.
  */
 
 /** dBFS → linear gain. */
@@ -29,13 +34,30 @@ export const DB = (db: number): number => 10 ** (db / 20);
 export const AMBIENCE_DB = -20;
 export const CUE_DB = -12;
 
-const AMBIENCE_GAIN = DB(AMBIENCE_DB); // ≈ 0.1
-const CUE_GAIN = DB(CUE_DB); // ≈ 0.25
+const AMBIENCE_GAIN = DB(AMBIENCE_DB); // ≈ 0.1 — the whole-ambience target
+const CUE_GAIN = DB(CUE_DB); // ≈ 0.25 — the cue target
 
 const STORAGE_KEY = 'dpm-sound';
 
 /** Tags in which the ambience plays. */
 const HAUNTED_TAGS = new Set(['haunted', 'inspecting', 'picking']);
+
+/**
+ * A single ambience layer's peak gain, always strictly below the whole-ambience
+ * target: `scale` is in (0, 1), so no one layer is ever as loud as the sum.
+ */
+function layerPeak(scale: number): number {
+  return AMBIENCE_GAIN * scale;
+}
+
+/**
+ * A creak delay in ms for the house settling, always within [8000, 20000]
+ * inclusive. Factored out and exported so a property test can check the range
+ * without touching the audio engine.
+ */
+export function creakDelayMs(rand: () => number = Math.random): number {
+  return 8000 + Math.floor(rand() * 12001); // 8000..20000 inclusive
+}
 
 // --------------------------------------------------------------------------
 // The one AudioContext and master gain, born lazily inside a gesture.
@@ -169,6 +191,9 @@ let soundOn = readStored();
 /** The last room tag the view reported, so resuming knows whether to. */
 let roomTag: string | null = null;
 
+/** The current room's slug, so the ambience can choose that room's voice. */
+let roomSlug: string | null = null;
+
 /** Whether sound is currently on. */
 export function isSoundOn(): boolean {
   return soundOn;
@@ -214,6 +239,15 @@ export function setRoomTag(tag: string | null): void {
   if (tag === null) stopAmbience();
 }
 
+/**
+ * The room tells the engine its slug, so the ambience can add that room's
+ * voice. Passing null clears it (used on leaving the room). This comes from the
+ * room's static data, not from the state machine, so the reducer stays pure.
+ */
+export function setRoomSlug(slug: string | null): void {
+  roomSlug = slug;
+}
+
 // --------------------------------------------------------------------------
 // Noise.
 // --------------------------------------------------------------------------
@@ -228,7 +262,9 @@ function noiseBuffer(c: AudioContext): AudioBuffer {
 }
 
 // --------------------------------------------------------------------------
-// The ambience: a low room tone plus the odd candle crackle.
+// The layered ambience: room tone, wind, a distant clock, the house settling,
+// and one room voice chosen by slug. Every layer connects into the one
+// ambience gain so the whole bed fades and stops as one.
 // --------------------------------------------------------------------------
 
 interface Ambience {
@@ -239,6 +275,14 @@ interface Ambience {
 }
 
 let ambience: Ambience | null = null;
+
+/**
+ * Each ambience layer's chosen peak gain, recorded as the layer is built and
+ * reset on every startAmbience(). A test reads these through
+ * `__ambienceLayerPeaks()` to assert every layer stays below the ambience
+ * target, without needing a real audio device.
+ */
+let layerPeaks: number[] = [];
 
 /** Disconnect a node and swallow any error (already-stopped, etc.). */
 function safeDisconnect(node: AudioNode): void {
@@ -258,16 +302,20 @@ function safeStop(node: AudioScheduledSourceNode): void {
   }
 }
 
-/**
- * Start the room tone and schedule crackles, fading in over ~2 s. No-op when
- * there is no audio, sound is off, or the ambience already runs.
- */
-export function startAmbience(): void {
-  if (!hasAudio() || !soundOn || ambience) return;
-  const c = ensureContext();
-  if (!c || !master) return;
+// --------------------------------------------------------------------------
+// Shared ambience layers. Each builder attaches its nodes to `amb.nodes`, its
+// timers to `amb.timers`, connects into `amb.gain`, and records its peak.
+// --------------------------------------------------------------------------
 
+/**
+ * The room tone that exists today: looped noise through a low-pass around
+ * 300 Hz with a slow random drift so it is never static. The loudest layer,
+ * still below the whole-ambience target.
+ */
+function buildRoomTone(c: AudioContext, amb: Ambience): void {
   const t = now(c);
+  const peak = layerPeak(0.9);
+  layerPeaks.push(peak);
 
   const source = c.createBufferSource();
   source.buffer = noiseBuffer(c);
@@ -278,23 +326,15 @@ export function startAmbience(): void {
   filter.frequency.value = 300;
 
   const gain = c.createGain();
-  gain.gain.setValueAtTime(0, t);
-  gain.gain.linearRampToValueAtTime(AMBIENCE_GAIN, t + 2); // ~2 s fade-in
+  gain.gain.setValueAtTime(peak, t);
 
   source.connect(filter);
   filter.connect(gain);
-  gain.connect(master);
+  gain.connect(amb.gain);
   safeStart(source, t);
+  amb.nodes.push(source, filter, gain);
 
-  const amb: Ambience = {
-    nodes: [source, filter, gain],
-    gain,
-    timers: [],
-    stopped: false,
-  };
-  ambience = amb;
-
-  // Slow random drift of the low-pass frequency so the tone is never static.
+  // Slow random drift of the low-pass frequency.
   const drift = () => {
     if (amb.stopped || !ctx) return;
     const freq = 220 + Math.random() * 160; // ~220–380 Hz
@@ -306,49 +346,530 @@ export function startAmbience(): void {
     amb.timers.push(setTimeout(drift, 3000));
   };
   amb.timers.push(setTimeout(drift, 3000));
-
-  // Candle crackles at random intervals of 2–6 s, each re-scheduling the next.
-  const scheduleCrackle = () => {
-    if (amb.stopped) return;
-    const delay = 2000 + Math.random() * 4000; // 2–6 s
-    amb.timers.push(setTimeout(fire, delay));
-  };
-  const fire = () => {
-    if (amb.stopped) return;
-    crackle();
-    scheduleCrackle();
-  };
-  scheduleCrackle();
 }
 
-/** A few very short filtered noise clicks: the candle crackle. */
-function crackle(): void {
-  const c = ctx;
-  if (!c || !master || !ambience) return;
+/**
+ * Wind through the hall: filtered noise whose band and level drift slowly, so
+ * neither the colour nor the loudness ever settles.
+ */
+function buildWind(c: AudioContext, amb: Ambience): void {
   const t = now(c);
-  const clicks = 2 + Math.floor(Math.random() * 3); // 2–4 clicks
-  for (let i = 0; i < clicks; i++) {
-    const start = t + i * (0.02 + Math.random() * 0.04);
-    const dur = 0.008 + Math.random() * 0.017; // 8–25 ms
+  const peak = layerPeak(0.5);
+  layerPeaks.push(peak);
 
-    const src = c.createBufferSource();
-    src.buffer = noiseBuffer(c);
+  const source = c.createBufferSource();
+  source.buffer = noiseBuffer(c);
+  source.loop = true;
 
-    const bp = c.createBiquadFilter();
-    bp.type = 'bandpass';
-    bp.frequency.value = 1800 + Math.random() * 1200;
-    bp.Q.value = 2;
+  const bp = c.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 450;
+  bp.Q.value = 0.7;
 
-    const g = c.createGain();
-    g.gain.setValueAtTime(0, start);
-    g.gain.linearRampToValueAtTime(AMBIENCE_GAIN * 0.8, start + 0.002);
-    g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(peak * 0.6, t);
 
-    src.connect(bp);
-    bp.connect(g);
-    g.connect(master);
-    safeStart(src, start);
-    safeStop2(src, start + dur + 0.02);
+  source.connect(bp);
+  bp.connect(gain);
+  gain.connect(amb.gain);
+  safeStart(source, t);
+  amb.nodes.push(source, bp, gain);
+
+  // Slow drift of both the band centre and the level.
+  const drift = () => {
+    if (amb.stopped || !ctx) return;
+    const freq = 300 + Math.random() * 400; // ~300–700 Hz
+    const level = peak * (0.3 + Math.random() * 0.7); // 0.3×–1× of the peak
+    try {
+      bp.frequency.linearRampToValueAtTime(freq, ctx.currentTime + 4);
+      gain.gain.linearRampToValueAtTime(level, ctx.currentTime + 4);
+    } catch {
+      /* ignore */
+    }
+    amb.timers.push(setTimeout(drift, 4000));
+  };
+  amb.timers.push(setTimeout(drift, 4000));
+}
+
+/** One soft, muffled tick: a very short low sine pulse. Far back when quiet. */
+function tick(c: AudioContext, amb: Ambience, out: GainNode, peak: number, freq: number): void {
+  if (amb.stopped || !master) return;
+  const t = now(c);
+  const dur = 0.05;
+  const osc = c.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.value = freq;
+  const g = c.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(peak, t + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(g);
+  g.connect(out);
+  safeStart(osc, t);
+  safeStop2(osc, t + dur + 0.02);
+  amb.nodes.push(osc, g);
+}
+
+/**
+ * A distant clock: a soft muffled tick about once a second, far back in the
+ * mix. The spacing is jittered so it never locks to a beat.
+ */
+function buildClock(c: AudioContext, amb: Ambience): void {
+  const peak = layerPeak(0.25);
+  layerPeaks.push(peak);
+  const out = c.createGain();
+  out.gain.value = 1;
+  out.connect(amb.gain);
+  amb.nodes.push(out);
+
+  const schedule = () => {
+    if (amb.stopped) return;
+    const delay = 900 + Math.random() * 200; // ~0.9–1.1 s
+    amb.timers.push(
+      setTimeout(() => {
+        if (amb.stopped || !ctx) return;
+        tick(ctx, amb, out, peak, 180);
+        schedule();
+      }, delay),
+    );
+  };
+  schedule();
+}
+
+/**
+ * The house settling: an occasional low wooden creak at random intervals of
+ * 8–20 s. A low tone with a slow pitch wobble and a gentle swell-and-fade.
+ */
+function buildCreak(c: AudioContext, amb: Ambience): void {
+  const peak = layerPeak(0.6);
+  layerPeaks.push(peak);
+  const out = c.createGain();
+  out.gain.value = 1;
+  out.connect(amb.gain);
+  amb.nodes.push(out);
+
+  const fire = () => {
+    if (amb.stopped || !ctx) return;
+    const t = now(ctx);
+    const dur = 0.8 + Math.random() * 0.6; // 0.8–1.4 s
+    const base = 70 + Math.random() * 40; // 70–110 Hz
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(base, t);
+    osc.frequency.linearRampToValueAtTime(base * 1.1, t + dur * 0.5);
+    osc.frequency.linearRampToValueAtTime(base * 0.95, t + dur);
+
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 400;
+
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(peak, t + dur * 0.4);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    osc.connect(lp);
+    lp.connect(g);
+    g.connect(out);
+    safeStart(osc, t);
+    safeStop2(osc, t + dur + 0.02);
+    amb.nodes.push(osc, lp, g);
+    schedule();
+  };
+  const schedule = () => {
+    if (amb.stopped) return;
+    amb.timers.push(setTimeout(fire, creakDelayMs()));
+  };
+  schedule();
+}
+
+// --------------------------------------------------------------------------
+// The room voices. One quiet layer per room, chosen by slug, below the room
+// tone and below every cue. Each is subtle — no jump scare, no sudden loud.
+// --------------------------------------------------------------------------
+
+type VoiceBuilder = (c: AudioContext, amb: Ambience) => void;
+
+/** Make a layer sub-gain connected to the ambience gain, recording its peak. */
+function voiceOut(c: AudioContext, amb: Ambience, scale: number): { out: GainNode; peak: number } {
+  const peak = layerPeak(scale);
+  layerPeaks.push(peak);
+  const out = c.createGain();
+  out.gain.value = 1;
+  out.connect(amb.gain);
+  amb.nodes.push(out);
+  return { out, peak };
+}
+
+/** A short scheduled grain: filtered noise with a quick envelope. */
+function grain(
+  c: AudioContext,
+  amb: Ambience,
+  out: GainNode,
+  peak: number,
+  opts: { type: BiquadFilterType; freq: number; q: number; dur: number; attack?: number },
+): void {
+  if (amb.stopped) return;
+  const t = now(c);
+  const src = c.createBufferSource();
+  src.buffer = noiseBuffer(c);
+  const f = c.createBiquadFilter();
+  f.type = opts.type;
+  f.frequency.value = opts.freq;
+  f.Q.value = opts.q;
+  const g = c.createGain();
+  const attack = opts.attack ?? 0.01;
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(peak, t + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + opts.dur);
+  src.connect(f);
+  f.connect(g);
+  g.connect(out);
+  safeStart(src, t);
+  safeStop2(src, t + opts.dur + 0.02);
+  amb.nodes.push(src, f, g);
+}
+
+/** A short scheduled sine blip (a ping or a note). */
+function blip(
+  c: AudioContext,
+  amb: Ambience,
+  out: GainNode,
+  peak: number,
+  opts: { freq: number; dur: number; glideTo?: number; type?: OscillatorType },
+): void {
+  if (amb.stopped) return;
+  const t = now(c);
+  const osc = c.createOscillator();
+  osc.type = opts.type ?? 'sine';
+  osc.frequency.setValueAtTime(opts.freq, t);
+  if (opts.glideTo) osc.frequency.exponentialRampToValueAtTime(opts.glideTo, t + opts.dur);
+  const g = c.createGain();
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(peak, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + opts.dur);
+  osc.connect(g);
+  g.connect(out);
+  safeStart(osc, t);
+  safeStop2(osc, t + opts.dur + 0.02);
+  amb.nodes.push(osc, g);
+}
+
+/** Schedule a repeating event at a jittered delay; re-schedules itself. */
+function everyFew(amb: Ambience, minMs: number, maxMs: number, body: () => void): void {
+  const run = () => {
+    if (amb.stopped) return;
+    body();
+    schedule();
+  };
+  const schedule = () => {
+    if (amb.stopped) return;
+    const delay = minMs + Math.random() * (maxMs - minMs);
+    amb.timers.push(setTimeout(run, delay));
+  };
+  schedule();
+}
+
+/** The Foyer — a draught under the door: low-passed noise with a slow drift. */
+const buildDraught: VoiceBuilder = (c, amb) => {
+  const t = now(c);
+  const { out, peak } = voiceOut(c, amb, 0.4);
+  const src = c.createBufferSource();
+  src.buffer = noiseBuffer(c);
+  src.loop = true;
+  const lp = c.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 400;
+  const g = c.createGain();
+  g.gain.setValueAtTime(peak * 0.5, t);
+  src.connect(lp);
+  lp.connect(g);
+  g.connect(out);
+  safeStart(src, t);
+  amb.nodes.push(src, lp, g);
+  const drift = () => {
+    if (amb.stopped || !ctx) return;
+    try {
+      g.gain.linearRampToValueAtTime(peak * (0.3 + Math.random() * 0.7), ctx.currentTime + 5);
+    } catch {
+      /* ignore */
+    }
+    amb.timers.push(setTimeout(drift, 5000));
+  };
+  amb.timers.push(setTimeout(drift, 5000));
+};
+
+/** The Library — a page turning now and then: a high-passed swish. */
+const buildPageTurn: VoiceBuilder = (c, amb) => {
+  const { out, peak } = voiceOut(c, amb, 0.35);
+  everyFew(amb, 6000, 14000, () => {
+    if (!ctx) return;
+    grain(ctx, amb, out, peak, { type: 'highpass', freq: 2000, q: 0.7, dur: 0.25, attack: 0.03 });
+  });
+};
+
+/** The Dining Room — a faint clink of cutlery: one or two short metallic pings. */
+const buildCutlery: VoiceBuilder = (c, amb) => {
+  const { out, peak } = voiceOut(c, amb, 0.3);
+  everyFew(amb, 5000, 12000, () => {
+    if (!ctx) return;
+    blip(ctx, amb, out, peak, { freq: 2400 + Math.random() * 600, dur: 0.12 });
+    if (Math.random() < 0.5)
+      amb.timers.push(
+        setTimeout(() => {
+          if (ctx) blip(ctx, amb, out, peak * 0.8, { freq: 3000 + Math.random() * 500, dur: 0.1 });
+        }, 90),
+      );
+  });
+};
+
+/** The Parlour — a fire crackling low: frequent very short filtered clicks. */
+const buildFire: VoiceBuilder = (c, amb) => {
+  const { out, peak } = voiceOut(c, amb, 0.4);
+  const fire = () => {
+    if (amb.stopped || !ctx) return;
+    const clicks = 2 + Math.floor(Math.random() * 3); // 2–4 clicks
+    for (let i = 0; i < clicks; i++) {
+      amb.timers.push(
+        setTimeout(() => {
+          if (ctx)
+            grain(ctx, amb, out, peak * 0.8, {
+              type: 'bandpass',
+              freq: 1800 + Math.random() * 1200,
+              q: 2,
+              dur: 0.012 + Math.random() * 0.015,
+              attack: 0.002,
+            });
+        }, i * (20 + Math.random() * 40)),
+      );
+    }
+  };
+  everyFew(amb, 2000, 6000, fire);
+};
+
+/** The Conservatory — the clock's tick louder and a little too fast. */
+const buildFastClock: VoiceBuilder = (c, amb) => {
+  const { out, peak } = voiceOut(c, amb, 0.45);
+  const schedule = () => {
+    if (amb.stopped) return;
+    const delay = 700 + Math.random() * 150; // ~0.7–0.85 s — a little fast
+    amb.timers.push(
+      setTimeout(() => {
+        if (amb.stopped || !ctx) return;
+        tick(ctx, amb, out, peak, 200);
+        schedule();
+      }, delay),
+    );
+  };
+  schedule();
+};
+
+/** The Ballroom — a far-off, detuned waltz phrase (three notes, 3/4). */
+const buildWaltz: VoiceBuilder = (c, amb) => {
+  const { out, peak } = voiceOut(c, amb, 0.35);
+  // A low-pass to push it far off.
+  const lp = c.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 900;
+  lp.connect(out);
+  amb.nodes.push(lp);
+  everyFew(amb, 10000, 16000, () => {
+    if (!ctx) return;
+    const root = 330 * (1 + (Math.random() * 0.03 - 0.015)); // slightly detuned
+    const notes = [root, root * 1.25, root * 1.5]; // a simple triad phrase
+    notes.forEach((f, i) => {
+      amb.timers.push(
+        setTimeout(() => {
+          if (ctx) blip(ctx, amb, lp, peak, { freq: f, dur: 0.5 });
+        }, i * 420),
+      );
+    });
+  });
+};
+
+/** The Portrait Gallery — murmuring that never forms words. */
+const buildMurmur: VoiceBuilder = (c, amb) => {
+  const t = now(c);
+  const { out, peak } = voiceOut(c, amb, 0.35);
+  const src = c.createBufferSource();
+  src.buffer = noiseBuffer(c);
+  src.loop = true;
+  const bp = c.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 500;
+  bp.Q.value = 2;
+  const g = c.createGain();
+  g.gain.setValueAtTime(peak * 0.5, t);
+  src.connect(bp);
+  bp.connect(g);
+  g.connect(out);
+  safeStart(src, t);
+  amb.nodes.push(src, bp, g);
+  // Slow band and level drift so it burbles like far voices, never words.
+  const drift = () => {
+    if (amb.stopped || !ctx) return;
+    try {
+      bp.frequency.linearRampToValueAtTime(300 + Math.random() * 600, ctx.currentTime + 2);
+      g.gain.linearRampToValueAtTime(peak * (0.3 + Math.random() * 0.6), ctx.currentTime + 2);
+    } catch {
+      /* ignore */
+    }
+    amb.timers.push(setTimeout(drift, 2000));
+  };
+  amb.timers.push(setTimeout(drift, 2000));
+};
+
+/** The Pantry — a jar lid rattling: a short metallic rattle now and then. */
+const buildJarLid: VoiceBuilder = (c, amb) => {
+  const { out, peak } = voiceOut(c, amb, 0.35);
+  everyFew(amb, 7000, 15000, () => {
+    const rattles = 3 + Math.floor(Math.random() * 3); // 3–5 quick pings
+    for (let i = 0; i < rattles; i++) {
+      amb.timers.push(
+        setTimeout(() => {
+          if (ctx)
+            blip(ctx, amb, out, peak * (0.6 + Math.random() * 0.4), {
+              freq: 1500 + Math.random() * 500,
+              dur: 0.06,
+            });
+        }, i * (40 + Math.random() * 30)),
+      );
+    }
+  });
+};
+
+/** The Study — a pen scratching: a short high-passed noise scrape. */
+const buildPenScratch: VoiceBuilder = (c, amb) => {
+  const { out, peak } = voiceOut(c, amb, 0.3);
+  everyFew(amb, 4000, 9000, () => {
+    if (!ctx) return;
+    grain(ctx, amb, out, peak, { type: 'highpass', freq: 2600, q: 0.8, dur: 0.18, attack: 0.02 });
+  });
+};
+
+/** The Nursery — a slow, slightly out-of-tune music box. */
+const buildMusicBox: VoiceBuilder = (c, amb) => {
+  const { out, peak } = voiceOut(c, amb, 0.35);
+  // A simple phrase of high notes, each a touch detuned.
+  const melody = [1047, 1175, 1319, 1175, 1047, 880]; // C6 D6 E6 D6 C6 A5
+  everyFew(amb, 7000, 11000, () => {
+    melody.forEach((f, i) => {
+      amb.timers.push(
+        setTimeout(() => {
+          if (ctx) {
+            const detuned = f * (1 + (Math.random() * 0.02 - 0.01));
+            blip(ctx, amb, out, peak, { freq: detuned, dur: 0.4 });
+          }
+        }, i * 1200),
+      );
+    });
+  });
+};
+
+/** The Attic — rain on the roof: steady high-passed noise with shimmer. */
+const buildRain: VoiceBuilder = (c, amb) => {
+  const t = now(c);
+  const { out, peak } = voiceOut(c, amb, 0.4);
+  const src = c.createBufferSource();
+  src.buffer = noiseBuffer(c);
+  src.loop = true;
+  const hp = c.createBiquadFilter();
+  hp.type = 'highpass';
+  hp.frequency.value = 1500;
+  const g = c.createGain();
+  g.gain.setValueAtTime(peak * 0.7, t);
+  src.connect(hp);
+  hp.connect(g);
+  g.connect(out);
+  safeStart(src, t);
+  amb.nodes.push(src, hp, g);
+  // Gentle amplitude shimmer.
+  const drift = () => {
+    if (amb.stopped || !ctx) return;
+    try {
+      g.gain.linearRampToValueAtTime(peak * (0.5 + Math.random() * 0.5), ctx.currentTime + 3);
+    } catch {
+      /* ignore */
+    }
+    amb.timers.push(setTimeout(drift, 3000));
+  };
+  amb.timers.push(setTimeout(drift, 3000));
+};
+
+/** The Cellar — water dripping: one resonant drip at random intervals. */
+const buildDrip: VoiceBuilder = (c, amb) => {
+  const { out, peak } = voiceOut(c, amb, 0.4);
+  everyFew(amb, 3000, 7000, () => {
+    if (!ctx) return;
+    blip(ctx, amb, out, peak, { freq: 900, glideTo: 500, dur: 0.14 });
+  });
+};
+
+/** The voice table: one builder per room slug. */
+const VOICES: Record<string, VoiceBuilder> = {
+  'gravemoor-gazette': buildDraught,
+  'inkbone-books': buildPageTurn,
+  grimsupper: buildCutlery,
+  gloamline: buildFire,
+  hollowpost: buildFastClock,
+  shroudery: buildWaltz,
+  lanternstay: buildMurmur,
+  mothmilk: buildJarLid,
+  mildew: buildPenScratch,
+  wanderwick: buildMusicBox,
+  rookery: buildRain,
+  bramblegate: buildDrip,
+};
+
+/** The twelve slugs the voice table covers (for tests). */
+export const VOICE_SLUGS: readonly string[] = Object.keys(VOICES);
+
+// --------------------------------------------------------------------------
+// Start / fade / stop the whole ambience.
+// --------------------------------------------------------------------------
+
+/**
+ * Start the layered ambience, fading in over ~2 s. No-op when there is no
+ * audio, sound is off, or the ambience already runs. Builds the shared layers
+ * (room tone, wind, clock, creak) and the current room's voice if it has one.
+ */
+export function startAmbience(): void {
+  if (!hasAudio() || !soundOn || ambience) return;
+  const c = ensureContext();
+  if (!c || !master) return;
+
+  const t = now(c);
+
+  // The one ambience sub-gain every layer connects into, faded in/out as one.
+  const gain = c.createGain();
+  gain.gain.setValueAtTime(0, t);
+  gain.gain.linearRampToValueAtTime(AMBIENCE_GAIN, t + 2); // ~2 s fade-in
+  gain.connect(master);
+
+  const amb: Ambience = {
+    nodes: [gain],
+    gain,
+    timers: [],
+    stopped: false,
+  };
+  ambience = amb;
+  layerPeaks = [];
+
+  // The shared layers.
+  buildRoomTone(c, amb);
+  buildWind(c, amb);
+  buildClock(c, amb);
+  buildCreak(c, amb);
+
+  // The room's voice, if its slug has one. An unknown slug adds no voice.
+  const voice = roomSlug ? VOICES[roomSlug] : undefined;
+  if (voice) {
+    try {
+      voice(c, amb);
+    } catch {
+      /* a voice must never throw into the game */
+    }
   }
 }
 
@@ -357,7 +878,7 @@ export function fadeOutAmbience(): void {
   const amb = ambience;
   const c = ctx;
   if (!amb || amb.stopped) return;
-  // Clear the crackle/drift timers at once so no new crackle starts.
+  // Clear every timer at once so no new layer event starts.
   for (const timer of amb.timers) clearTimeout(timer);
   amb.timers = [];
   if (c && master) {
@@ -493,33 +1014,58 @@ export function cold(): void {
   });
 }
 
-/** A short whispered "shh": band-passed noise ~3 kHz, fast attack, short tail. */
+/**
+ * The wrong-card moment: a short whispered "shh" (band-passed noise ~3 kHz,
+ * fast attack, short tail) plus a candle gutter — a short airy dip of
+ * low-passed noise that swells and recedes under the shh. Both begin and end
+ * at 0 and share the cue level, so the pair peaks at the cue target.
+ */
 export function whisper(): void {
   withSound((c, out) => {
     const t = now(c);
     const dur = 0.3;
+
+    // The shh.
     const src = c.createBufferSource();
     src.buffer = noiseBuffer(c);
-
     const bp = c.createBiquadFilter();
     bp.type = 'bandpass';
     bp.frequency.value = 3000;
     bp.Q.value = 3;
-
     const g = c.createGain();
     g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(CUE_GAIN, t + 0.02);
+    g.gain.linearRampToValueAtTime(CUE_GAIN * 0.7, t + 0.02);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-
     src.connect(bp);
     bp.connect(g);
     g.connect(out);
     safeStart(src, t);
     safeStop2(src, t + dur + 0.02);
+
+    // The candle gutter: a short low airy dip, swell then recede.
+    const gutterDur = 0.25;
+    const gsrc = c.createBufferSource();
+    gsrc.buffer = noiseBuffer(c);
+    const lp = c.createBiquadFilter();
+    lp.type = 'lowpass';
+    lp.frequency.value = 300;
+    const gg = c.createGain();
+    gg.gain.setValueAtTime(0, t);
+    gg.gain.linearRampToValueAtTime(CUE_GAIN * 0.3, t + gutterDur * 0.4);
+    gg.gain.linearRampToValueAtTime(0, t + gutterDur);
+    gsrc.connect(lp);
+    lp.connect(gg);
+    gg.connect(out);
+    safeStart(gsrc, t);
+    safeStop2(gsrc, t + gutterDur + 0.02);
   });
 }
 
-/** An airy rising glide: a sine 220→880 Hz with a light tremolo, under noise. */
+/**
+ * The right-card moment: the ghost's unwinding sigh — a sine that slurs down
+ * then turns upward — rising into the airy glide to ~880 Hz, under a soft
+ * noise breath. The whole thing keeps the flee's existing ~0.6 s length.
+ */
 export function flee(): void {
   withSound((c, out) => {
     const t = now(c);
@@ -527,7 +1073,9 @@ export function flee(): void {
 
     const osc = c.createOscillator();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(220, t);
+    // The unwinding sigh: dip from 300→180 Hz in the first beat, then rise.
+    osc.frequency.setValueAtTime(300, t);
+    osc.frequency.linearRampToValueAtTime(180, t + 0.12);
     osc.frequency.exponentialRampToValueAtTime(880, t + dur);
 
     const oscGain = c.createGain();
@@ -571,19 +1119,24 @@ export function flee(): void {
   });
 }
 
-/** A warm soft chime: two sine partials a fifth apart, ~0.6 s decay. */
+/**
+ * The honest page: a warm, resolved chord — three sine partials of a major
+ * triad (C5, E5, G5) with about a 0.6 s decay. The partials are scaled so the
+ * chord's peak meets, not exceeds, the cue target.
+ */
 export function honest(): void {
   withSound((c, out) => {
     const t = now(c);
     const dur = 0.6;
-    const partials = [523.25, 783.99]; // a fifth apart (C5, G5)
+    const partials = [523.25, 659.25, 783.99]; // C5, E5, G5 — a major triad
+    const perPartial = CUE_GAIN / partials.length;
     for (const freq of partials) {
       const osc = c.createOscillator();
       osc.type = 'sine';
       osc.frequency.value = freq;
       const g = c.createGain();
       g.gain.setValueAtTime(0, t);
-      g.gain.linearRampToValueAtTime(CUE_GAIN * 0.6, t + 0.02);
+      g.gain.linearRampToValueAtTime(perPartial, t + 0.02);
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       osc.connect(g);
       g.connect(out);
@@ -621,6 +1174,11 @@ export function quiet(): void {
 // Test seam.
 // --------------------------------------------------------------------------
 
+/** Test-only: the peak gain recorded for each ambience layer on last start. */
+export function __ambienceLayerPeaks(): number[] {
+  return [...layerPeaks];
+}
+
 /** Test-only: drop the context, master, ambience, pending gesture and listeners. */
 export function __resetForTests(): void {
   stopAmbience();
@@ -637,6 +1195,8 @@ export function __resetForTests(): void {
   master = null;
   ambience = null;
   roomTag = null;
+  roomSlug = null;
+  layerPeaks = [];
   listeners.clear();
   soundOn = readStored();
 }

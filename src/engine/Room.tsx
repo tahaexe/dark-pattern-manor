@@ -16,6 +16,7 @@ import {
   flee,
   honest as honestCue,
   lantern as lanternCue,
+  setRoomSlug,
   setRoomTag,
   startAmbience,
   stopAmbience,
@@ -195,8 +196,10 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
     prevTag.current = tag;
 
     // Tell the engine the current state so turning sound on can resume the
-    // ambience, and so leaving the room can stop it.
+    // ambience, and so leaving the room can stop it. The slug chooses this
+    // room's ambience voice; it comes from the room data, not the reducer.
     setRoomTag(tag);
+    setRoomSlug(room.slug);
 
     // Cues on specific transitions.
     if (prev === 'haunted' && tag === 'inspecting') lanternCue();
@@ -229,6 +232,7 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   useEffect(() => {
     return () => {
       setRoomTag(null);
+      setRoomSlug(null);
       stopAmbience();
     };
   }, []);

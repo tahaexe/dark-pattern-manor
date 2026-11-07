@@ -1,12 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/preact';
 import axe from 'axe-core';
+import fc from 'fast-check';
 
 import * as sound from './sound';
 import SoundToggle from './SoundToggle';
 import Room from '../engine/Room';
 import App from '../app/App';
-import { loadRoom } from '../engine/registry';
+import { loadRoom, roomSlugs } from '../engine/registry';
 import { __resetForTests as resetProgress } from '../engine/progress';
 import type { RoomData } from '../engine/types';
 
@@ -424,6 +425,104 @@ describe('sound — ambience lifecycle', () => {
 });
 
 // --------------------------------------------------------------------------
+// Soundscape: the layered ambience, the per-room voices, the creak scheduler.
+// --------------------------------------------------------------------------
+
+describe('soundscape — the voice table', () => {
+  it('covers exactly the twelve room slugs and nothing else', () => {
+    const voices = [...sound.VOICE_SLUGS].sort();
+    const slugs = [...roomSlugs()].sort();
+    expect(voices).toEqual(slugs);
+    expect(voices.length).toBe(12);
+  });
+
+  it('plays a voice layer for each room slug without throwing', () => {
+    for (const slug of sound.VOICE_SLUGS) {
+      sound.__resetForTests();
+      sound.setSoundOn(true);
+      sound.setRoomTag('haunted');
+      sound.setRoomSlug(slug);
+      expect(() => sound.startAmbience()).not.toThrow();
+      const c = liveContext();
+      expect(c).not.toBeNull();
+      // Shared layers plus the voice: more than one peak recorded.
+      expect(sound.__ambienceLayerPeaks().length).toBeGreaterThan(4);
+    }
+  });
+
+  it('a room with no voice still starts its ambience without throwing', () => {
+    sound.setSoundOn(true);
+    sound.setRoomTag('haunted');
+    sound.setRoomSlug('not-a-room');
+    expect(() => sound.startAmbience()).not.toThrow();
+    // The four shared layers still played.
+    expect(sound.__ambienceLayerPeaks().length).toBe(4);
+  });
+});
+
+describe('soundscape — layer levels and clean shutdown', () => {
+  it('every ambience layer peak stays strictly below the ambience target', () => {
+    const target = sound.DB(sound.AMBIENCE_DB);
+    for (const slug of sound.VOICE_SLUGS) {
+      sound.__resetForTests();
+      sound.setSoundOn(true);
+      sound.setRoomTag('haunted');
+      sound.setRoomSlug(slug);
+      sound.startAmbience();
+      const peaks = sound.__ambienceLayerPeaks();
+      expect(peaks.length).toBeGreaterThan(0);
+      for (const peak of peaks) {
+        expect(peak).toBeGreaterThan(0);
+        expect(peak).toBeLessThan(target);
+      }
+    }
+  });
+
+  it('turning sound off stops every ambience layer and clears its timers', () => {
+    vi.useFakeTimers();
+    sound.setSoundOn(true);
+    sound.setRoomTag('haunted');
+    sound.setRoomSlug('gloamline'); // the fire voice schedules extra timers
+    sound.startAmbience();
+
+    const c = liveContext();
+    expect(c).not.toBeNull();
+    const built = [...c!.sources, ...c!.oscillators];
+    expect(built.length).toBeGreaterThan(0);
+
+    // Sound off stops everything at once.
+    sound.setSoundOn(false);
+    for (const node of built) {
+      expect(node.stop).toHaveBeenCalled();
+      expect(node.disconnect).toHaveBeenCalled();
+    }
+
+    // No scheduler timer is left to build any new node.
+    const nodesAfter = c!.sources.length + c!.oscillators.length;
+    vi.advanceTimersByTime(30000);
+    expect(c!.sources.length + c!.oscillators.length).toBe(nodesAfter);
+  });
+});
+
+describe('soundscape — the creak scheduler stays within 8–20 s', () => {
+  it('creakDelayMs is always within [8000, 20000] for any rand in [0, 1)', () => {
+    fc.assert(
+      fc.property(fc.double({ min: 0, max: 1, maxExcluded: true, noNaN: true }), (r) => {
+        const delay = sound.creakDelayMs(() => r);
+        return delay >= 8000 && delay <= 20000;
+      }),
+    );
+  });
+
+  it('the extremes map to the bounds', () => {
+    expect(sound.creakDelayMs(() => 0)).toBe(8000);
+    // The largest value just under 1 stays at or below 20000.
+    expect(sound.creakDelayMs(() => 0.999999)).toBeLessThanOrEqual(20000);
+    expect(sound.creakDelayMs(() => 0.999999)).toBeGreaterThanOrEqual(8000);
+  });
+});
+
+// --------------------------------------------------------------------------
 // No AudioContext: everything is a silent no-op.
 // --------------------------------------------------------------------------
 
@@ -435,6 +534,7 @@ describe('sound — no AudioContext present', () => {
     expect(() => {
       sound.setSoundOn(true);
       sound.setRoomTag('haunted');
+      sound.setRoomSlug('gravemoor-gazette');
       sound.lantern();
       sound.cold();
       sound.whisper();
@@ -444,6 +544,7 @@ describe('sound — no AudioContext present', () => {
       sound.startAmbience();
       sound.fadeOutAmbience();
       sound.stopAmbience();
+      sound.setRoomSlug(null);
       sound.setRoomTag(null);
     }).not.toThrow();
   });

@@ -53,6 +53,7 @@ kiro-cli chat --v3 --agent manor-reviewer "Review room 1"
 
 - Fonts: Cormorant Garamond and Atkinson Hyperlegible Next, SIL Open Font License 1.1, self-hosted through Fontsource.
 - The frame, the ghost, the spell-card symbols and the candles are CSS and inline SVG written for this project.
+- Sound: a layered haunted ambience — the room tone, wind through the hall, a distant clock, the house settling, and a voice for each room (a draught under the door, a page turning, a clink of cutlery, a low fire, a fast clock, a detuned waltz, wordless murmuring, a jar lid, a pen scratching, a music box, rain, a drip) — with fuller cues for the three haunted moments: a candle gutter under the whisper on a wrong card, the ghost's unwinding sigh into the flee on the right card, and a warm resolved chord on the honest page. All synthesized in code with the Web Audio API: no audio files, no network, every layer subtle and slowly varying, and the game fully playable in silence.
 
 ## License
 
