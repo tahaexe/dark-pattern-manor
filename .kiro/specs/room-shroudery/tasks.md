@@ -73,3 +73,26 @@
   - Add `shroudery: () => import('../rooms/shroudery/room')`.
   - Run `npm run test`, `npm run check:rooms`, `npm run build` and
     `npm run check:size`; all must pass before the room is done.
+
+- [ ] 6. Give the ghost its act (Fake scarcity performed)
+  - File: `src/rooms/shroudery/Haunted.tsx`, `src/rooms/shroudery/room.css`
+  - Inside the ghost-wrap beside the possessed stock line, add a decorative,
+    `aria-hidden` act: three "Only 1 left" stock tags that the ghost flips like
+    playing cards, each landing face-up on "1" (the same last-item lie dealt
+    onto every size), on a staggered cycle of at least 4 s. Transforms and
+    opacity only, in space already reserved by the ghost-wrap, so there is no
+    layout shift; the act never covers the stock text, a size button or the
+    price or their focus rings, never lowers contrast, never blocks input
+    (`pointer-events: none`), and adds nothing to the accessible name or to any
+    live announcement. Stop every act element when the ghost is named by adding
+    `.room-scene[data-moment='right'] .act-tag { animation: none; }` (and the
+    shared `.ghost-wrap`/`.mist`), so the shared unwind and single flee own the
+    exit; the act is absent from the honest twin and from the comparison's
+    haunted preview. Under `prefers-reduced-motion`, show no movement: the tags
+    hold a still fanned pose each reading "1", with a short caption "every size
+    says 1" beside the ghost, keeping the "Something stirs here" label too.
+  - Tests: extend `shroudery.test.tsx` (task 4) — the act's element exists in
+    the haunted view and is aria-hidden; it is gone in `preview` and in the
+    honest twin; the act runs on a cycle of 4 s or more and freezes on
+    `data-moment='right'`; and under reduced motion the still fanned pose and
+    its caption render; size buttons keep their 44 px targets.

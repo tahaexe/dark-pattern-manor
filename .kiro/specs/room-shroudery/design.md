@@ -92,6 +92,42 @@ a smaller ghost (about 72×84) rises from a strip reserved under the stock line,
 so it never covers text and there is no horizontal overflow at 412px wide. No
 fixed or minimum heights that leave empty boxes on mobile.
 
+## The ghost's act (Fake scarcity performed)
+
+The ghost does not merely bob: it **performs** the trick, so the motion itself
+teaches Fake scarcity. Inside the ghost-wrap, three small ink stock tags are
+fanned beside the ghost; the ghost flips them like playing cards and **each one
+lands face-up on "1"** — the same last-item lie dealt onto every size,
+whichever you pick. The flip is one `rotateY` turn per tag on a staggered 4 s
+cycle (tags at delays 0 s, 0.5 s, 1 s), settling back on "1".
+
+Rules the act obeys (from the engine and the look steering):
+
+- It lives only inside the ghost beside the possessed stock line; nothing else
+  in the room moves or cracks.
+- Transforms and opacity only, inside space already reserved by the ghost-wrap,
+  so there is **no layout shift**; each tag returns to the same spot in the fan.
+- It never covers the stock text, a size button or the price or their focus
+  rings; it never lowers any text's contrast; it never blocks input
+  (`pointer-events: none`).
+- Every act element is `aria-hidden` and adds nothing to the accessible name or
+  to any live announcement.
+- It **stops when the ghost is named**: the engine sets `data-moment='right'`
+  (and `data-fleeing`) on `.room-scene` and holds the haunted page for the
+  shared unwind and single flee, so this room adds
+  `.room-scene[data-moment='right'] .act-tag { animation: none; }` (with the
+  shared `.ghost-wrap`/`.mist`). The act does not re-implement or override the
+  shared flee, which still owns `.ghost-wrap`. The act is absent from the
+  honest twin and from the comparison's haunted preview (both `signsActive`
+  off / `preview` on).
+- Under `prefers-reduced-motion` there is **no movement**: the tags hold a
+  still fanned pose, each already reading "1", and a short caption beside the
+  ghost reads "every size says 1". The room's own "Something stirs here" label
+  still shows too.
+
+The size buttons keep their real 44 × 44 px targets through the act; the act
+sits in the ghost-wrap above them and never shrinks or overlaps a target.
+
 ## The pattern rule (variant-specific)
 
 Fake scarcity lives in the stock line that claims "Only 1 left" on every size,

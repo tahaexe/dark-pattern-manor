@@ -58,6 +58,19 @@ its haunted twin.
 5. WHERE `prefers-reduced-motion` is active, THE room SHALL replace
    motion-based ghost signs with a static dashed candle outline and the room's
    own label "Something stirs here".
+6. WHILE the stock line is possessed and motion is allowed, THE ghost SHALL
+   perform the Fake scarcity trick as its act: it flips the "Only 1 left" stock
+   tags like playing cards, and each one lands face-up on "1", on a cycle of at
+   least 4 seconds. The act lives only inside the ghost beside the possessed
+   stock line, uses transforms and opacity only in reserved space (no layout
+   shift), never covers the stock text, a size button or the price or their
+   focus rings, never lowers any text's contrast, never blocks input, is
+   `aria-hidden` and adds nothing to the accessible name or to any live
+   announcement, and stops when the ghost is named (from `data-moment='right'`
+   onward). WHERE `prefers-reduced-motion` is active, THE act SHALL show no
+   movement: the tags hold a still fanned pose, each already reading "1", with
+   a short visible caption beside the ghost reading "every size says 1" (the
+   room's own "Something stirs here" label still shows too).
 
 ### Requirement 3: Fiction and honesty
 

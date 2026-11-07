@@ -304,6 +304,135 @@ describe('The Ballroom — the ghost size and anchor', () => {
   });
 });
 
+describe("The Ballroom — the ghost's act (Fake scarcity performed)", () => {
+  it('flips the "Only 1 left" tags inside the ghost-wrap, each landing on "1"', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // The act lives inside the ghost-wrap, on the possessed stock line only.
+    const tags = container.querySelector(
+      '#ballroom-stock .ghost-wrap .act-tags',
+    );
+    expect(tags).not.toBeNull();
+    const tagEls = tags!.querySelectorAll('.act-tag');
+    expect(tagEls.length).toBe(3);
+    // Each tag lands face-up on "1" — the last-item lie dealt onto every size.
+    for (const tag of Array.from(tagEls)) {
+      expect(tag.textContent).toBe('1');
+    }
+  });
+
+  it('is decorative: the act and its tags are aria-hidden and add no text to the name', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // The act sits inside .ghost-signs, which is aria-hidden.
+    const signs = container.querySelector('.ghost-signs');
+    expect(signs!.getAttribute('aria-hidden')).toBe('true');
+    const tags = container.querySelector('.act-tags');
+    expect(tags!.getAttribute('aria-hidden')).toBe('true');
+    // The possessed element's accessible name is still its visible stock text,
+    // unchanged by the act (the "1" tags add nothing to the name).
+    const possessed = container.querySelector('#ballroom-stock') as HTMLElement;
+    expect(possessed.getAttribute('aria-label')).toBeNull();
+    const visible = possessed.querySelector('.cloak-stock-label')!.firstChild?.textContent || '';
+    expect(visible).toMatch(/^Only 1 left/);
+  });
+
+  it('does not block input: the act tags are pointer-events: none', () => {
+    expect(css).toMatch(/\.act-tags\s*\{[^}]*pointer-events:\s*none/);
+  });
+
+  it('runs on a cycle of 4 s or more and uses transforms/opacity only (no layout shift)', () => {
+    expect(css).toMatch(/@keyframes ballroom-flip/);
+    expect(css).toMatch(/\.act-tag\s*\{[^}]*animation:[^;]*4s/);
+    // The flip keyframe uses only transform and opacity — no width/height/top
+    // changes — so the fan never shifts the layout.
+    const flip = css.match(/@keyframes ballroom-flip\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+    expect(flip).not.toMatch(/\b(width|height|margin|padding|top|left|right|bottom)\s*:/);
+  });
+
+  it('freezes every act element when the ghost is named (data-moment=right)', () => {
+    // From `named` onward the engine sets data-moment='right' on .room-scene;
+    // the act stops at once so nothing keeps flipping through the shared flee.
+    expect(css).toMatch(
+      /\.room-scene\[data-moment='right'\][\s\S]*?\.act-tag[\s\S]*?\{[^}]*animation:\s*none/,
+    );
+    // The room adds no flee of its own on .ghost-wrap (the shared layer owns it);
+    // it only freezes the wrap here so the act does not drift during the flee.
+  });
+
+  it('is absent from the honest twin and from the comparison preview', () => {
+    // Honest twin: no act at all.
+    const honest = render(<Honest onCompleteTask={() => {}} />);
+    expect(honest.container.querySelector('.act-tags')).toBeNull();
+    cleanup();
+    // Preview (the static "before" side of the split): signs off, so no act.
+    const preview = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+        preview
+      />,
+    );
+    expect(preview.container.querySelector('.act-tags')).toBeNull();
+    expect(preview.container.querySelector('.ghost-signs')).toBeNull();
+  });
+
+  it('under reduced motion shows the still fanned pose and the caption "every size says 1"', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion
+      />,
+    );
+    // The still fanned pose: the tags are present, marked still, each reading "1".
+    const still = container.querySelector('.act-tags.act-tags-still');
+    expect(still).not.toBeNull();
+    const tagEls = still!.querySelectorAll('.act-tag');
+    expect(tagEls.length).toBe(3);
+    for (const tag of Array.from(tagEls)) {
+      expect(tag.textContent).toBe('1');
+    }
+    // The caption names the trick, and the room's own label still shows too.
+    expect(screen.getByText('every size says 1')).toBeDefined();
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    // The still pose runs no animation.
+    expect(css).toMatch(/\.act-tags-still\s+\.act-tag\s*\{[^}]*animation:\s*none/);
+  });
+
+  it('keeps the size buttons at their 44 x 44 px targets while the act plays', () => {
+    render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    for (const size of SIZES) {
+      expect(screen.getByRole('button', { name: size }).tagName).toBe('BUTTON');
+    }
+    // The act never shrinks the size targets.
+    expect(css).toMatch(/\.cloak-size\s*\{[^}]*min-width:\s*44px/);
+    expect(css).toMatch(/\.cloak-size\s*\{[^}]*min-height:\s*44px/);
+  });
+});
+
 describe('The Ballroom — contrast and axe on both variants', () => {
   async function noViolations(container: HTMLElement) {
     const results = await axe.run(container, {

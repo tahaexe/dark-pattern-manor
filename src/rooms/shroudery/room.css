@@ -264,11 +264,103 @@
    its own so there is exactly one flee. */
 
 /* ------------------------------------------------------------------ *
+ * The ghost's act (Fake scarcity performed): it flips the "Only 1 left" stock
+ * tags like playing cards, and each one lands face-up on "1" — the same
+ * last-item lie dealt onto every size. Three small ink tags sit inside the
+ * ghost-wrap's reserved space; they flip on a staggered 4 s cycle and settle
+ * showing "1". Transforms and opacity only (rotateY/translate), so there is no
+ * layout shift; decorative and aria-hidden; never covering the stock text, a
+ * size button or the price; the tags never block input (pointer-events: none).
+ * ------------------------------------------------------------------ */
+.act-tags {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.act-tag {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 22px;
+  height: 30px;
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--ghost) 16%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--ghost) 90%, transparent);
+  color: color-mix(in srgb, var(--ghost) 95%, transparent);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 30px;
+  text-align: center;
+  box-shadow: 0 0 6px rgba(244, 239, 230, 0.35);
+  transform-origin: 50% 100%;
+  backface-visibility: hidden;
+  animation: ballroom-flip 4s ease-in-out infinite;
+}
+
+/* The three tags are fanned a little and flip on a staggered beat, each one
+   turning over and landing face-up on "1". Each tag's place is held in custom
+   properties so the flip keyframe returns it to the same spot in the fan (no
+   drift, no layout shift). */
+.act-tag-a {
+  --tx: -30px;
+  --rot: -12deg;
+  transform: translate(var(--tx), 0) rotate(var(--rot));
+  animation-delay: 0s;
+}
+
+.act-tag-b {
+  --tx: -11px;
+  --rot: 0deg;
+  transform: translate(var(--tx), -4px) rotate(var(--rot));
+  animation-delay: 0.5s;
+}
+
+.act-tag-c {
+  --tx: 8px;
+  --rot: 12deg;
+  transform: translate(var(--tx), 0) rotate(var(--rot));
+  animation-delay: 1s;
+}
+
+/* One flip per cycle: the tag turns over on its Y axis (face hidden at the
+   midpoint) and settles showing "1". Transform/opacity only; the tag returns
+   to the same place, so the fan never shifts the layout. */
+@keyframes ballroom-flip {
+  0%, 12% { transform: translate(var(--tx, 0), 0) rotate(var(--rot, 0)) rotateY(0deg); opacity: 1; }
+  20% { opacity: 0.85; }
+  22% { transform: translate(var(--tx, 0), -6px) rotate(var(--rot, 0)) rotateY(90deg); opacity: 0.85; }
+  40%, 100% { transform: translate(var(--tx, 0), 0) rotate(var(--rot, 0)) rotateY(0deg); opacity: 1; }
+}
+
+/* Reduced motion still pose: the tags hold a fanned pose, each already showing
+   "1", and the caption "every size says 1" names the trick. No animation. */
+.act-tags-still .act-tag {
+  animation: none;
+}
+
+/* Named: the act stops at once. The engine sets data-moment='right' (and
+   data-fleeing) on .room-scene and holds the haunted page for the shared
+   unwind and one flee. This room freezes only its OWN act element (.act-tag),
+   leaving the shared common-moment layer (atmosphere.css) the sole owner of
+   .ghost-wrap's unwind and single flee — this room re-implements nor overrides
+   neither. */
+.room-scene[data-moment='right'] .act-tag {
+  animation: none;
+}
+
+/* ------------------------------------------------------------------ *
  * Reduced motion: static dashed candle outline + label, no animation.
  * ------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
   .ghost-wrap,
   .mist,
+  .act-tag,
   .cloak-stock.signs-active .cloak-stock-label {
     animation: none !important;
   }
@@ -284,6 +376,10 @@
 }
 
 .cloak-stock.reduced-motion .mist {
+  animation: none !important;
+}
+
+.cloak-stock.reduced-motion .act-tag {
   animation: none !important;
 }
 

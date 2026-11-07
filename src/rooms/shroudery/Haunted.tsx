@@ -139,11 +139,41 @@ class CloakPage extends Component<HauntedProps, StockState> {
                         <circle class="ghost-eye" cx="72" cy="60" r="4" />
                         <path class="ghost-mouth" d="M52 74 Q60 82 68 74" />
                       </svg>
+                      {/* The ghost's act (Fake scarcity performed): it flips
+                          the "Only 1 left" stock tags like playing cards, and
+                          each one lands face-up on "1" — the same last-item lie
+                          dealt onto every size. Three tags flip on a staggered
+                          4 s cycle, settling on "1". Decorative and aria-hidden,
+                          transforms/opacity only, in reserved space inside the
+                          ghost-wrap, never covering the stock text, a size
+                          button or the price, and adding nothing to the
+                          accessible name or to any live announcement. */}
+                      {reducedMotion ? (
+                        /* Reduced motion: no movement; the tags hold a still
+                           fanned pose, each already showing "1", with a short
+                           caption naming the trick beside the ghost. */
+                        <span class="act-tags act-tags-still" aria-hidden="true">
+                          <span class="act-tag act-tag-a">1</span>
+                          <span class="act-tag act-tag-b">1</span>
+                          <span class="act-tag act-tag-c">1</span>
+                        </span>
+                      ) : (
+                        <span class="act-tags" aria-hidden="true">
+                          <span class="act-tag act-tag-a">1</span>
+                          <span class="act-tag act-tag-b">1</span>
+                          <span class="act-tag act-tag-c">1</span>
+                        </span>
+                      )}
                     </span>
                   </span>
                 ) : null}
                 {showSigns && reducedMotion ? (
                       <span class="stirs-label">Something stirs here</span>
+                    ) : null}
+                {/* Reduced motion: the still fanned tags are named by a short
+                    caption beside the ghost. */}
+                {showSigns && reducedMotion ? (
+                      <span class="act-caption">every size says 1</span>
                     ) : null}
               </span>
             </button>
