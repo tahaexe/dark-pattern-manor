@@ -34,7 +34,7 @@
 // that no longer tracks the split (the translateX(percent) bug).
 
 import { setTimeout as sleep } from 'node:timers/promises';
-import { parseRooms } from './rooms.mjs';
+import { parseRooms, roomReadiness } from './rooms.mjs';
 import { openSession, distReady, NO_DIST_MESSAGE } from './session.mjs';
 import {
   wantsReducedMotion,
@@ -44,6 +44,28 @@ import {
   heldMotionOffenders,
 } from './motion.mjs';
 import { dividerAtSplit, dividerOffset, DIVIDER_TOLERANCE } from './divider.mjs';
+
+/** How long a room may take to appear after the navigation, how often the walk
+ *  looks, and how long it lets a ready room settle before play (the old fixed
+ *  pause was 1800 ms in all, with the room usually ready in a few hundred). */
+const ROOM_READY_TIMEOUT_MS = 15000;
+const ROOM_POLL_MS = 100;
+const ROOM_SETTLE_MS = 1500;
+
+/** The task-bar title, or null when no room is rendered. */
+const ROOM_TITLE = "(document.querySelector('.task-bar-title') || {}).textContent || null";
+
+/** A snapshot of the page for roomReadiness. */
+const ROOM_STATE = `(() => {
+  const t = document.querySelector('.task-bar-title');
+  return {
+    hash: location.hash,
+    loading: !!document.querySelector('.room-loading'),
+    error: !!document.querySelector('.room-load-error'),
+    title: t ? t.textContent : null,
+    lantern: !!document.querySelector('.task-bar-lantern'),
+  };
+})()`;
 
 /** The slider points the divider is measured at. */
 const SPLIT_POINTS = [0, 25, 50, 75, 100];
@@ -192,8 +214,27 @@ export async function freeRoom(cdp, baseUrl, n, reducedMotion = false, width = 1
     if (!ok) r.fail.push(`${name}: ${val}`);
   };
 
+  // Wait for the room itself rather than a fixed pause: its chunk arrives by
+  // dynamic import(), and on a busy machine a fixed 1800 ms was sometimes too
+  // short (the room-12-at-412 finding, 7 Nov). Poll until this room is on the
+  // page (roomReadiness), record how long it took, then let it settle.
+  const prevTitle = (await cdp.ev(ROOM_TITLE)) || '';
+  const navStart = Date.now();
   await cdp.send('Page.navigate', { url: `${baseUrl}#/room/${n}` });
-  await sleep(1800);
+  let readiness = 'waiting';
+  let state = null;
+  while (Date.now() - navStart < ROOM_READY_TIMEOUT_MS) {
+    state = await cdp.ev(ROOM_STATE);
+    readiness = roomReadiness(state, n, prevTitle);
+    if (readiness !== 'waiting') break;
+    await sleep(ROOM_POLL_MS);
+  }
+  r.readyMs = Date.now() - navStart;
+  r.checks['ready ms'] = r.readyMs;
+  if (readiness !== 'ready') {
+    r.fail.push(`room not on the page after ${r.readyMs} ms (${readiness}): ${JSON.stringify(state)}`);
+  }
+  await sleep(ROOM_SETTLE_MS);
   // Reset CLS after the navigation settles, so the reported shift is movement
   // during play, not the initial room paint.
   await cdp.ev('window.__clsReset && window.__clsReset()');

@@ -59,3 +59,29 @@ function toInt(token, context) {
 function addInRange(set, n, min, max) {
   if (n >= min && n <= max) set.add(n);
 }
+
+/**
+ * Whether room `n` is on the page after a navigation, from a snapshot of the
+ * page the walk reads in the browser. 'ready' once the hash names room `n`,
+ * the loading placeholder is gone and the task bar shows a lantern and a title
+ * other than the previous room's (the old room can stay rendered for a moment
+ * under the new hash); 'error' when the app shows its load-error panel;
+ * otherwise 'waiting'. The walk polls this instead of a fixed pause, since the
+ * room's chunk arrives by dynamic import() and a busy machine can take longer
+ * than any fixed sleep (the room-12-at-412 finding, 7 Nov).
+ *
+ * @param {{ hash?: string, loading?: boolean, error?: boolean, title?: string | null, lantern?: boolean } | null | undefined} state
+ * @param {number} n
+ * @param {string} prevTitle the task-bar title before the navigation ('' if none)
+ * @returns {'ready' | 'error' | 'waiting'}
+ */
+export function roomReadiness(state, n, prevTitle) {
+  if (!state || typeof state !== 'object') return 'waiting';
+  if (state.error) return 'error';
+  if (state.hash !== `#/room/${n}`) return 'waiting';
+  if (state.loading || !state.lantern) return 'waiting';
+  const title = typeof state.title === 'string' ? state.title.trim() : '';
+  if (title === '') return 'waiting';
+  if (prevTitle && title === prevTitle.trim()) return 'waiting';
+  return 'ready';
+}

@@ -94,7 +94,7 @@ function summariseWalk(label, text) {
           .map((d) => `${d.split}:${d.edgeOff}/${d.gripOff}`)
           .join(' ')}]`
       : '';
-    console.log(`room ${r.room}: cls=${r.checks?.cls}${rm}${lbl}${hold}${div}${bad || ' ok'}`);
+    console.log(`room ${r.room}: ready=${r.readyMs}ms cls=${r.checks?.cls}${rm}${lbl}${hold}${div}${bad || ' ok'}`);
   }
   console.log(`console errors: ${parsed.errors?.length ?? 0}; reducedMotion=${parsed.reducedMotion}`);
   return fails + (parsed.errors?.length ?? 0);
