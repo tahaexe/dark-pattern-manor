@@ -58,3 +58,24 @@
   - Add `'grimsupper': () => import('../rooms/grimsupper/room')`.
   - Run `npm run test`, `npm run check:rooms`, `npm run build` and
     `npm run check:size`; all must pass before the room is done.
+
+- [x] 6. Add the ghost's act (Confirmshaming performed)
+  - File: `src/rooms/grimsupper/Haunted.tsx`, `src/rooms/grimsupper/room.css`
+  - When `showSigns` (so only on the haunted page, never in `preview`), render
+    the ghost holding a tiny frowning mask (`.act-mask`) and tilting it toward
+    the player over a cycle ≥ 4 s. Transforms and opacity only, no layout shift
+    (space reserved inside the already-sized ghost wrap), `pointer-events: none`,
+    every act element `aria-hidden`; the mask sits beside the decline link,
+    never over its text or focus ring. Do not re-implement or override the
+    engine's shared atmosphere layer or common moments; the act stops when named
+    via the shared unwind and is absent from the honest twin and the
+    comparison's haunted preview.
+  - Reduced motion: no movement; show the still frowning-mask pose with a short
+    visible caption beside the ghost reading "a guilt trip", and keep the
+    "Something stirs here" label.
+  - Risk: the mask must not cover the decline link's text or its focus ring
+    (`contrast_scan` stays at 0 flags).
+  - Test: extend `src/rooms/grimsupper/grimsupper.test.tsx` — the act's element
+    exists in the haunted view and is `aria-hidden`; it is absent in `preview`
+    and in the honest twin; under `prefers-reduced-motion` the still pose and the
+    "a guilt trip" caption render alongside "Something stirs here".

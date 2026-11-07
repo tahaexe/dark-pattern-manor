@@ -16,6 +16,17 @@ import './room.css';
  * bottom room that the whole ghost is drawn. All text stays at WCAG AA
  * contrast; the trick is the wording and weight of the "no", never readability.
  *
+ * The ghost performs the trick (Confirmshaming through motion): it holds a tiny
+ * frowning mask (`.act-mask`) and tilts it toward the player, so the guilt the
+ * wording presses is acted out. The mask lives only beside the possessed link,
+ * uses transforms and opacity only over a cycle of 4 s or more, reserves its
+ * own space (no layout shift), never blocks input (`pointer-events: none`) and
+ * never covers the link's text or its focus ring. Every act element is
+ * `aria-hidden` and adds nothing to the accessible name or to live
+ * announcements. Under reduced motion the mask holds still with a short caption
+ * beside the ghost reading "a guilt trip", keeping the "Something stirs here"
+ * label.
+ *
  * The pop-up is a real modal dialog (`role="dialog"`, `aria-modal="true"`,
  * labelled by its heading).
  *
@@ -131,11 +142,40 @@ export default function Haunted({
                           <circle class="ghost-eye" cx="72" cy="60" r="4" />
                           <path class="ghost-mouth" d="M52 74 Q60 82 68 74" />
                         </svg>
+                        {/* The act: the ghost holds a tiny frowning mask and
+                            tilts it toward the player — Confirmshaming acted
+                            out. It sits within the ghost-wrap (beside the
+                            decline link, never over it), is decorative and
+                            aria-hidden, pointer-events: none, transforms and
+                            opacity only, and reserves its own space so there is
+                            no layout shift. */}
+                        <span class="act-mask" aria-hidden="true">
+                          <svg
+                            viewBox="0 0 48 56"
+                            width="48"
+                            height="56"
+                            class="act-mask-face"
+                            xmlns="http://www.w3.org/2000/svg"
+                            aria-hidden="true"
+                          >
+                            <path
+                              class="act-mask-outline"
+                              d="M24 4 Q42 4 42 26 Q42 50 24 52 Q6 50 6 26 Q6 4 24 4 Z"
+                            />
+                            <circle class="act-mask-eye" cx="17" cy="24" r="2.5" />
+                            <circle class="act-mask-eye" cx="31" cy="24" r="2.5" />
+                            {/* A downturned mouth — the frown. */}
+                            <path class="act-mask-frown" d="M15 40 Q24 32 33 40" />
+                          </svg>
+                        </span>
                       </span>
                     </span>
                   ) : null}
                   {showSigns && reducedMotion ? (
                         <span class="stirs-label">Something stirs here</span>
+                      ) : null}
+                  {showSigns && reducedMotion ? (
+                        <span class="act-caption">a guilt trip</span>
                       ) : null}
                 </span>
               </button>

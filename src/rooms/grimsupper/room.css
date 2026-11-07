@@ -287,6 +287,72 @@
   50% { transform: translateY(-6px) rotate(1deg); }
 }
 
+/* ------------------------------------------------------------------ *
+ * The ghost's act — Confirmshaming performed.
+ * The ghost holds a tiny frowning mask and tilts it toward the player, acting
+ * out the guilt the decline wording presses. The act lives within the
+ * ghost-wrap (beside the possessed link, never over it), uses transforms and
+ * opacity only, reserves its own space inside the already-sized ghost-wrap (no
+ * layout shift), is pointer-events: none (never blocks input), and sits clear
+ * of the decline link's text and focus ring. The mask is aria-hidden and adds
+ * nothing to the accessible name or to live announcements.
+ * ------------------------------------------------------------------ */
+.act-mask {
+  position: absolute;
+  /* Low on the ghost's body, offset to the ghost's right so the mask stays
+     inside the ghost-wrap and never reaches back over the decline link (which
+     lies to the LEFT of the ghost at left:100% of the label). */
+  left: 58px;
+  top: 66px;
+  width: 48px;
+  height: 56px;
+  pointer-events: none;
+  z-index: 2;
+  transform-origin: 50% 10%;
+  /* Tilt the mask toward the player, swaying slowly over a 5 s cycle (>= 4 s). */
+  animation: dining-mask-tilt 5s ease-in-out infinite;
+}
+
+.act-mask-face {
+  width: 48px;
+  height: 56px;
+  display: block;
+  filter: drop-shadow(0 0 6px rgba(244, 239, 230, 0.4));
+}
+
+.act-mask-outline {
+  fill: color-mix(in srgb, var(--ghost) 22%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.act-mask-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.act-mask-frown {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes dining-mask-tilt {
+  0%, 100% { transform: rotate(-10deg) translateY(0); }
+  50% { transform: rotate(10deg) translateY(-3px); }
+}
+
+/* When the ghost is named, the engine sets data-moment='right' (and then
+   data-fleeing) on .room-scene and the shared common-moment layer unwinds and
+   flees the whole .ghost-wrap. The mask tilts on its own animation, so it is
+   halted here the moment the room is named — the engine's shared unwind takes
+   over and the mask leaves with the ghost. This stops the act; it does not
+   re-implement or override the shared flee (which still owns .ghost-wrap). */
+.room-scene[data-moment='right'] .act-mask {
+  animation: none;
+}
+
 /* Flicker on the possessed link itself — opacity 1 -> 0.85, at most twice a
    second. */
 .discount-decline.signs-active .discount-decline-label {
@@ -341,6 +407,7 @@
 @media (prefers-reduced-motion: reduce) {
   .ghost-wrap,
   .mist,
+  .act-mask,
   .discount-decline.signs-active .discount-decline-label {
     animation: none !important;
   }
@@ -357,6 +424,14 @@
 
 .discount-decline.reduced-motion .mist {
   animation: none !important;
+}
+
+/* Reduced motion: the mask holds a still frowning pose (no tilt), tilted toward
+   the player as one static frame; the caption "a guilt trip" names it beside
+   the ghost, and the "Something stirs here" label still shows. */
+.discount-decline.reduced-motion .act-mask {
+  animation: none !important;
+  transform: rotate(-10deg);
 }
 
 
@@ -509,6 +584,20 @@
   .ghost {
     width: 72px;
     height: 84px;
+  }
+
+  /* The smaller ghost carries a smaller mask, kept inside the 72 x 84 wrap so
+     it still sits clear of the decline link's text and focus ring. */
+  .act-mask {
+    left: 35px;
+    top: 40px;
+    width: 29px;
+    height: 34px;
+  }
+
+  .act-mask-face {
+    width: 29px;
+    height: 34px;
   }
 
   .mist {

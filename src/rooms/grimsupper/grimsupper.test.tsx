@@ -238,6 +238,74 @@ describe('The Dining Room — the ghost size and anchor', () => {
   });
 });
 
+describe('The Dining Room — the ghost act (Confirmshaming performed)', () => {
+  it('renders the frowning mask (.act-mask) in the haunted view, aria-hidden', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // The act lives inside the ghost-wrap, beside the possessed decline link.
+    const mask = container.querySelector('.discount-decline .ghost-wrap .act-mask');
+    expect(mask).not.toBeNull();
+    // Decorative: aria-hidden, so it adds nothing to the accessible name.
+    expect(mask!.getAttribute('aria-hidden')).toBe('true');
+    // It carries a frown path and is non-interactive in CSS.
+    expect(mask!.querySelector('.act-mask-frown')).not.toBeNull();
+    expect(css).toMatch(/\.act-mask\s*\{[^}]*pointer-events:\s*none/);
+    // The tilt cycle is at least 4 s (here 5 s).
+    expect(css).toMatch(/\.act-mask\s*\{[^}]*animation:\s*dining-mask-tilt\s*5s/);
+    // The act never adds to the possessed element's accessible name.
+    const possessed = container.querySelector('#dining-decline') as HTMLButtonElement;
+    expect(possessed.getAttribute('aria-label')).toBeNull();
+    expect(possessed.textContent).not.toMatch(/guilt trip/i);
+  });
+
+  it('the act is absent in preview mode (the split\u2019s before side)', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+        preview
+      />,
+    );
+    // Preview shows no ghost signs at all, so no act element.
+    expect(container.querySelector('.act-mask')).toBeNull();
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+  });
+
+  it('the act is absent in the honest twin', () => {
+    const { container } = render(<Honest onCompleteTask={() => {}} />);
+    expect(container.querySelector('.act-mask')).toBeNull();
+    expect(container.querySelector('.ghost-wrap')).toBeNull();
+  });
+
+  it('the mask sits beside the decline link, never over its label text', () => {
+    // The ghost-signs anchor is at left:100% of the label, and the act-mask is
+    // inside the ghost-wrap offset further right — so the mask is clear of the
+    // label (z-index 3) and its focus ring.
+    expect(css).toMatch(/\.ghost-signs\s*\{[^}]*left:\s*100%/);
+    expect(css).toMatch(/\.act-mask\s*\{[^}]*left:\s*58px/);
+    expect(css).toMatch(/\.discount-decline-label\s*\{[^}]*z-index:\s*3/);
+  });
+
+  it('stops the act when the ghost is named, so the shared unwind takes over', () => {
+    // The engine sets data-moment='right' on .room-scene from `named` onward;
+    // this room halts the mask's own tilt then, without touching the shared
+    // flee (which still owns .ghost-wrap).
+    expect(css).toMatch(
+      /\.room-scene\[data-moment='right'\]\s+\.act-mask\s*\{[^}]*animation:\s*none/,
+    );
+    // The room adds no flee of its own on .ghost-wrap (shared layer owns it).
+    expect(css).not.toMatch(/\.ghost-wrap\s*\{[^}]*animation:\s*[^;]*flee/);
+  });
+});
+
 describe('The shared task bar — two rows under 600px', () => {
   it('under 600px the task bar lays the title+lantern on row one and the task on row two', () => {
     // A single 600px breakpoint turns the bar into a two-row grid: the title
@@ -376,6 +444,19 @@ describe('The Dining Room — reduced motion static indicator', () => {
     expect(screen.getByText('Something stirs here')).toBeDefined();
     expect(css).toMatch(/prefers-reduced-motion/);
     expect(css).toMatch(/animation:\s*none/);
+  });
+
+  it('under reduced motion the still mask pose and the "a guilt trip" caption render', () => {
+    const { container } = render(<Room room={room} rng={identityRng} />);
+    // The still frowning-mask pose is present (no animation).
+    expect(container.querySelector('.act-mask')).not.toBeNull();
+    // Both the caption and the stirs label show.
+    expect(screen.getByText('a guilt trip')).toBeDefined();
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    // The reduced-motion rule holds the mask still.
+    expect(css).toMatch(
+      /\.discount-decline\.reduced-motion\s+\.act-mask\s*\{[^}]*animation:\s*none/,
+    );
   });
 
   it('a wrong spell card under reduced motion shows the static indicator, no flicker animation', async () => {
