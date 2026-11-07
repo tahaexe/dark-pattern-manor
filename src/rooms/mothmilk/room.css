@@ -304,6 +304,74 @@
   50% { transform: translateY(-6px) rotate(1deg); }
 }
 
+/* ------------------------------------------------------------------ *
+ * The ghost's act — Sneaking performed (spec Requirement 2.5).
+ * The ghost carries the "Ghost Protection £2.99" line item back down into the
+ * basket, acting out the way the line slips back in after you remove it. The
+ * carried token lives INSIDE the already-sized .ghost-wrap (reserved space, no
+ * layout shift), is aria-hidden and non-interactive (pointer-events: none),
+ * sits below the line's text (the text is z-index 3; this is z-index 2), and
+ * uses transforms and opacity only. One cycle is 5 s (>= 4 s): the token
+ * drifts down toward the line, settles, fades, then lifts back to the ghost to
+ * begin again. It never covers the line's text, its price or the Remove
+ * button. The caption "it slips back in" shows only in the reduced-motion
+ * still pose (below). This 5 s decorative cycle is independent of the 1.5 s
+ * DOM return timer in Haunted.tsx (the line actually slipping back in).
+ * ------------------------------------------------------------------ */
+.act-carry {
+  position: absolute;
+  /* Held at the ghost's lower body, offset so the token stays within the
+     reserved ghost-wrap box and never reaches the line's own text or price. */
+  left: 50%;
+  top: 96px;
+  transform: translate(-50%, 0);
+  width: max-content;
+  max-width: 116px;
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, var(--ghost) 70%, transparent);
+  border-radius: var(--radius-sm, 4px);
+  background: color-mix(in srgb, var(--ink) 55%, transparent);
+  color: var(--ghost);
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  text-align: center;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.9;
+  animation: pantry-carry 5s ease-in-out infinite;
+}
+
+/* The carry: the token drifts down toward the line (the "slip back in"),
+   settles, fades, then lifts back up to the ghost to begin the cycle again.
+   Transforms and opacity only, so there is no layout shift and no text ever
+   loses contrast. */
+@keyframes pantry-carry {
+  0% {
+    transform: translate(-50%, 0);
+    opacity: 0.2;
+  }
+  25% {
+    transform: translate(-50%, 0);
+    opacity: 0.9;
+  }
+  60% {
+    transform: translate(-50%, 34px);
+    opacity: 0.9;
+  }
+  75% {
+    transform: translate(-50%, 34px);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, 0);
+    opacity: 0.2;
+  }
+}
+
 /* Flicker on the possessed line itself — opacity 1 -> 0.85, at most twice a
    second. */
 .basket-sneaked.signs-active .basket-sneaked-text {
@@ -352,6 +420,19 @@
    `.room-scene[data-fleeing='true'] .ghost-wrap`. This room adds no flee of
    its own so there is exactly one flee. */
 
+/* The act stops the instant the ghost is named: the engine sets
+   data-moment='right' (and data-fleeing) on .room-scene and holds the haunted
+   page for the shared unwind and flee, so every act element must freeze (room
+   3's reviewer marked a mask that kept moving through the flee as a must). The
+   shared layer still carries the one unwind-and-flee of the whole .ghost-wrap;
+   this only halts the room's own act animation so nothing keeps carrying
+   through the flee. */
+.room-scene[data-moment='right'] .act-carry,
+.room-scene[data-moment='right'] .mist,
+.room-scene[data-moment='right'] .basket-sneaked.signs-active .basket-sneaked-text {
+  animation: none;
+}
+
 /* ------------------------------------------------------------------ *
  * Reduced motion: static dashed candle outline + label, no animation. The
  * sneaked line still comes back after ~1.5 s (a state change), but with no
@@ -373,9 +454,19 @@
 @media (prefers-reduced-motion: reduce) {
   .ghost-wrap,
   .mist,
+  .act-carry,
   .basket-sneaked.signs-active .basket-sneaked-text {
     animation: none !important;
   }
+}
+
+/* Reduced-motion still pose: the ghost holds the carried line item still (no
+   drift, no fade), and the caption "it slips back in" names what the act would
+   show. Transforms only to place it; nothing animates. */
+.basket-sneaked.reduced-motion .act-carry {
+  animation: none !important;
+  opacity: 0.9;
+  transform: translate(-50%, 10px);
 }
 
 .basket-sneaked.reduced-motion.signs-active {
@@ -602,7 +693,8 @@
   z-index: 3;
 }
 
-/* Room 1 shows both: the caption sits just below the stirs label. */
+/* The Pantry shows both: the caption "it slips back in" sits just below the
+   "Something stirs here" label under reduced motion. */
 .act-caption {
   top: calc(100% + 1.6em);
 }

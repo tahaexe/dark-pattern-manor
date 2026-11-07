@@ -299,6 +299,72 @@ describe('The Pantry — the ghost size and anchor', () => {
   });
 });
 
+describe('The Pantry — the ghost act (Sneaking performed)', () => {
+  afterEach(() => cleanup());
+
+  it('the act element exists in the haunted view, beside the ghost, and is aria-hidden', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // The carried token lives inside the ghost-wrap, acting out the line
+    // slipping back in.
+    const carry = container.querySelector('.ghost-wrap > .act-carry');
+    expect(carry).not.toBeNull();
+    // It is decorative: aria-hidden and non-interactive, so it adds nothing to
+    // the accessible name or to any live announcement.
+    expect(carry!.getAttribute('aria-hidden')).toBe('true');
+    expect(container.querySelector('.act-carry button')).toBeNull();
+    expect(container.querySelector('.act-carry[aria-live]')).toBeNull();
+    // Transforms/opacity only, pointer-events none, one cycle >= 4 s, and it
+    // freezes when the ghost is named.
+    expect(css).toMatch(/\.act-carry\s*\{[^}]*pointer-events:\s*none/);
+    expect(css).toMatch(/animation:\s*pantry-carry\s*5s/);
+    expect(css).toMatch(/\.room-scene\[data-moment='right'\]\s*\.act-carry/);
+  });
+
+  it('the act is absent from the preview (comparison before side) and the honest twin', () => {
+    const preview = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+        preview
+      />,
+    );
+    // Preview is the static "before" side: no ghost signs, so no act either.
+    expect(preview.container.querySelector('.act-carry')).toBeNull();
+    cleanup();
+
+    const honest = render(<Honest onCompleteTask={() => {}} />);
+    expect(honest.container.querySelector('.act-carry')).toBeNull();
+  });
+
+  it('with reduced motion renders the still pose and the caption "it slips back in" plus the stirs label', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion
+      />,
+    );
+    // The still pose: the carried token is present (held, not drifting).
+    expect(container.querySelector('.act-carry')).not.toBeNull();
+    // The caption names the act, beside the existing "Something stirs here".
+    expect(screen.getByText('it slips back in')).toBeDefined();
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    // Under reduced motion every act animation is off.
+    expect(css).toMatch(/prefers-reduced-motion/);
+    expect(css).toMatch(/\.basket-sneaked\.reduced-motion\s*\.act-carry\s*\{[^}]*animation:\s*none/);
+  });
+});
+
 describe('The Pantry — pattern rule (passes on honest, fails on haunted)', () => {
   beforeEach(() => {
     vi.useFakeTimers();

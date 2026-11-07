@@ -59,6 +59,20 @@ and the page turns honest beside its haunted twin.
    ghost signs with a static dashed candle outline and the room's own label
    "Something stirs here"; the sneaked line still comes back without any fade
    or movement.
+5. WHILE the room is haunted and signs are active, THE possessed sneaked line
+   SHALL perform an act that enacts Sneaking: the ghost visibly carries the
+   removed "Ghost Protection" line item back into the basket on a cycle of at
+   least four seconds, using transforms and opacity only, reserving its own
+   space (no layout shift), never blocking input and never covering the line's
+   text, its price, the Remove button or their focus rings; every act element
+   is `aria-hidden` and adds nothing to the accessible name or to live
+   announcements. WHEN the ghost is named (the engine sets `data-moment='right'`
+   on `.room-scene`) THE act SHALL stop at once. WHERE `prefers-reduced-motion`
+   is active, THE room SHALL show no movement and instead a still pose — the
+   ghost holding the line item — with a short visible caption beside it, "it
+   slips back in", kept alongside the "Something stirs here" label. THE act
+   SHALL be absent from the honest twin and from the comparison's haunted
+   preview.
 
 ### Requirement 3: Fiction and honesty
 

@@ -71,3 +71,28 @@
   - Add `mothmilk: () => import('../rooms/mothmilk/room')`.
   - Run `npm run test`, `npm run check:rooms`, `npm run build` and
     `npm run check:size`; all must pass before the room is done.
+
+- [x] 6. Give the ghost an act that performs Sneaking
+  - File: `src/rooms/mothmilk/Haunted.tsx`, `src/rooms/mothmilk/room.css`,
+    `src/rooms/mothmilk/mothmilk.test.tsx`
+  - Add an act on/beside the possessed sneaked line that enacts the trick: the
+    ghost visibly carries the "Ghost Protection £2.99" line item back into the
+    basket (`.act-carry` inside `.ghost-wrap`), on a cycle of at least four
+    seconds, transforms and opacity only, reserving its own space (no layout
+    shift), never blocking input and never covering the line's text, its price,
+    the Remove button or their focus rings. Keep every act element
+    `aria-hidden` so it adds nothing to the accessible name or to live
+    announcements. Do NOT re-implement or override the shared atmosphere layer
+    or the common moments (wrong-card gutter/head-shake, right-card
+    unwind/exhale); reuse them. Freeze the act when the ghost is named with
+    `.room-scene[data-moment='right'] .act-carry { animation: none; }` so
+    nothing keeps moving through the shared unwind and flee. Under
+    `prefers-reduced-motion` show no movement: a still pose (the ghost holding
+    the line item) with a short visible caption beside it, "it slips back in",
+    kept alongside the "Something stirs here" label. Keep the act out of the
+    honest twin and the comparison's haunted preview. Extend the room's test to
+    assert the act element exists in the haunted view and is aria-hidden, is
+    gone in preview and honest, and that reduced motion renders the still pose
+    and its caption. Re-run `npm run test`, `npm run check:rooms`,
+    `npm run build` and `npm run check:size`, and `walk_rooms` / `contrast_scan`
+    for room 8 in both motion modes; all must pass.

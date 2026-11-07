@@ -156,11 +156,29 @@ class SneakedBasket extends Component<HauntedProps, BasketState> {
                             <circle class="ghost-eye" cx="72" cy="60" r="4" />
                             <path class="ghost-mouth" d="M52 74 Q60 82 68 74" />
                           </svg>
+                          {/* The act (Sneaking performed): the ghost carries
+                              the "Ghost Protection £2.99" line item back down
+                              into the basket, then starts over — acting out the
+                              way the line slips back in after you remove it. The
+                              token is held in the ghost's hands and drifts from
+                              the ghost down to the line on a >= 4 s cycle, then
+                              fades and lifts back up to begin again. It lives
+                              inside the ghost-wrap (reserved space), is
+                              aria-hidden and non-interactive (pointer-events:
+                              none), uses transforms and opacity only (no layout
+                              shift), and never covers the line's text, its price
+                              or the Remove button. */}
+                          <span class="act-carry" aria-hidden="true">
+                            Ghost Protection {money(GHOST_PROTECTION)}
+                          </span>
                         </span>
                       </span>
                     ) : null}
                     {showSigns && reducedMotion ? (
                           <span class="stirs-label">Something stirs here</span>
+                        ) : null}
+                    {showSigns && reducedMotion ? (
+                          <span class="act-caption">it slips back in</span>
                         ) : null}
                   </span>
                 </button>
