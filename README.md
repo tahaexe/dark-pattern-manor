@@ -33,6 +33,22 @@ This project is built with Kiro, an AI-powered development environment. Steering
 
 Build first (`npm run build`), then Kiro calls the tools through the `manor-qa` entry in `.kiro/settings/mcp.json`. The server speaks only to `127.0.0.1`, writes no file, and sends no project data anywhere. Its protocol and contrast maths are tested by `npm run test:qa` (part of `npm test`).
 
+## Custom agents
+
+Two Kiro CLI V3 custom agents in `.kiro/agents/` package the room workflow. Each is a Markdown file with YAML frontmatter and a prompt body; both pull in the `manor-qa` MCP server from `.kiro/settings/mcp.json` (`includeMcpJson: true`) and inherit the steering as their default resources.
+
+- **room-builder** — builds or fixes exactly one room end to end: it reads the room's spec (writing it from the room template if the room is new), changes only that room's files, runs `npm run build` then the manor-qa `walk_rooms` and `contrast_scan` tools and fixes every failure, calls the `manor-reviewer` sub-agent and fixes every `must` finding, runs `npm test`, `npm run check:rooms` and `npm run check:size`, and reports. It may read and write inside the repository and use the shell (the command-guard hook still decides which commands run); it has no access outside the repository.
+- **manor-reviewer** — reviews exactly one room against the haunted-UI steering rules and the room's spec and changes nothing. It is read-only with no write tool and no shell; it may read files and call the three manor-qa tools, and returns findings, each with the rule, the evidence, a severity (`must`/`should`/`nice`) and the smallest fix.
+
+They use the V3 agent format, so run one from the CLI with `--v3 --agent`:
+
+```bash
+kiro-cli chat --v3 --agent room-builder "Build room 2, Inkbone Books"
+kiro-cli chat --v3 --agent manor-reviewer "Review room 1"
+```
+
+`npm run check:agents` keeps the agent files valid: it parses every file in `.kiro/agents/`, checks each `name` matches its file name and has a description, confirms every manor-qa tool an agent names is one the server really lists (it starts the server and asks `tools/list`), and fails if the reviewer gains a write or shell tool. Its pure logic is tested by `npm run test:agents` (part of `npm test`).
+
 ## Assets
 
 - Fonts: Cormorant Garamond and Atkinson Hyperlegible Next, SIL Open Font License 1.1, self-hosted through Fontsource.
