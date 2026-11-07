@@ -244,6 +244,97 @@ describe('The Attic — pattern rule (passes on honest, fails on haunted)', () =
   });
 });
 
+describe('The Attic — the ghost\u2019s act ticks the boxes', () => {
+  afterEach(() => cleanup());
+
+  it('renders the quill and ink tick inside the ghost, both aria-hidden', () => {
+    const { container } = render(<Haunted {...hauntedProps} />);
+    const wrap = container.querySelector('#attic-preselect .ghost-wrap')!;
+    const quill = wrap.querySelector('.act-quill');
+    const tick = wrap.querySelector('.act-tick');
+    expect(quill).not.toBeNull();
+    expect(tick).not.toBeNull();
+    // Decorative: aria-hidden and adding nothing to the accessible name.
+    expect(quill!.getAttribute('aria-hidden')).toBe('true');
+    expect(tick!.getAttribute('aria-hidden')).toBe('true');
+    const possessed = screen.getByRole('button', { name: POSSESSED_NAME });
+    // The possessed line's accessible name is still just its visible text.
+    expect(possessed.getAttribute('aria-label')).toBeNull();
+  });
+
+  it('the act never touches the real checkboxes\u2019 native ticked state', () => {
+    render(<Haunted {...hauntedProps} />);
+    // The three real boxes are ticked in their own native state; the act is a
+    // separate decorative layer and does not change them.
+    for (const box of screen.getAllByRole('checkbox') as HTMLInputElement[]) {
+      expect(box.checked).toBe(true);
+    }
+  });
+
+  it('shows no act in preview (the comparison\u2019s haunted before side)', () => {
+    const { container } = render(<Haunted {...hauntedProps} preview />);
+    expect(container.querySelector('.act-quill')).toBeNull();
+    expect(container.querySelector('.act-tick')).toBeNull();
+    expect(container.querySelector('#attic-preselect')).toBeNull();
+  });
+
+  it('shows no act in the honest twin', () => {
+    const { container } = render(<Honest onCompleteTask={() => {}} />);
+    expect(container.querySelector('.act-quill')).toBeNull();
+    expect(container.querySelector('.act-tick')).toBeNull();
+  });
+
+  it('runs the act for at least 4 s per cycle and freezes it when named', () => {
+    // One cycle is >= 4 s (the act never hurries the player).
+    expect(css).toMatch(/animation:\s*attic-quill-dip\s+4\.5s/);
+    expect(css).toMatch(/animation:\s*attic-tick-stroke\s+4\.5s/);
+    // Named: the act freezes on data-moment='right' so nothing moves through
+    // the shared unwind and flee (Room 3's lesson).
+    expect(css).toMatch(/\.room-scene\[data-moment='right'\]\s*\.act-quill/);
+    expect(css).toMatch(/\.room-scene\[data-moment='right'\]\s*\.act-tick/);
+  });
+});
+
+describe('The Attic — the act under reduced motion holds a still pose', () => {
+  let matchMediaSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+  beforeEach(() => {
+    __resetForTests();
+    matchMediaSpy = vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query: string) =>
+        ({
+          matches: query.includes('prefers-reduced-motion'),
+          media: query,
+          onchange: null,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          addListener: () => {},
+          removeListener: () => {},
+          dispatchEvent: () => false,
+        }) as unknown as MediaQueryList,
+    );
+  });
+
+  afterEach(() => {
+    cleanup();
+    matchMediaSpy?.mockRestore();
+  });
+
+  it('shows the still pose and the "ticked for you" caption beside the ghost', () => {
+    const { container } = render(<Room room={room} rng={identityRng} />);
+    // The still pose: the quill and tick exist but their animation is off, and
+    // the caption names the frozen act beside the ghost.
+    expect(container.querySelector('.act-quill')).not.toBeNull();
+    expect(container.querySelector('.act-tick')).not.toBeNull();
+    expect(screen.getByText('ticked for you')).toBeDefined();
+    // The room's own "Something stirs here" label is kept too.
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    // CSS halts the act's animation under reduced motion.
+    expect(css).toMatch(/prefers-reduced-motion/);
+    expect(css).toMatch(/\.act-quill,[\s\S]*?\.act-tick[\s\S]*?animation:\s*none/);
+  });
+});
+
 describe('The Attic — contrast and axe on both variants', () => {
   afterEach(() => cleanup());
 

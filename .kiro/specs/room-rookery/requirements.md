@@ -62,7 +62,30 @@ turns honest beside its haunted twin.
    ghost signs with a static dashed candle outline and the room's own label
    "Something stirs here".
 
-### Requirement 3: Fiction and honesty
+### Requirement 4: The ghost's act performs Preselection
+
+1. WHILE the haunted variant shows ghost signs (`signsActive` and not
+   `preview`), THE possessed element's ghost SHALL perform the trick as the page
+   opens: it ticks the boxes itself with a quill — a decorative quill dips and a
+   short ink tick strokes in beside the possessed line in one cycle of at least
+   4 seconds — so the motion itself teaches Preselection.
+2. THE act SHALL live only on or beside the possessed element, SHALL use
+   transforms and opacity only with reserved space (no layout shift), SHALL
+   never cover the summary text, a checkbox, a price, the Pay button or any
+   focus ring, and SHALL never block input; every act element SHALL be
+   `aria-hidden` and add nothing to any accessible name or live announcement.
+3. THE act SHALL never change the real checkboxes' native state or labels.
+4. WHEN the ghost is named (the engine sets `data-moment='right'` and
+   `data-fleeing` on `.room-scene`), THE room SHALL stop every act element's
+   animation so nothing keeps moving through the shared unwind and flee, and the
+   act SHALL be absent from the honest twin and from the comparison's haunted
+   preview (`preview`).
+5. WHERE `prefers-reduced-motion` is active, THE act SHALL not move and SHALL
+   show one still pose — the quill resting on a ticked box — with a short
+   visible caption beside the ghost, "ticked for you", in addition to the room's
+   own "Something stirs here" label.
+
+### Requirement 5: Fiction and honesty
 
 1. THE room SHALL use only fictional brand name, colours, logo shape, people,
    products and prices; the domain SHALL use the `.manor` suffix.

@@ -59,10 +59,23 @@ interface BoardState {
  * use lining, tabular figures in the UI face so "£118" never reads as "£II8"
  * and the price column never changes width.
  *
- * Under `prefers-reduced-motion` the ghost signs are a static dashed outline
- * and the "Something stirs here" label with no animation. In `preview` mode
- * (the static "before" side of the split) the step is non-interactive and
- * omits the possessed id.
+ * The ghost does not merely bob: it PERFORMS Preselection. As the page opens
+ * it holds a quill and ticks the boxes itself — the quill dips in a slow (≥4 s)
+ * cycle beside the possessed line and a short ink tick strokes in under it, so
+ * the motion itself teaches the pattern (someone ticked these for you). The
+ * quill and tick are decorative (`aria-hidden`, pointer-events: none), live
+ * only beside the possessed element, add nothing to the accessible name or to
+ * any live announcement, and never cover the summary text, a checkbox, a price,
+ * the Pay button or any focus ring — they use reserved space and only
+ * transforms/opacity, so there is no layout shift. The real checkboxes keep
+ * their own native state and labels; the act never touches them.
+ *
+ * Under `prefers-reduced-motion` the act does not move: it shows one still pose
+ * — the quill resting on a ticked box with a short visible caption beside the
+ * ghost, "ticked for you" — alongside the room's own static dashed outline and
+ * "Something stirs here" label, with no animation. In `preview` mode (the
+ * static "before" side of the split) the step is non-interactive, omits the
+ * possessed id, and shows no act.
  */
 class PreselectBoard extends Component<HauntedProps, BoardState> {
   state: BoardState = {
@@ -150,11 +163,24 @@ class PreselectBoard extends Component<HauntedProps, BoardState> {
                     <circle class="ghost-eye" cx="72" cy="60" r="4" />
                     <path class="ghost-mouth" d="M52 74 Q60 82 68 74" />
                   </svg>
+                  {/* The act: the ghost holds a quill and ticks the boxes
+                      itself. The quill dips in a slow (≥4 s) cycle and a short
+                      ink tick strokes in under it. Decorative, aria-hidden,
+                      pointer-events: none, transforms/opacity only — it reserves
+                      its own space beside the possessed line and never covers
+                      the summary text, a checkbox, a price, the Pay button or
+                      any focus ring, and never touches the real checkbox state
+                      or labels. Under reduced motion it holds a still pose. */}
+                  <span class="act-quill" aria-hidden="true"></span>
+                  <span class="act-tick" aria-hidden="true"></span>
                 </span>
               </span>
             ) : null}
-            {showSigns && reducedMotion ? (
+            {showSigns ? (
                   <span class="stirs-label">Something stirs here</span>
+                ) : null}
+            {showSigns ? (
+                  <span class="act-caption">ticked for you</span>
                 ) : null}
           </button>
 

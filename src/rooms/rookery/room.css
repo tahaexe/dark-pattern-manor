@@ -313,6 +313,78 @@
   70%, 90% { opacity: 0.85; }
 }
 
+/* ------------------------------------------------------------------ *
+ * The act: the ghost ticks the boxes itself with a quill.
+ *
+ * The quill hangs from the ghost's hem and dips in a slow 4.5 s cycle (>= 4 s);
+ * a short ink tick strokes in beneath it on each dip, so the motion itself
+ * teaches Preselection — someone ticked these for you. Both elements live
+ * INSIDE .ghost-wrap (beside the possessed line), reserve their own space, use
+ * transforms/opacity only (no layout shift), carry pointer-events: none and are
+ * aria-hidden, and never cover the summary text, a checkbox, a price, the Pay
+ * button or any focus ring. The real checkboxes keep their own native state
+ * and labels; the act never touches them.
+ * ------------------------------------------------------------------ */
+.act-quill {
+  position: absolute;
+  /* Hangs just below the ghost's hem, in reserved space under the ghost. */
+  left: 62px;
+  top: 108px;
+  width: 4px;
+  height: 34px;
+  transform-origin: 50% 0;
+  transform: rotate(14deg);
+  border-radius: 2px 2px 1px 1px;
+  /* A thin ink quill: a pale shaft tapering to a dark nib at the tip. */
+  background: linear-gradient(
+    to bottom,
+    color-mix(in srgb, var(--ghost) 85%, transparent) 0%,
+    color-mix(in srgb, var(--ghost) 85%, transparent) 60%,
+    var(--ink) 100%
+  );
+  box-shadow: 0 0 6px rgba(244, 239, 230, 0.4);
+  pointer-events: none;
+  z-index: 2;
+  animation: attic-quill-dip 4.5s ease-in-out infinite;
+}
+
+/* The ink tick the quill strokes in: a short check mark that draws and fades
+   with each dip, in the candle colour, beneath the quill's nib. */
+.act-tick {
+  position: absolute;
+  left: 66px;
+  top: 138px;
+  width: 16px;
+  height: 10px;
+  transform-origin: 0 100%;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0;
+  /* A tick drawn with two borders meeting at a point — in ghost ink, so it
+     reads as a mark someone else made for you (not a candle-gold "all good"). */
+  border-left: 3px solid color-mix(in srgb, var(--ghost) 90%, transparent);
+  border-bottom: 3px solid color-mix(in srgb, var(--ghost) 90%, transparent);
+  transform: rotate(-45deg) scale(0.6);
+  filter: drop-shadow(0 0 4px rgba(244, 239, 230, 0.4));
+  animation: attic-tick-stroke 4.5s ease-in-out infinite;
+}
+
+/* The quill dips down to the box and lifts back, once per 4.5 s cycle. */
+@keyframes attic-quill-dip {
+  0%, 100% { transform: rotate(14deg) translateY(0); }
+  18% { transform: rotate(8deg) translateY(10px); }
+  32% { transform: rotate(14deg) translateY(0); }
+}
+
+/* The tick strokes in as the quill reaches the box, then rests briefly and
+   fades before the next cycle. Opacity/transform only. */
+@keyframes attic-tick-stroke {
+  0%, 12% { opacity: 0; transform: rotate(-45deg) scale(0.3); }
+  22% { opacity: 1; transform: rotate(-45deg) scale(1); }
+  70% { opacity: 1; transform: rotate(-45deg) scale(1); }
+  88%, 100% { opacity: 0; transform: rotate(-45deg) scale(1); }
+}
+
 /* Mist drifting around the ghost, never over text. */
 .mist {
   position: absolute;
@@ -343,6 +415,19 @@
   0% { opacity: 0.3; transform: translate(0, 0); }
   50% { opacity: 0.5; transform: translate(6px, -4px); }
   100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* The act stops when the ghost is named: the engine sets data-moment='right'
+   (and data-fleeing) on .room-scene and holds the haunted page for the shared
+   unwind and flee, so every act element must freeze (room 3's reviewer marked
+   a mask that kept moving through the flee as a must). This only halts this
+   room's own act; it does not re-implement or override the shared flee, which
+   still owns .ghost-wrap in atmosphere.css. */
+.room-scene[data-moment='right'] .act-quill,
+.room-scene[data-moment='right'] .act-tick,
+.room-scene[data-moment='right'] .mist,
+.room-scene[data-moment='right'] .preselect-summary.signs-active .preselect-summary-text {
+  animation: none;
 }
 
 /* The flee is shared: the engine holds `named` and the common-moment layer
@@ -408,6 +493,8 @@
 @media (prefers-reduced-motion: reduce) {
   .ghost-wrap,
   .mist,
+  .act-quill,
+  .act-tick,
   .preselect-summary.signs-active .preselect-summary-text {
     animation: none !important;
   }
@@ -424,6 +511,23 @@
 
 .preselect-summary.reduced-motion .mist {
   animation: none !important;
+}
+
+/* The still pose under reduced motion: no movement, but the quill rests on a
+   ticked box and the ink tick is drawn and held — the frozen moment of
+   "ticked for you", named by the .act-caption beside the ghost. */
+.preselect-summary.reduced-motion .act-quill,
+.preselect-summary.reduced-motion .act-tick {
+  animation: none !important;
+}
+
+.preselect-summary.reduced-motion .act-quill {
+  transform: rotate(8deg) translateY(10px);
+}
+
+.preselect-summary.reduced-motion .act-tick {
+  opacity: 1;
+  transform: rotate(-45deg) scale(1);
 }
 
 
@@ -580,6 +684,22 @@
     height: 84px;
   }
 
+  /* The act scales with the smaller ghost: the quill hangs from the shorter
+     hem and the tick sits just under it, still in the reserved strip under the
+     summary line, never over text or a control. */
+  .act-quill {
+    left: 36px;
+    top: 50px;
+    height: 24px;
+  }
+
+  .act-tick {
+    left: 38px;
+    top: 72px;
+    width: 12px;
+    height: 8px;
+  }
+
   .mist {
     width: 80px;
     height: 40px;
@@ -611,6 +731,11 @@
  * relative). Anchored to the element's bottom-left and wrapping within its
  * width, so the label never hangs off an edge and is never cut by the frame or
  * the viewport, at 1280x720 or 412x915. Transforms/opacity only elsewhere.
+ *
+ * They are rendered whenever the signs are active, but shown only under reduced
+ * motion — either the `.reduced-motion` class (the engine's prop) OR the
+ * `prefers-reduced-motion` media query — so a pure-media reduced-motion user
+ * still sees the still pose's caption without depending on the JS prop.
  * ------------------------------------------------------------------ */
 .stirs-label,
 .act-caption {
@@ -624,9 +749,35 @@
   color: var(--candle);
   white-space: normal;
   z-index: 3;
+  /* Hidden while the act animates; shown only under reduced motion. */
+  display: none;
 }
 
 /* Room 1 shows both: the caption sits just below the stirs label. */
 .act-caption {
   top: calc(100% + 1.6em);
+}
+
+/* Show the still-pose labels under reduced motion (class or media query). */
+.preselect-summary.reduced-motion .stirs-label,
+.preselect-summary.reduced-motion .act-caption {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .preselect-summary.signs-active .stirs-label,
+  .preselect-summary.signs-active .act-caption {
+    display: block;
+  }
+
+  /* And the quill rests on a ticked box (the still pose) even when only the
+     media query — not the JS prop — reports reduced motion. */
+  .preselect-summary.signs-active .act-quill {
+    transform: rotate(8deg) translateY(10px);
+  }
+
+  .preselect-summary.signs-active .act-tick {
+    opacity: 1;
+    transform: rotate(-45deg) scale(1);
+  }
 }

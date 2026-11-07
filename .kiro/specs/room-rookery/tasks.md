@@ -76,3 +76,26 @@
   - Add `rookery: () => import('../rooms/rookery/room')`.
   - Run `npm run test`, `npm run check:rooms`, `npm run build` and
     `npm run check:size`; all must pass before the room is done.
+
+- [ ] 6. Give the ghost an act that performs Preselection
+  - File: `src/rooms/rookery/Haunted.tsx`, `src/rooms/rookery/room.css`,
+    `src/rooms/rookery/rookery.test.tsx`
+  - In the haunted view, add a decorative act on/beside the possessed line: the
+    ghost holds a quill and ticks the boxes itself as the page opens — the quill
+    dips and a short ink tick strokes in, one cycle ≥ 4 s, transforms/opacity
+    only, reserved space so there is no layout shift. Every act element is
+    `aria-hidden`, adds nothing to the accessible name or live announcements,
+    never covers the summary text, a checkbox, a price, the Pay button or any
+    focus ring, never blocks input, and never touches the real checkboxes'
+    native state or labels. Freeze every act element on
+    `.room-scene[data-moment='right']` so nothing moves through the shared
+    unwind and flee; keep the act absent from the honest twin and the
+    comparison preview. Use the shared atmosphere layer and common moments as
+    they are — do not re-implement or override them. Under
+    `prefers-reduced-motion` run no animation and show one still pose (the quill
+    resting on a ticked box) with the caption "ticked for you" beside the ghost,
+    alongside the existing "Something stirs here" label.
+  - Tests: extend `rookery.test.tsx` — the act's element exists in the haunted
+    view and is `aria-hidden`; it is gone in `preview` and in the honest twin;
+    with reduced motion the still pose and its "ticked for you" caption render;
+    the real checkboxes keep their native ticked state.
