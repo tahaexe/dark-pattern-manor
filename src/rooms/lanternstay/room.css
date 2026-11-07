@@ -510,3 +510,129 @@
 .act-caption {
   top: calc(100% + 1.6em);
 }
+
+/* ------------------------------------------------------------------ *
+ * The act — the "watchers" are a row of little ghost heads that pop in and out
+ * (Fake social proof: the crowd you are told about is literally made of
+ * ghosts). It lives only beside the possessed badge, inside the aria-hidden
+ * .ghost-signs anchor, so it adds nothing to the accessible name or to live
+ * announcements and the badge's visible counter text stays its accessible
+ * name. It reserves a fixed box (transforms and opacity only, no layout
+ * shift), its cycle lasts 5s (>= 4s), it never blocks input (pointer-events:
+ * none via .ghost-signs), and it never covers the badge's text, a review or a
+ * button (the heads sit above the ghost, left of it, over empty space beside
+ * the badge; the label text stays at z-index 3).
+ * ------------------------------------------------------------------ */
+.watcher-heads {
+  position: absolute;
+  left: -4px;
+  top: -104px;
+  width: 132px;
+  height: 30px;
+  z-index: 1;
+  pointer-events: none;
+  display: block;
+}
+
+.watcher-head {
+  position: absolute;
+  top: 0;
+  width: 24px;
+  height: 28px;
+  opacity: 0;
+  transform: translateY(4px) scale(0.6);
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 0 4px rgba(244, 239, 230, 0.3));
+  /* One 5s cycle (>= 4s): each head pops in, lingers, pops out, staggered so
+     the fake crowd flickers into being and away again. Opacity and transform
+     only. */
+  animation: watcher-pop 5s ease-in-out infinite;
+}
+
+.watcher-head-0 {
+  left: 0;
+  animation-delay: 0s;
+}
+
+.watcher-head-1 {
+  left: 28px;
+  animation-delay: 1s;
+}
+
+.watcher-head-2 {
+  left: 56px;
+  animation-delay: 2s;
+}
+
+.watcher-head-3 {
+  left: 84px;
+  animation-delay: 3s;
+}
+
+.watcher-head-4 {
+  left: 108px;
+  animation-delay: 4s;
+}
+
+@keyframes watcher-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.6);
+  }
+  10% {
+    opacity: 0.85;
+    transform: translateY(0) scale(1);
+  }
+  30% {
+    opacity: 0.85;
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(4px) scale(0.6);
+  }
+}
+
+/* The still pose: with reduced motion the heads do not pop. They hold a calm,
+   half-present still frame (no animation), and the "who are they?" caption
+   beside the ghost asks the question the motion would otherwise pose. */
+.watcher-heads-still .watcher-head,
+.inn-watchers.reduced-motion .watcher-head {
+  animation: none !important;
+  opacity: 0.7;
+  transform: translateY(0) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .watcher-head {
+    animation: none !important;
+    opacity: 0.7;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* The act stops the instant the ghost is named: the engine sets
+   data-moment='right' (and data-fleeing) on .room-scene and holds the haunted
+   page for the shared unwind and flee, so every act element must freeze (room
+   3's reviewer marked a mask that kept moving through the flee as a must). */
+.room-scene[data-moment='right'] .watcher-heads,
+.room-scene[data-moment='right'] .watcher-head,
+.room-scene[data-moment='right'] .mist,
+.room-scene[data-moment='right'] .inn-watchers.signs-active .inn-watchers-label {
+  animation: none !important;
+}
+
+/* Narrow screens: the act rides with the smaller ghost rising from the strip
+   reserved under the badge, so it still never covers text or a control. */
+@media (max-width: 600px) {
+  .watcher-heads {
+    left: auto;
+    right: 0;
+    top: -36px;
+    width: 120px;
+  }
+}

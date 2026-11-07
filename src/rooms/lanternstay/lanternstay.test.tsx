@@ -219,6 +219,103 @@ describe('The Portrait Gallery — pattern rule (passes on honest, fails on haun
   });
 });
 
+describe('The Portrait Gallery — the ghost act (the watchers are ghost heads)', () => {
+  it('renders the act (a row of ghost-head SVGs) inside the aria-hidden ghost signs in the haunted view', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // The act lives inside the aria-hidden .ghost-signs anchor, beside the
+    // possessed badge.
+    const signs = container.querySelector('.ghost-signs');
+    expect(signs).not.toBeNull();
+    expect(signs!.getAttribute('aria-hidden')).toBe('true');
+    const heads = signs!.querySelector('.watcher-heads');
+    expect(heads).not.toBeNull();
+    // A row of little ghost heads (more than one — a "crowd").
+    const headSvgs = heads!.querySelectorAll('svg.watcher-head');
+    expect(headSvgs.length).toBeGreaterThan(1);
+    // Every act element is decorative; it adds nothing to the accessible name.
+    for (const svg of Array.from(headSvgs)) {
+      expect(svg.getAttribute('aria-hidden')).toBe('true');
+    }
+  });
+
+  it('the act is absent from the comparison preview (before side)', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+        preview
+      />,
+    );
+    // In preview the whole ghost signs anchor (and so the act) is not rendered.
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+    expect(container.querySelector('.watcher-heads')).toBeNull();
+  });
+
+  it('the act is absent from the honest twin', () => {
+    const { container } = render(<Honest onCompleteTask={() => {}} />);
+    expect(container.querySelector('.watcher-heads')).toBeNull();
+  });
+
+  it('the act does not change the badge accessible name (the counter text stays the name)', () => {
+    render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // Even with the act rendered, the badge's accessible name is still exactly
+    // its visible counter text — the act adds nothing.
+    const possessed = screen.getByRole('button', { name: POSSESSED_NAME });
+    expect(possessed).not.toBeNull();
+    expect(possessed.getAttribute('aria-label')).toBeNull();
+  });
+
+  it('freezes the act when the ghost is named (data-moment=right) and reserves fixed space', () => {
+    // The act stops the instant the ghost is named, matching the shared
+    // unwind/flee, and it reserves a fixed box so it never shifts layout.
+    expect(css).toMatch(
+      /\.room-scene\[data-moment='right'\][^{]*\.watcher-head[^{]*\{[^}]*animation:\s*none/,
+    );
+    expect(css).toMatch(/\.watcher-heads\s*\{[^}]*width:\s*\d+px/);
+    expect(css).toMatch(/\.watcher-heads\s*\{[^}]*height:\s*\d+px/);
+    // The act uses transforms/opacity only (no layout-affecting props in its
+    // keyframes) and a cycle of at least 4s.
+    expect(css).toMatch(/\.watcher-head\s*\{[^}]*animation:\s*watcher-pop\s*5s/);
+  });
+
+  it('under reduced motion shows the still pose (heads do not pop) and the "who are they?" caption', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion
+      />,
+    );
+    // The heads are rendered as a still pose.
+    const heads = container.querySelector('.watcher-heads');
+    expect(heads).not.toBeNull();
+    expect(heads!.className).toContain('watcher-heads-still');
+    // The caption beside the ghost asks the question the motion would pose.
+    expect(screen.getByText('who are they?')).toBeDefined();
+    // The room's own "Something stirs here" label is still shown too.
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    // The still pose runs no animation (reduced-motion rule in the CSS).
+    expect(css).toMatch(/watcher-heads-still[^{]*\.watcher-head[^{]*\{[^}]*animation:\s*none/);
+  });
+});
+
 describe('The Portrait Gallery — the ghost size and anchor', () => {
   it('renders the ghost SVG at about 120 x 140 px inside the possessed badge', () => {
     const { container } = render(

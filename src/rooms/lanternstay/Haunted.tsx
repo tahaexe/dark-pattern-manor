@@ -37,6 +37,18 @@ function Stars({ rating }: { rating: number }) {
  * visible text itself (Label in Name, WCAG 2.5.3). The badge is the
  * positioning context for the ghost that peeks beside it.
  *
+ * The ghost's act performs the trick: beside the badge, the "watchers" are a
+ * row of little ghost heads that pop in and out, so the crowd you are told
+ * about is literally made of ghosts (Fake social proof). The act is decorative
+ * — it lives inside the aria-hidden `.ghost-signs` anchor, adds nothing to the
+ * accessible name or to live announcements, reserves its own fixed box (no
+ * layout shift, transforms and opacity only), runs a 5s cycle, never blocks
+ * input and never covers the badge's text, a review or a button. Under
+ * `reducedMotion` the heads hold a still pose (no pop) and a short caption
+ * "who are they?" is shown beside the ghost, alongside the room's own
+ * "Something stirs here" label. The engine freezes the act when the ghost is
+ * named (room.css `.room-scene[data-moment='right']`).
+ *
  * The room needs no per-element state (the badge is a fixed number, the cards
  * are static), so a plain function component is enough: no hooks, so it renders
  * identically in the app, the tests and the `check:rooms` bare renderer.
@@ -101,6 +113,38 @@ const Haunted: FunctionComponent<HauntedProps> = ({
                     <span class="mist mist-left"></span>
                     <span class="mist mist-above"></span>
                     <span class="mist mist-below"></span>
+                    {/* The act (Fake social proof): the "watchers" are made of
+                        little ghost heads that pop in and out, so the crowd you
+                        are told about is literally a row of ghosts. It sits
+                        beside the badge, is decorative (aria-hidden on the whole
+                        .ghost-signs anchor), reserves its own fixed box so it
+                        never shifts layout, and never covers the badge's text,
+                        a review or a button. Under reduced motion the heads
+                        hold still (no pop) and a short caption "who are they?"
+                        is shown beside the ghost — see the stirs/caption block
+                        below. The engine stops every act element on
+                        data-moment='right' (room.css). */}
+                    <span class={`watcher-heads${reducedMotion ? ' watcher-heads-still' : ''}`}>
+                      {[0, 1, 2, 3, 4].map((i) => (
+                        <svg
+                          key={i}
+                          class={`watcher-head watcher-head-${i}`}
+                          viewBox="0 0 24 28"
+                          width="24"
+                          height="28"
+                          xmlns="http://www.w3.org/2000/svg"
+                          aria-hidden="true"
+                        >
+                          <path
+                            class="ghost-body"
+                            d="M4 14 Q4 4 12 4 Q20 4 20 14 L20 24
+                               Q17 21 14 24 Q11 21 8 24 Q5 21 4 24 Z"
+                          />
+                          <circle class="ghost-eye" cx="9" cy="12" r="1.3" />
+                          <circle class="ghost-eye" cx="15" cy="12" r="1.3" />
+                        </svg>
+                      ))}
+                    </span>
                     <span class="ghost-wrap">
                       <svg
                         viewBox="0 0 120 140"
@@ -126,6 +170,9 @@ const Haunted: FunctionComponent<HauntedProps> = ({
                 ) : null}
                 {showSigns && reducedMotion ? (
                       <span class="stirs-label">Something stirs here</span>
+                    ) : null}
+                {showSigns && reducedMotion ? (
+                      <span class="act-caption">who are they?</span>
                     ) : null}
               </span>
             </button>

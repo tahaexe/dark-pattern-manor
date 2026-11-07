@@ -57,6 +57,20 @@ turns honest beside its haunted twin.
 4. WHERE `prefers-reduced-motion` is active, THE room SHALL replace
    motion-based ghost signs with a static dashed candle outline and the room's
    own label "Something stirs here".
+5. THE room's ghost SHALL perform an act that enacts Fake social proof: beside
+   the possessed watchers badge, the "watchers" SHALL be a row of little ghost
+   heads that pop in and out. The act SHALL be decorative (inside the
+   aria-hidden ghost-signs anchor, adding nothing to the badge's accessible
+   name — the counter text stays the name — or to live announcements), SHALL
+   reserve its own fixed box using transforms and opacity only (no layout
+   shift), SHALL run a cycle of at least 4 seconds, SHALL never block input, and
+   SHALL never cover the badge's text, a review or a button. WHERE
+   `prefers-reduced-motion` is active, THE act SHALL show a still pose (the
+   heads do not pop) with a short visible caption "who are they?" beside the
+   ghost, kept alongside the "Something stirs here" label. WHEN the ghost is
+   named (the engine sets `data-moment='right'` on `.room-scene`), THE act SHALL
+   freeze. THE act SHALL be absent from the honest twin and from the
+   comparison's haunted preview.
 
 ### Requirement 3: Fiction and honesty
 

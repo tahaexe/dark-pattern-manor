@@ -72,3 +72,22 @@
   - Add `lanternstay: () => import('../rooms/lanternstay/room')`.
   - Run `npm run test`, `npm run check:rooms`, `npm run build` and
     `npm run check:size`; all must pass before the room is done.
+
+- [x] 6. Give the ghost an act that performs Fake social proof
+  - Files: `src/rooms/lanternstay/Haunted.tsx`, `src/rooms/lanternstay/room.css`
+  - Beside the possessed watchers badge, make the "watchers" a row of little
+    ghost heads that pop in and out, so the crowd you are told about is
+    literally made of ghosts. Keep it decorative: render it inside the
+    aria-hidden `.ghost-signs` anchor so it adds nothing to the badge's
+    accessible name (the counter text stays the name) or to live announcements.
+    Reserve a fixed box and use transforms and opacity only (no layout shift);
+    one cycle lasts at least 4 seconds; it never blocks input and never covers
+    the badge's text, a review or a button. With `prefers-reduced-motion` show a
+    still pose (heads do not pop) and a short caption "who are they?" beside the
+    ghost, kept alongside "Something stirs here". Freeze every act element on
+    `.room-scene[data-moment='right']` (do not re-implement the shared
+    unwind/flee). The act is absent from the honest twin and from the
+    comparison's haunted preview. Extend `lanternstay.test.tsx` to assert the
+    act element exists in the haunted view and is aria-hidden, is gone in
+    preview and honest, and that with reduced motion the still pose and caption
+    render.

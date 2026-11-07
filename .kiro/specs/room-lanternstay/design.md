@@ -98,6 +98,37 @@ reserved under the badge, so it never covers text and there is no horizontal
 overflow at 412px wide. No fixed or minimum heights that leave empty boxes on
 mobile.
 
+## The ghost's act (the watchers are ghost heads)
+
+The ghost performs the trick rather than only bobbing: beside the possessed
+watchers badge, the "watchers" are a row of little ghost heads that **pop in and
+out**, so the crowd you are told about is literally made of ghosts (Fake social
+proof). The act is purely decorative — it renders inside the aria-hidden
+`.ghost-signs` anchor, so it adds nothing to the badge's accessible name (the
+counter text stays the name) or to any live announcement. It reserves its own
+fixed box (`.watcher-heads`, about 132×30px, heads absolutely positioned) and
+uses transforms and opacity only, so it causes **no layout shift**; one pop
+cycle lasts **5 s** (≥ 4 s); it sets `pointer-events: none` so it never blocks
+input; and the heads sit above the badge over empty space (z-index 1) while the
+label text stays at z-index 3, so the act never covers the badge's text, a
+review or a button.
+
+When the ghost is named the act **freezes**: the engine sets
+`data-moment='right'` on `.room-scene` (and `data-fleeing` during the hold), and
+this room's CSS stops every act element — and the room's mist and badge flicker
+— with `.room-scene[data-moment='right'] … { animation: none !important; }`, so
+nothing keeps moving through the shared unwind and 600 ms flee. The shared
+unwind/flee and the common moments stay owned by `src/styles/atmosphere.css`;
+this room adds no flee of its own. The act is **absent** from the honest twin
+and from the comparison's haunted **preview** (it lives inside `.ghost-signs`,
+which renders only when `signsActive && !preview`).
+
+Under `prefers-reduced-motion` the heads do not pop: they hold a calm still pose
+(no transform, a steady low opacity) and a short visible caption **"who are
+they?"** is shown beside the ghost, kept alongside the room's own "Something
+stirs here" label — so the still pose asks the question the motion would
+otherwise pose.
+
 ## The pattern rule (variant-specific)
 
 Fake social proof lives in the watchers badge and the undated, first-name-only
