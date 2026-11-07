@@ -12,6 +12,19 @@ import './room.css';
  * labels or the button. All text stays at WCAG AA contrast; the trick is the
  * wording, never readability.
  *
+ * The ghost performs the trick (Trick wording): it traces the sentence's
+ * double negative with an ink finger and the two "not"s glow briefly, one
+ * after the other, so the motion itself names the pattern. The trace is an ink
+ * stroke drawn under each "not" (a CSS `::after` on `.trick-not`, so it is
+ * always under the right word however the sentence wraps) that sweeps in step
+ * with the glow; the glow and the stroke live only on the two "not"s. They are
+ * decorative CSS (no extra DOM, nothing in the accessible name), use transforms
+ * and opacity only with no layout shift, and sit under the glyphs so they never
+ * cover the sentence's text or its focus ring and never lower its contrast.
+ * Under reduced motion there is no movement: the two "not"s rest underlined in
+ * ink and a short caption "two nots hide here" sits beside the ghost (the
+ * existing "Something stirs here" label stays too).
+ *
  * In `preview` mode (the static "before" side of the split) the component is
  * non-interactive and omits the possessed element's id, so the live page keeps
  * the only `library-newsletter`.
@@ -85,8 +98,8 @@ export default function Haunted({
         >
           <span class="newsletter-box" aria-hidden="true"></span>
           <span class="newsletter-text">
-            Tick this box if you would <em>not</em> prefer to miss out on <em>not</em> receiving the
-            Inkbone newsletter.
+            Tick this box if you would <em class="trick-not">not</em> prefer to miss out on{' '}
+            <em class="trick-not trick-not-2">not</em> receiving the Inkbone newsletter.
             {showSigns ? (
               <span class="ghost-signs" aria-hidden="true">
                 <span class="mist mist-left"></span>
@@ -116,6 +129,9 @@ export default function Haunted({
               </span>
             ) : null}
             {showSigns && reducedMotion ? <span class="stirs-label">Something stirs here</span> : null}
+            {showSigns && reducedMotion ? (
+              <span class="act-caption">two nots hide here</span>
+            ) : null}
           </span>
         </button>
 

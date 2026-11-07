@@ -50,6 +50,25 @@ haunted twin.
    ghost signs with a static dashed candle outline and the label "Something
    stirs here".
 
+### Requirement 4: The ghost's act performs the trick
+
+1. WHILE the room is haunted and ghost signs are active, THE possessed element
+   SHALL show the ghost performing Trick wording: an ink finger traces the
+   sentence's double negative and the two "not"s glow briefly, one after the
+   other, so the motion itself teaches the pattern. The act SHALL live only on
+   the two "not"s and the ink finger beside the sentence, use transforms and
+   opacity only with no layout shift, run one cycle of at least 4 seconds,
+   never block input, never cover or lower the contrast of the sentence text or
+   its focus ring, and be aria-hidden where decorative so it adds nothing to the
+   accessible name or to live announcements.
+2. WHERE `prefers-reduced-motion` is active, THE act SHALL run no movement and
+   instead show a still pose: the two "not"s underlined in ink and a short
+   caption "two nots hide here" beside the ghost, in addition to the kept
+   "Something stirs here" label.
+3. WHEN the ghost is named, THE act SHALL stop (the shared common-moment unwind
+   takes over), and the act SHALL be absent from the honest twin and from the
+   comparison's haunted preview.
+
 ### Requirement 3: Fiction and honesty
 
 1. THE room SHALL use only fictional brand name, colours, logo shape, people,

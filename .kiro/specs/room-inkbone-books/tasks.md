@@ -52,3 +52,22 @@
   - Add `'inkbone-books': () => import('../rooms/inkbone-books/room')`.
   - Run `npm run test`, `npm run check:rooms`, `npm run build` and
     `npm run check:size`; all must pass before the room is done.
+
+- [x] 6. Give the ghost an act that performs Trick wording
+  - Files: `src/rooms/inkbone-books/Haunted.tsx`,
+    `src/rooms/inkbone-books/room.css`,
+    `src/rooms/inkbone-books/inkbone-books.test.tsx`
+  - The ghost traces the sentence's double negative with an ink finger and the
+    two "not"s glow briefly, one after the other (transforms/opacity only, no
+    layout shift, one cycle >= 4 s, never blocking input, never covering the
+    text or its focus ring, decorative parts aria-hidden). Reuse the shared
+    atmosphere layer and the common moments from the engine; do not
+    re-implement or override them. The act lives only on/beside the possessed
+    element; it stops when the ghost is named and is absent from the honest twin
+    and the comparison's haunted preview. Under `prefers-reduced-motion` show
+    the still pose instead: the two "not"s underlined in ink and the caption
+    "two nots hide here" beside the ghost, keeping the "Something stirs here"
+    label.
+  - Tests: the finger and the two glow targets render in the haunted view and
+    are aria-hidden/decorative; the act is gone in preview and honest; with
+    reduced motion the still pose and caption render and nothing animates.

@@ -101,6 +101,77 @@ describe('The Library — the possessed element', () => {
   });
 });
 
+describe('The Library — the ghost\u2019s act (traces the double negative)', () => {
+  it('renders both "not"s as glow/trace targets in the haunted view', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // The two "not"s carry the act's glow/trace class; the second is
+    // distinguished so it can light after the first.
+    const nots = container.querySelectorAll('.newsletter-text .trick-not');
+    expect(nots.length).toBe(2);
+    expect(container.querySelector('.trick-not-2')).not.toBeNull();
+  });
+
+  it('the act is decorative: it is pure CSS and adds nothing to the accessible name', () => {
+    render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+      />,
+    );
+    // The accessible name is still the sentence itself — no act text leaks in,
+    // and there is no aria-label overriding it.
+    const possessed = screen.getByRole('button', { name: POSSESSED_NAME });
+    expect(possessed.getAttribute('aria-label')).toBeNull();
+    expect(possessed.textContent).not.toMatch(/two nots hide here/i);
+    // The tracing stroke is a ::after pseudo-element (no extra DOM node).
+    expect(css).toMatch(/\.trick-not::after\s*\{[^}]*content:\s*''/);
+  });
+
+  it('the act names the trick through motion: the two "not"s glow and trace in sequence over a >= 4 s cycle', () => {
+    // The second "not" lights after the first (an animation-delay on
+    // .trick-not-2 and its ::after), and both the glow and the trace run on a
+    // 6 s cycle (>= 4 s). The trace is an ink stroke under each "not".
+    expect(css).toMatch(/\.trick-not-2[^{]*\{[^}]*animation-delay/);
+    expect(css).toMatch(/@keyframes library-not-glow/);
+    expect(css).toMatch(/@keyframes library-trace/);
+    expect(css).toMatch(/\.trick-not\s*\{[^}]*animation:\s*library-not-glow\s+6s/);
+    expect(css).toMatch(/\.trick-not::after\s*\{[^}]*animation:\s*library-trace\s+6s/);
+    // The stroke sits under the glyphs so it never covers the word's text.
+    expect(css).toMatch(/\.trick-not::after\s*\{[^}]*z-index:\s*-1/);
+  });
+
+  it('the act is absent from the comparison\u2019s haunted preview (static, non-interactive)', () => {
+    const { container } = render(
+      <Haunted
+        onSelectPossessed={() => {}}
+        onSelectOther={() => {}}
+        signsActive
+        reducedMotion={false}
+        preview
+      />,
+    );
+    // In preview the signs (and so the glowing/tracing act) do not run: there
+    // is no signs-active class and no ghost.
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+    expect(container.querySelector('.newsletter-line.signs-active')).toBeNull();
+  });
+
+  it('the act is absent from the honest twin', () => {
+    const { container } = render(<Honest onCompleteTask={() => {}} />);
+    expect(container.querySelector('.trick-not')).toBeNull();
+    expect(container.querySelector('.ghost-signs')).toBeNull();
+  });
+});
+
 describe('The Library — the ghost size and anchor', () => {
   it('renders the ghost SVG at about 120 x 140 px inside the possessed line', () => {
     const { container } = render(
@@ -267,6 +338,21 @@ describe('The Library — reduced motion static indicator', () => {
     expect(screen.getByText('Something stirs here')).toBeDefined();
     expect(css).toMatch(/prefers-reduced-motion/);
     expect(css).toMatch(/animation:\s*none/);
+  });
+
+  it('the act shows its still pose: the two "not"s rest underlined in ink, the caption names them, and no trace or glow animates', () => {
+    const { container } = render(<Room room={room} rng={identityRng} />);
+    // The still caption sits beside the ghost, alongside the kept "Something
+    // stirs here" label.
+    expect(screen.getByText('two nots hide here')).toBeDefined();
+    expect(screen.getByText('Something stirs here')).toBeDefined();
+    // The tracing stroke (a ::after on each "not") is hidden under reduced
+    // motion; the two "not"s are still present as the still pose, underlined in
+    // ink by the reduced-motion rule, and their glow animation is turned off.
+    expect(container.querySelectorAll('.trick-not').length).toBe(2);
+    expect(css).toMatch(/\.newsletter-line\.reduced-motion\s+\.trick-not::after\s*\{[^}]*display:\s*none/);
+    expect(css).toMatch(/\.newsletter-line\.reduced-motion\s+\.trick-not[^:{]*\{[^}]*text-decoration:\s*underline/);
+    expect(css).toMatch(/\.newsletter-line\.reduced-motion\s+\.trick-not[^:{]*\{[^}]*animation:\s*none/);
   });
 
   it('a wrong spell card under reduced motion shows the static indicator, no flicker animation', async () => {

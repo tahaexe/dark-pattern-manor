@@ -248,6 +248,74 @@
   70%, 90% { opacity: 0.85; }
 }
 
+/* ------------------------------------------------------------------ *
+ * The ghost's act — Trick wording performed
+ * The ghost traces the sentence's double negative: an ink stroke sweeps under
+ * each "not" while the word glows, the first "not" then the second, one after
+ * the other, so the motion itself teaches the pattern. The act lives only on
+ * the two "not"s (.trick-not and its ::after ink stroke); it uses transforms
+ * and opacity only, reserves its own space (the stroke is an absolutely
+ * positioned ::after under the glyphs, so it adds no layout and shifts
+ * nothing), never blocks input (pointer-events: none), adds no DOM to the
+ * accessible name, and never covers or dims the sentence text or its focus
+ * ring — the glow brightens the word's own colour and the stroke sits beneath
+ * the glyphs, keeping full WCAG AA contrast. One cycle lasts 6 s (>= 4 s); the
+ * two "not"s light and trace in sequence.
+ * ------------------------------------------------------------------ */
+
+/* The two "not"s. Each keeps its base candle colour at full contrast; the glow
+   is a text-shadow that swells and fades, the first "not" then the second, one
+   after the other across the 6 s cycle. */
+.newsletter-line.signs-active .trick-not {
+  position: relative;
+  animation: library-not-glow 6s ease-in-out infinite;
+}
+
+/* The ink finger's stroke: an ::after under each "not" that the ghost drags
+   from left to right across the word, in step with the glow. It is positioned
+   under the glyphs (z-index: -1 within the positioned word), decorative and
+   non-interactive, so it never covers the word or its focus ring and reserves
+   no new space. */
+.newsletter-line.signs-active .trick-not::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--ghost) 90%, transparent);
+  box-shadow: 0 0 6px rgba(244, 239, 230, 0.5);
+  pointer-events: none;
+  z-index: -1;
+  transform-origin: left center;
+  transform: scaleX(0);
+  opacity: 0;
+  animation: library-trace 6s ease-in-out infinite;
+}
+
+.newsletter-line.signs-active .trick-not-2,
+.newsletter-line.signs-active .trick-not-2::after {
+  /* Light and trace the second "not" after the first: a 1.2 s offset. */
+  animation-delay: 1.2s;
+}
+
+@keyframes library-not-glow {
+  0%, 24%, 60%, 100% {
+    text-shadow: none;
+  }
+  12% {
+    text-shadow: 0 0 8px rgba(244, 239, 230, 0.8), 0 0 2px rgba(240, 190, 119, 0.9);
+  }
+}
+
+@keyframes library-trace {
+  0%, 60%, 100% { transform: scaleX(0); opacity: 0; }
+  6% { transform: scaleX(0); opacity: 0.9; }
+  20% { transform: scaleX(1); opacity: 0.9; }
+  40% { transform: scaleX(1); opacity: 0.4; }
+}
+
 /* Mist drifting around the ghost, never over text. */
 .mist {
   position: absolute;
@@ -291,7 +359,9 @@
 @media (prefers-reduced-motion: reduce) {
   .ghost-wrap,
   .mist,
-  .newsletter-line.signs-active .newsletter-text {
+  .newsletter-line.signs-active .newsletter-text,
+  .newsletter-line.signs-active .trick-not,
+  .newsletter-line.signs-active .trick-not::after {
     animation: none !important;
   }
 }
@@ -307,6 +377,23 @@
 
 .newsletter-line.reduced-motion .mist {
   animation: none !important;
+}
+
+/* The act's still pose under reduced motion: no movement, but the two "not"s
+   rest underlined in ink so the double negative is still visible, and the
+   "two nots hide here" caption names it beside the ghost. The glow and the
+   tracing stroke do not run. */
+.newsletter-line.reduced-motion .trick-not {
+  animation: none !important;
+  text-shadow: none;
+  text-decoration: underline;
+  text-decoration-color: var(--candle);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+}
+
+.newsletter-line.reduced-motion .trick-not::after {
+  display: none;
 }
 
 
