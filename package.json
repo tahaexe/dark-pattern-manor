@@ -8,15 +8,17 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run && npm run test:hooks && npm run test:qa && npm run test:agents",
+    "test": "vitest run && npm run test:hooks && npm run test:qa && npm run test:agents && npm run test:power",
     "typecheck": "tsc --noEmit",
     "test:guard": "node --test scripts/hooks/guard-command.test.mjs",
     "test:hooks": "node --test scripts/hooks/*.test.mjs",
     "test:qa": "node --test scripts/mcp/*.test.mjs",
     "test:agents": "node --test scripts/agents/*.test.mjs",
+    "test:power": "node --test scripts/power/*.test.mjs",
     "check:rooms": "node scripts/check-rooms.mjs",
     "check:size": "node scripts/check-bundle-size.mjs",
     "check:agents": "node scripts/agents/check-agents.mjs",
+    "check:power": "node scripts/power/check-power.mjs",
     "qa:full": "node scripts/mcp/manor-qa-full.mjs"
   },
   "dependencies": {

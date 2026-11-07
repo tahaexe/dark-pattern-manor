@@ -49,6 +49,10 @@ kiro-cli chat --v3 --agent manor-reviewer "Review room 1"
 
 `npm run check:agents` keeps the agent files valid: it parses every file in `.kiro/agents/`, checks each `name` matches its file name and has a description, confirms every manor-qa tool an agent names is one the server really lists (it starts the server and asks `tools/list`), and fails if the reviewer gains a write or shell tool. Its pure logic is tested by `npm run test:agents` (part of `npm test`).
 
+## Kiro power: honest-ui
+
+The game's Ghost Guide is also packaged as an installable Kiro power in [`power/honest-ui`](power/honest-ui/README.md), so anyone can point Kiro at their own interface and get a dark-pattern review, an honest rewrite and a twelve-point pre-release checklist — fourteen patterns with their signs, honest twins and sourced US and EU pointers, straight from the game. Findings are phrased as "may be a dark pattern; check", never "illegal", and no real company is named. `npm run check:power` keeps the power valid and honest (manifest fields and a kebab-case name, each skill's frontmatter name matching its folder, every reference URL traceable to a room or a checked source, and no forbidden wording); its pure logic is tested by `npm run test:power` (part of `npm test`). See [`power/honest-ui/README.md`](power/honest-ui/README.md) for how to install and use it.
+
 ## Assets
 
 - Fonts: Cormorant Garamond and Atkinson Hyperlegible Next, SIL Open Font License 1.1, self-hosted through Fontsource.

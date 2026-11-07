@@ -1,0 +1,9 @@
+{
+  "name": "honest-ui",
+  "version": "1.0.0",
+  "description": "Review your own interface for dark patterns and get the honest alternative: 14 patterns with their signs, honest twins and sourced US and EU pointers, from the Dark Pattern Manor game.",
+  "author": { "name": "Dark Pattern Manor" },
+  "keywords": ["dark pattern", "deceptive pattern", "cookie banner", "consent", "checkout", "subscription", "cancel flow", "free trial", "countdown", "urgency", "scarcity", "confirmshaming", "preselected", "opt-out", "nagging", "hidden fees", "honest design", "ethical design"],
+  "license": "MIT",
+  "repository": "https://github.com/tahaexe/dark-pattern-manor"
+}
