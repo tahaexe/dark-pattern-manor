@@ -34,13 +34,22 @@ function SpeakerIcon({ on }: { on: boolean }) {
   );
 }
 
+export interface SoundToggleProps {
+  /**
+   * When true, the toggle is laid out inline inside the room bar rather than
+   * floated in the top-right corner. Other pages keep the floating placement.
+   */
+  inBar?: boolean;
+}
+
 /**
- * The Sound toggle: one button shown on every page, top-right inside the manor
- * frame. A speaker icon plus the visible word "Sound". `aria-pressed` is true
- * when sound is on. The click is a user gesture, which is the moment the audio
- * engine is allowed to wake — sound stays silent until this first gesture.
+ * The Sound toggle: a speaker icon plus the visible word "Sound". `aria-pressed`
+ * is true when sound is on. The click is a user gesture, which is the moment the
+ * audio engine is allowed to wake — sound stays silent until this first gesture.
+ * On the title, look, end, and teach routes it floats top-right (its default);
+ * in the room bar it renders inline (`inBar`).
  */
-export default function SoundToggle() {
+export default function SoundToggle({ inBar = false }: SoundToggleProps) {
   const [on, setOn] = useState(isSoundOn());
 
   useEffect(() => subscribe(() => setOn(isSoundOn())), []);
@@ -48,7 +57,7 @@ export default function SoundToggle() {
   return (
     <button
       type="button"
-      class="sound-toggle"
+      class={`sound-toggle${inBar ? ' sound-toggle-in-bar' : ''}`}
       aria-pressed={on}
       onClick={() => setSoundOn(!on)}
     >

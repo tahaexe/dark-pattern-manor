@@ -586,11 +586,12 @@ describe('sound — accessibility of the toggle', () => {
   });
 
   it('room 1 with the toggle has zero violations', async () => {
+    // The room route carries its own Sound toggle in the bar, so the Room
+    // alone is the realistic mount (no extra floating toggle beside it).
     const room = await foyer();
     const { container } = render(
       <div class="app">
-        <SoundToggle />
-        <Room room={room} rng={identityRng} />
+        <Room room={room} roomNum={1} rng={identityRng} />
       </div>,
     );
     await screen.findByRole('button', { name: /Sound/ });

@@ -1,10 +1,12 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'preact/hooks';
 import type { ComponentType } from 'preact';
 import type { RoomData, SpellCard } from './types';
-import { initialState, reduce } from './machine';
+import { initialState, reduce, stepLine } from './machine';
 import type { RoomEvent, RoomState } from './machine';
 import { completeRoom } from './progress';
-import Lantern from '../ui/Lantern';
+import { prefetch } from './registry';
+import RoomBar from '../ui/RoomBar';
+import RoomInstructions from '../ui/RoomInstructions';
 import SpellPicker from '../ui/SpellPicker';
 import LiveRegion from '../ui/LiveRegion';
 import BeforeAfterSlider from '../ui/BeforeAfterSlider';
@@ -25,8 +27,14 @@ import {
 
 export interface RoomProps {
   room: RoomData;
-  /** Slug of the next room to unlock on completion. */
+  /** 1-based room number, for the bar's counter and dots. */
+  roomNum?: number;
+  /** The set of freed room numbers (1-based), for the bar's dots. */
+  freed?: ReadonlySet<number>;
+  /** Slug of the next room to unlock on completion (and to prefetch). */
   nextSlug?: string;
+  /** Display name of the next room, for the continue link. */
+  nextName?: string;
   /**
    * Hash of the next destination, offered from the honest step the way every
    * room reaches the next: `#/room/N+1` for rooms 1–11, `#/end` for room 12.
@@ -35,6 +43,19 @@ export interface RoomProps {
   /** Optional rng so tests can fix the spell-card order. */
   rng?: () => number;
 }
+
+/**
+ * The controls of either comparison page (haunted or honest) that must keep
+ * their own click: a pointerdown inside one of these starts no divider drag, so
+ * a mouse click or a tap on the honest task button reaches it. Without this the
+ * comparison captured the pointer (setPointerCapture) and the control's click
+ * never fired — a pointer dead-end, since the "Next room" link only appears
+ * once the room is done. Keyboard play was unaffected, so the walk (which
+ * finishes the honest task by keyboard) never saw it.
+ */
+const INTERACTIVE_IN_COMPARISON =
+  'button, a[href], input, select, textarea, label, summary,' +
+  '[role="button"], [role="link"], [role="checkbox"], [tabindex]:not([tabindex="-1"])';
 
 /** True when the user asks for reduced motion. */
 function usePrefersReducedMotion(): boolean {
@@ -54,8 +75,7 @@ function usePrefersReducedMotion(): boolean {
 
 /**
  * The atmosphere layer, lazy-loaded so its canvas code rides the room chunk and
- * never weighs the initial bundle. It is purely decorative (an aria-hidden
- * canvas on the backdrop), so rendering nothing until it arrives is invisible.
+ * never weighs the initial bundle.
  */
 function useLazyAtmosphere(): ComponentType<AtmosphereProps> | null {
   const [Comp, setComp] = useState<ComponentType<AtmosphereProps> | null>(null);
@@ -83,11 +103,25 @@ const STATE_HEADING: Record<RoomState['tag'], string> = {
 
 const HAUNTED_TAGS: ReadonlyArray<RoomState['tag']> = ['haunted', 'inspecting', 'picking'];
 
+/** The box the ring draws around the possessed element, in frame coordinates. */
+interface RingBox {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+/** Find the possessed element inside the live frame by its id. */
+function findPossessed(frame: HTMLElement, id: string): HTMLElement | null {
+  const byId = frame.ownerDocument?.getElementById(id);
+  if (byId && frame.contains(byId)) return byId as HTMLElement;
+  // Fallback: an attribute selector, robust where getElementById misses (and
+  // without needing CSS.escape, which jsdom does not provide).
+  return frame.querySelector<HTMLElement>(`[id="${id}"]`);
+}
+
 /**
  * The common haunted moment, derived from the state the engine already holds.
- * `right` from the moment the room is named onward; `wrong` keyed on the
- * wrong-pick nonce (so each wrong pick is a new key and the CSS animation
- * restarts); none otherwise. Shared CSS reads `data-moment` on `.room-scene`.
  */
 function momentOf(state: RoomState): { name: 'wrong' | 'right'; key: number } | null {
   if (state.tag === 'named' || state.tag === 'honest' || state.tag === 'done') {
@@ -101,46 +135,45 @@ function momentOf(state: RoomState): { name: 'wrong' | 'right'; key: number } | 
 
 /** The reveal where the opening sweep rests. */
 const SWEEP_REST = 50;
-/** The opening sweep's duration in ms (~1.2 s). */
-const SWEEP_MS = 1200;
+/** The opening sweep's duration in ms (~0.8 s). */
+const SWEEP_MS = 800;
 
-/**
- * How long the room holds `named` so the ghost's flee is seen before the honest
- * twin appears. With motion the ghost unwinds then flees upward over the shared
- * `--duration-ghost-flee` (about 600 ms in total); under reduced motion there
- * is no unwind and no flee — the ghost simply fades over ~200 ms. After this
- * delay the view dispatches ADVANCE, so the reducer stays pure (the timer lives
- * here and is cleared on unmount). The named → honest step takes no player input.
- */
+/** How long the room holds `named` so the ghost's flee is seen. */
 const FLEE_MS = 600;
 const FLEE_REDUCED_MS = 200;
 
-export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
+/** Stuck help: after this long in haunted, or after this many misses. */
+const STUCK_MS = 20000;
+const STUCK_MISSES = 2;
+
+export default function Room({
+  room,
+  roomNum = room.id,
+  freed,
+  nextSlug,
+  nextName,
+  nextHash,
+  rng,
+}: RoomProps) {
   const reduceBound = (state: RoomState, event: RoomEvent) => reduce(state, event, room);
   const [state, dispatch] = useReducer(reduceBound, room, initialState);
-  // The reveal: 0 = fully haunted, 100 = fully honest. It starts at the rest
-  // point so the comparison never flashes fully-haunted for assistive tech or
-  // under reduced motion; the opening sweep (below) animates it in when motion
-  // is allowed.
   const [slider, setSlider] = useState(SWEEP_REST);
+  const [stuck, setStuck] = useState(false);
+  const [ring, setRing] = useState<RingBox | null>(null);
   const reducedMotion = usePrefersReducedMotion();
   const Atmosphere = useLazyAtmosphere();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const doneRef = useRef(false);
-  // The previous tag, so sound effects fire on the transition, not every render.
   const prevTag = useRef<RoomState['tag'] | null>(null);
 
+  const frameRef = useRef<HTMLDivElement>(null);
   const comparisonRef = useRef<HTMLDivElement>(null);
   const honestLayerRef = useRef<HTMLDivElement>(null);
+  const continueRef = useRef<HTMLAnchorElement>(null);
   const draggingRef = useRef(false);
-  // The opening sweep runs once per room, keyed off the first honest render.
   const sweptRef = useRef(false);
 
-  // Hold `named` for the ghost's flee, then advance to honest with no player
-  // input. The haunted page and its ghost stay visible through `named`; the
-  // shared CSS plays the unwind and the one flee (or, under reduced motion, a
-  // short fade) during this delay. The timer is cleared on unmount so the
-  // reducer never advances a room the player has left.
+  // Hold `named` for the ghost's flee, then advance to honest with no input.
   useEffect(() => {
     if (state.tag !== 'named') return;
     const delay = reducedMotion ? FLEE_REDUCED_MS : FLEE_MS;
@@ -156,23 +189,104 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
     }
   }, [state.tag, room.slug, nextSlug]);
 
-  // Move focus to the heading labelling the new state.
+  // Prefetch the next room's chunk when this room turns honest, so following
+  // the continue link resolves instantly. One shared promise per slug.
   useEffect(() => {
+    if (state.tag === 'honest') prefetch(nextSlug);
+  }, [state.tag, nextSlug]);
+
+  // Move focus to the heading labelling the new state — except while the
+  // lantern is lit (inspecting), where focus goes to the possessed element so
+  // Enter selects it (handled in the ring effect below).
+  useEffect(() => {
+    if (state.tag === 'inspecting') return;
     headingRef.current?.focus();
   }, [state.tag]);
 
-  // Signs (the ghost, its mist and flicker) are rendered while the room is
-  // haunted or inspecting AND through `named`, so the ghost is present to play
-  // its flee before the honest twin appears. `fleeing` is true only during
-  // `named`, driving the shared flee.
+  // When the room reaches done, the continue link sits directly under the
+  // slider (above the Ghost Guide card); scroll it into view (block nearest;
+  // instant under reduced motion) so the next step is never screens away.
+  useEffect(() => {
+    if (state.tag !== 'done') return;
+    const el = continueRef.current;
+    if (!el || typeof el.scrollIntoView !== 'function') return;
+    el.scrollIntoView({
+      block: 'nearest',
+      behavior: reducedMotion ? 'auto' : 'smooth',
+    });
+  }, [state.tag, reducedMotion]);
+
+  // Stuck help: after 20 s in haunted with no transition out, or once the miss
+  // counter reaches two, glow the lantern and append the help line. The timer
+  // is cleared on every state change and on unmount; misses feed it directly.
+  useEffect(() => {
+    if (state.tag !== 'haunted') {
+      setStuck(false);
+      return;
+    }
+    if (state.misses >= STUCK_MISSES) {
+      setStuck(true);
+      return;
+    }
+    const id = setTimeout(() => setStuck(true), STUCK_MS);
+    return () => clearTimeout(id);
+  }, [state.tag, state.misses]);
+
+  // The lantern is lit (inspecting): ring the possessed element, scroll it into
+  // view, and focus it so Enter selects it. The ring is an aria-hidden,
+  // pointer-events:none overlay inside the frame, recomputed on resize. Cleared
+  // when leaving inspecting and on unmount.
+  useLayoutEffect(() => {
+    if (state.tag !== 'inspecting') {
+      setRing(null);
+      return;
+    }
+    const frame = frameRef.current;
+    if (!frame) return;
+    const el = findPossessed(frame, room.possessedId);
+    if (!el) {
+      // No possessed element found: skip the ring, keep the player able to tap.
+      headingRef.current?.focus();
+      return;
+    }
+
+    const place = () => {
+      const fr = frame.getBoundingClientRect();
+      const er = el.getBoundingClientRect();
+      setRing({
+        top: er.top - fr.top,
+        left: er.left - fr.left,
+        width: er.width,
+        height: er.height,
+      });
+    };
+    place();
+
+    el.scrollIntoView?.({
+      block: 'center',
+      behavior: reducedMotion ? 'auto' : 'smooth',
+    });
+    el.focus?.();
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver === 'function') {
+      ro = new ResizeObserver(() => place());
+      ro.observe(frame);
+      ro.observe(el);
+    }
+    window.addEventListener('resize', place);
+    return () => {
+      ro?.disconnect();
+      window.removeEventListener('resize', place);
+    };
+  }, [state.tag, room.possessedId, reducedMotion]);
+
   const fleeing = state.tag === 'named';
   const signsActive = state.tag === 'haunted' || state.tag === 'inspecting' || fleeing;
   const showSplit = state.tag === 'honest' || state.tag === 'done';
   const moment = momentOf(state);
 
-  // The opening sweep. When the comparison first appears: under reduced motion
-  // it stays at the rest point (no animation); otherwise it sweeps once from 0
-  // to the rest point over ~1.2 s so the reveal is seen, then rests. Runs once.
+  // The opening sweep (~0.8 s), once per room; held at rest under reduced motion.
   useLayoutEffect(() => {
     if (!showSplit || sweptRef.current) return;
     sweptRef.current = true;
@@ -196,9 +310,8 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
     return () => cancelAnimationFrame(raf);
   }, [showSplit, reducedMotion]);
 
-  // Focus safety (WCAG 2.4.11): if any control inside the honest layer takes
-  // focus, snap the reveal fully to honest so the focused control is never
-  // hidden behind the clip.
+  // Focus safety (WCAG 2.4.11): focusing a control in the honest layer snaps the
+  // reveal fully to honest so the focused control is never hidden by the clip.
   useEffect(() => {
     if (!showSplit) return;
     const layer = honestLayerRef.current;
@@ -208,28 +321,20 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
     return () => layer.removeEventListener('focusin', onFocusIn);
   }, [showSplit]);
 
-  // Sound: cues and ambience, driven from the view. The reducer stays pure;
-  // these effects only read the tag and the wrong-pick nonce it already
-  // produces. Each cue is a no-op when sound is off or there is no audio.
+  // Sound cues and ambience, driven from the view.
   useEffect(() => {
     const tag = state.tag;
     const prev = prevTag.current;
     prevTag.current = tag;
 
-    // Tell the engine the current state so turning sound on can resume the
-    // ambience, and so leaving the room can stop it. The slug chooses this
-    // room's ambience voice; it comes from the room data, not the reducer.
     setRoomTag(tag);
     setRoomSlug(room.slug);
 
-    // Cues on specific transitions.
     if (prev === 'haunted' && tag === 'inspecting') lanternCue();
-    if (prev === 'inspecting' && tag === 'picking') cold();
+    if ((prev === 'haunted' || prev === 'inspecting') && tag === 'picking') cold();
     if (tag === 'named') flee();
     if (tag === 'done') honestCue();
 
-    // Ambience: play only while haunted/inspecting/picking; fade out when the
-    // room turns honest.
     if (HAUNTED_TAGS.includes(tag)) {
       startAmbience();
     } else if (tag === 'honest' && prev !== 'honest' && prev !== 'done') {
@@ -237,9 +342,7 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
     }
   }, [state.tag]);
 
-  // The whisper fires exactly once per wrong pick, keyed on the nonce the live
-  // region also uses — so the whisper sound and the whispered hint land
-  // together. Skip the initial 0 so no whisper plays on mount.
+  // The whisper fires exactly once per wrong pick, keyed on the nonce.
   const firstNonce = useRef(true);
   useEffect(() => {
     if (firstNonce.current) {
@@ -261,12 +364,11 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   const HauntedView = room.Haunted;
   const HonestView = room.Honest;
 
-  // The continue affordance: the same way every room reaches the next. For the
-  // last room `nextHash` is `#/end`, so the manor's exit leads to the ending.
   const leavingManor = nextHash === '#/end';
+  const continueText = leavingManor
+    ? 'Leave the manor'
+    : `Next room: ${nextName ?? 'the next room'}`;
 
-  // Dragging the divider with a pointer sets the reveal from the pointer's x,
-  // without stealing keyboard focus from the range or the honest controls.
   const setFromPointer = (clientX: number) => {
     const box = comparisonRef.current;
     if (!box) return;
@@ -277,10 +379,16 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
   };
 
   const onPointerDown = (e: PointerEvent) => {
-    // Let the native range handle its own thumb; only drive from the box
-    // surface so dragging the divider works.
     const target = e.target as HTMLElement | null;
-    if (target && target.closest('.split-control')) return;
+    if (!target) return;
+    if (target.closest('.split-control')) return;
+    // A pointerdown inside an interactive control of either page (haunted or
+    // honest) must reach that control: start no drag, take no pointer capture
+    // and do not move the divider, so the control gets its own click. Without
+    // this the comparison captured the pointer and a mouse click or tap on the
+    // honest task button (e.g. room 1's honest "Reject all") never fired — a
+    // pointer dead-end, since the "Next room" link appears only once done.
+    if (target.closest(INTERACTIVE_IN_COMPARISON)) return;
     draggingRef.current = true;
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
     setFromPointer(e.clientX);
@@ -295,6 +403,8 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
     (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
   };
 
+  const freedSet = freed ?? new Set<number>();
+
   return (
     <div
       class="room-scene"
@@ -307,33 +417,42 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
         {Atmosphere ? <Atmosphere exhale={showSplit} reducedMotion={reducedMotion} /> : null}
       </div>
 
-      <div class="task-bar">
-        <h1 class="task-bar-title" tabIndex={-1} ref={headingRef}>
-          {room.name}
-        </h1>
-        <span class="task-bar-task">{room.task}</span>
-        <Lantern onLantern={() => dispatch({ type: 'LANTERN' })} keyActive={state.tag === 'haunted'} />
-      </div>
+      <RoomBar roomNum={roomNum} total={12} freed={freedSet} />
+
+      <RoomInstructions
+        name={room.name}
+        task={room.task}
+        stepLine={stepLine(state, room)}
+        stuck={stuck}
+        onLantern={() => dispatch({ type: 'LANTERN' })}
+        lanternKeyActive={state.tag === 'haunted'}
+        headingRef={headingRef}
+      />
 
       <h2 class="visually-hidden">{STATE_HEADING[state.tag]}</h2>
 
-      {/* The polite live region sits directly under the task bar, above the
-          swapping room content (the haunted frame, the spell picker and the
-          honest comparison all mount below it). Because it is above everything
-          that changes between states, it never moves when the haunted frame
-          gives way to the honest comparison — so holding `named` for the ghost
-          flee adds no layout shift (the whisper strip no longer jumps up when
-          the frame unmounts; the room's cumulative layout shift stays at 0). */}
       <LiveRegion state={state} />
 
       {!showSplit ? (
-        <div class="manor-frame">
+        <div class="manor-frame" ref={frameRef}>
           <HauntedView
             onSelectPossessed={() => dispatch({ type: 'SELECT_POSSESSED' })}
             onSelectOther={() => dispatch({ type: 'SELECT_OTHER' })}
             signsActive={signsActive}
             reducedMotion={reducedMotion}
           />
+          {ring ? (
+            <div
+              class={`possessed-ring${reducedMotion ? ' is-still' : ''}`}
+              aria-hidden="true"
+              style={{
+                top: `${ring.top}px`,
+                left: `${ring.left}px`,
+                width: `${ring.width}px`,
+                height: `${ring.height}px`,
+              }}
+            ></div>
+          ) : null}
         </div>
       ) : null}
 
@@ -342,16 +461,14 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
           cards={room.cards}
           onPick={(card: SpellCard) => dispatch({ type: 'PICK', card })}
           flicker={state.flicker}
+          reason={state.wrongHint}
+          reasonNonce={state.whisperNonce}
           rng={rng}
         />
       ) : null}
 
       {showSplit ? (
         <>
-          {/* The before/after comparison wipe. Both versions are stacked in one
-              grid cell, so the box is as tall as the taller one and nothing
-              shifts. The haunted preview is underneath; the honest twin is on
-              top, revealed from the left up to `--split` by its clip-path. */}
           <div
             class="comparison"
             role="group"
@@ -390,8 +507,6 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
               </div>
             </div>
 
-            {/* The reveal edge: a candle-colour divider with a round grip.
-                Decorative — the slider and the drag carry the real control. */}
             <div
               class="comparison-divider"
               aria-hidden="true"
@@ -403,13 +518,16 @@ export default function Room({ room, nextSlug, nextHash, rng }: RoomProps) {
 
           <BeforeAfterSlider value={slider} onChange={setSlider} step={5} />
 
-          <GuideCard pattern={room.pattern} guide={room.guide} />
-
-          {nextHash ? (
-            <a class="room-continue" href={nextHash}>
-              {leavingManor ? 'Leave the manor' : 'Leave this room'}
+          {/* The continue link sits directly under the slider (above the Ghost
+              Guide card) once the task is done, so the next room is one short
+              scroll away, not three screens below the guide. */}
+          {nextHash && state.tag === 'done' ? (
+            <a class="room-continue" href={nextHash} ref={continueRef}>
+              {continueText}
             </a>
           ) : null}
+
+          <GuideCard pattern={room.pattern} guide={room.guide} />
         </>
       ) : null}
     </div>

@@ -15,7 +15,11 @@
 /* Masthead */
 .mildew-header {
   text-align: center;
-  margin-bottom: var(--spacing-lg);
+  /* 8 Nov: tightened from --spacing-lg (24px) to --spacing-sm (8px) so the
+     possessed fee block's whole box clears the 720px fold at 1280x720 (its
+     bottom was 4px below). No change at 412x915: the phone override below
+     keeps --spacing-md. */
+  margin-bottom: var(--spacing-sm);
   border-bottom: 2px solid var(--ink);
   padding-bottom: var(--spacing-md);
 }
@@ -54,7 +58,10 @@
   gap: var(--spacing-sm) var(--spacing-md);
   align-items: center;
   justify-content: center;
-  margin: 0 0 var(--spacing-lg);
+  /* 8 Nov: bottom tightened from --spacing-lg (24px) to --spacing-sm (8px) so
+     the possessed fee block clears the fold at 1280x720. The phone override
+     below restores --spacing-lg, so 412x915 is unchanged. */
+  margin: 0 0 var(--spacing-sm);
   padding: 0;
   list-style: none;
 }
@@ -113,7 +120,11 @@
   margin-top: var(--spacing-md);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  /* 8 Nov: gap tightened from --spacing-md (16px) to --spacing-sm (8px) so the
+     possessed fee block clears the fold at 1280x720 (the three gaps above it
+     shrink). The phone override below restores --spacing-md, so 412x915 is
+     unchanged. */
+  gap: var(--spacing-sm);
 }
 
 .plan-name {
@@ -453,10 +464,10 @@
 
 /* The act stops when the ghost is named: the engine sets data-moment='right'
    (and data-fleeing) on .room-scene and holds the haunted page for the shared
-   unwind and flee, so every act element must freeze (room 3's reviewer marked
-   a mask that kept moving through the flee as a must). This only halts this
-   room's own act; it does not re-implement or override the shared flee, which
-   still owns .ghost-wrap in atmosphere.css. */
+   unwind and flee of .ghost-wrap, so every act element must freeze (room 3's
+   reviewer marked a mask that kept moving through the flee as a must). This
+   only halts this room's own act; it does not re-implement or override the
+   shared flee, which still owns .ghost-wrap in atmosphere.css. */
 .room-scene[data-moment='right'] .act-receipt-paper,
 .room-scene[data-moment='right'] .act-receipt-fee {
   animation: none;
@@ -655,6 +666,17 @@
     padding-bottom: var(--spacing-md);
   }
 
+  /* 8 Nov: restore the pre-tightening spacing at 412x915 so this size is
+     unchanged — the desktop tightening above is only needed to clear the
+     1280x720 fold, and 412x915 already fit. */
+  .checkout-steps {
+    margin: 0 0 var(--spacing-lg);
+  }
+
+  .plan-card {
+    gap: var(--spacing-md);
+  }
+
   .plan-shout-price {
     font-size: 2rem;
   }
@@ -766,9 +788,16 @@
  * page (data-moment='right') for the shared unwind and flee of .ghost-wrap.
  * During that hold nothing else in the frame may keep moving, so this room
  * stops the possessed fee block's mist puff (the shared .possessed::before) and
- * its flicker (the drifting mist and the unrolling receipt were already frozen).
- * The shared flee on .ghost-wrap is untouched; only the hold is affected, so
- * the signs look exactly the same at every other moment.
+ * its flicker (.fee-lines-inner; the drifting mist and the unrolling receipt
+ * were already frozen above). The possessed element's OWN animation and its
+ * `transition: background` are now frozen by the shared rule in atmosphere.css
+ * (`.room-scene[data-moment='right'] .possessed`), which the named-hold QA had
+ * caught mid-transition when room 9 loaded from a warm chunk (an 8 Nov
+ * finding) — so this room no longer needs its own `.fee-lines` freeze. The
+ * `::before` and `.fee-lines-inner` are a pseudo-element and a child, not the
+ * possessed element itself, so they stay here. The shared flee on .ghost-wrap
+ * is untouched; only the hold is affected, so the signs look exactly the same
+ * at every other moment, and no words, trick, signs or honest twin change.
  * ------------------------------------------------------------------ */
 .room-scene[data-moment='right'] .fee-lines::before,
 .room-scene[data-moment='right'] .fee-lines-inner {

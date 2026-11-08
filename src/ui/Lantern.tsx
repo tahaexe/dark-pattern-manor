@@ -5,6 +5,8 @@ export interface LanternProps {
   onLantern: () => void;
   /** When true, the L key triggers the lantern (room is haunted). */
   keyActive: boolean;
+  /** When true, the button glows to offer stuck help. */
+  stuck?: boolean;
 }
 
 /** Candle flame icon for the lantern button (24 x 24). */
@@ -19,11 +21,14 @@ function CandleIcon() {
 }
 
 /**
- * The lantern: a real button labelled "Lantern (L)". While the room is
- * haunted (keyActive), pressing the L key raises it too. Operable by pointer
- * and keyboard.
+ * The lantern: a real button at least 44 x 44 with the visible word "Lantern"
+ * and a small "hint" under it. Its accessible name — "Lantern: show me the
+ * trick (L)" — tells a screen-reader player what it does, not just its key.
+ * While the room is haunted (keyActive), pressing the L key raises it too. When
+ * `stuck` it glows (a slow pulse; a still candle outline under reduced motion)
+ * to offer help. Operable by pointer and keyboard.
  */
-export default function Lantern({ onLantern, keyActive }: LanternProps) {
+export default function Lantern({ onLantern, keyActive, stuck = false }: LanternProps) {
   useEffect(() => {
     if (!keyActive) return;
     const handler = (e: KeyboardEvent) => {
@@ -41,10 +46,18 @@ export default function Lantern({ onLantern, keyActive }: LanternProps) {
   }, [keyActive, onLantern]);
 
   return (
-    <button class="task-bar-lantern" aria-label="Lantern (L)" onClick={() => onLantern()}>
+    <button
+      class={`lantern-button${stuck ? ' is-stuck' : ''}`}
+      aria-label="Lantern: show me the trick (L)"
+      type="button"
+      onClick={() => onLantern()}
+    >
       <CandleIcon />
-      <span class="task-bar-hint" aria-hidden="true">
-        L
+      <span class="lantern-button-text" aria-hidden="true">
+        Lantern
+      </span>
+      <span class="lantern-button-hint" aria-hidden="true">
+        hint
       </span>
     </button>
   );

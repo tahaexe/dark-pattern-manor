@@ -8,11 +8,29 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--spacing-xl) var(--spacing-xl) var(--spacing-2xl);
+  /* The bar, the instruction card and the frame stack with a small, even gap
+     so the haunted frame clears the fold. The scene bleeds over #app's
+     spacing-lg padding on every side (the same trick the title screen uses) so
+     no plain strip shows above the bar, then adds a 4 px pad of its own — the
+     bar starts within ~8 px of the viewport top. The gap between the stacked
+     items is 8 px, and the polite live region is out of flow (visually hidden),
+     so at 1280x720 the frame's top sits ~135 px down and under ~205 px at
+     412x915 where the step line wraps to more lines. The same items render in
+     every room and state, so this adds no layout shift. The extra bottom
+     padding clears room 1's fixed cookie bar. */
+  gap: var(--spacing-sm);
+  padding: 4px var(--spacing-xl) calc(var(--spacing-2xl) + 72px);
   width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
+  margin: calc(-1 * var(--spacing-lg)) calc(50% - 50vw) 0;
   box-sizing: border-box;
+}
+
+/* The frame no longer carries the old large vertical margin inside the scene:
+   the scene's gap spaces it, so its top stays close to the instruction card and
+   the possessed element lands within the first screen. */
+.room-scene > .manor-frame {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 /* Room backdrop (absolute, behind everything) */
@@ -25,9 +43,6 @@
 .room-wall {
   position: absolute;
   inset: 0;
-  /* The painted foyer: the page's one raster image. No text ever sits on it;
-     the task bar, the framed page and the cards carry their own solid
-     backgrounds. The night scrim keeps the frame in front. */
   background:
     linear-gradient(
       180deg,
@@ -38,9 +53,7 @@
     var(--manor-night);
 }
 
-/* Fix 5: Warm candlelight as one CSS layer between the painting and the
-   interface — soft warm glows at the left and right sconces, and a gentle
-   dark vignette in the corners. No new image. */
+/* Warm candlelight as one CSS layer between the painting and the interface. */
 .room::after {
   content: '';
   position: absolute;
@@ -68,9 +81,7 @@
 /* ------------------------------------------------------------------ *
  * Room loading / error: reserve the room's full-height box before the
  * lazily-loaded room chunk arrives, so swapping in the room causes no
- * layout shift (CLS). The pending scene is the same `room-scene` box
- * (min-height: 100vh) with the same backdrop as the loaded room; its
- * message is centred inside that reserved space.
+ * layout shift (CLS).
  * ------------------------------------------------------------------ */
 .room-scene-pending {
   justify-content: center;
@@ -295,8 +306,6 @@
     outline-offset: 2px;
   }
 
-  /* Only where the room has no label of its own: rooms 1 and 2 render a .stirs-label beside their ghost, and this
-     fallback drew a second one under the outline (6 Nov, room 2's reduced-motion shot). */
   .cookie-reject.possessed:not(:has(.stirs-label))::after {
     content: 'Something stirs here';
     position: absolute;
@@ -422,21 +431,11 @@
   border-width: 10px;
 }
 
-/* Fix 4: at 1920 x 1080 the whole scene fits in the first screen — the task
-   bar, the frame and the three spell cards above the fold. Tighten the frame
-   height and the gaps so nothing is cut in half. */
-@media (min-width: 1280px) and (min-height: 900px) {
-  .room-scene {
-    padding-top: var(--spacing-lg);
-    padding-bottom: var(--spacing-lg);
-  }
-
-  .room-scene > .task-bar {
-    margin-bottom: var(--spacing-md);
-  }
-
+/* Desktop: at 1280 x 720 and up, keep the frame compact so the task and the
+   possessed element sit in the first screen beneath the bar and instruction
+   card. */
+@media (min-width: 1280px) and (min-height: 700px) {
   .room-scene > .manor-frame {
-    margin: var(--spacing-sm) auto;
     padding: var(--spacing-lg) var(--spacing-xl);
   }
 
@@ -453,8 +452,8 @@
     margin-top: var(--spacing-md);
   }
 
-  .room-scene > .spell-cards {
-    margin: var(--spacing-md) 0 0;
+  .room-scene > .spell-cards-wrap {
+    margin-top: 0;
   }
 
   .room-scene .spell-card {
@@ -462,9 +461,7 @@
   }
 }
 
-/* 6 Nov (Neo): at 412 px the frame's 16 px double border and its padding left a
-   ~220 px column for a room's page (room 3's pop-up wrapped "Yes, give me 15% off"
-   on three lines). Under 600 px the frame is thinner and tighter in every room. */
+/* Under 600px the frame is thinner and tighter in every room. */
 @media (max-width: 600px) {
   .room-scene > .manor-frame {
     border-width: 10px;
@@ -475,13 +472,67 @@
 }
 
 /* ------------------------------------------------------------------ *
- * The continue affordance a room renders in its honest step: the same way
- * every room reaches the next (room 12's leads to the ending). Lives in the
- * shared look so it is styled in the initial bundle alongside the Room.
+ * Room 1: on the live haunted page the cookie banner behaves like a real
+ * cookie bar — pinned to the bottom of the viewport so "Reject all" is always
+ * on the first screen, whatever the frame's height. It is fixed (not sticky)
+ * because the scene clips its overflow, which disables sticky; fixed is how a
+ * real cookie bar sits anyway. Only on the live haunted page — never in the
+ * comparison previews, where the banner stays in flow so the wipe lines up.
+ * A reserved min-height keeps the bar from reflowing (no layout shift).
+ * ------------------------------------------------------------------ */
+.room-scene > .manor-frame:not(.manor-frame-preview) .cookie-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: min(1100px, calc(100vw - 2 * var(--spacing-md)));
+  margin: 0;
+  z-index: 6;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.35);
+}
+
+/* The possessed "Reject all" keeps its faint-text-link look (small, underlined,
+   placed quietly beside the loud Accept) but gains a real tap area of at least
+   44 x 44 so it is easy to hit — the trick is size/weight/placement, never an
+   unhittable target. */
+.room-scene > .manor-frame:not(.manor-frame-preview) .cookie-reject.possessed,
+.cookie-reject.possessed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 var(--spacing-sm);
+}
+
+/* On the fixed cookie bar the reduced-motion static labels must sit ABOVE the
+   "Reject all" link, so they stay on the first screen (below the link they
+   would hang off the bottom of the viewport, past the scene's clip). */
+.room-scene > .manor-frame:not(.manor-frame-preview) .cookie-reject .stirs-label {
+  top: auto;
+  bottom: calc(100% + 1.6em);
+}
+
+.room-scene > .manor-frame:not(.manor-frame-preview) .cookie-reject .act-caption {
+  top: auto;
+  bottom: 100%;
+}
+
+/* ------------------------------------------------------------------ *
+ * The continue affordance a room renders in its honest step: "Next room: …"
+ * for rooms 1–11, "Leave the manor" for room 12. At least 44 px tall. Once the
+ * room is done it is placed directly under the Before/After slider (above the
+ * Ghost Guide card) and scrolled into view, so the next step is never three
+ * screens down under the guide.
  * ------------------------------------------------------------------ */
 .room-continue {
-  display: inline-block;
-  margin: var(--spacing-md) auto var(--spacing-2xl);
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: var(--spacing-md) auto var(--spacing-lg);
+  padding: 0 var(--spacing-md);
   color: var(--candle);
   font-family: var(--font-ui);
   font-weight: 700;

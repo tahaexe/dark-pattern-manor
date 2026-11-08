@@ -148,3 +148,17 @@
 .room-scene[data-moment='right'] .mist {
   animation: none;
 }
+
+/* The named hold, shared across rooms: freeze the possessed element's OWN
+ * transitions and animations so only the shared unwind and flee of .ghost-wrap
+ * keep moving. Ten rooms give their possessed element a hover transition (e.g.
+ * `transition: background`), and the walk's named-hold check caught one running
+ * mid-way when the hold's timing lined up with an in-flight hover (room 2's
+ * `.newsletter-line`, the same shape as room 9's earlier per-room fix). One
+ * rule on `.possessed` covers them all. It touches only the possessed element
+ * itself — never `.ghost-wrap` or the shared flee — and only during this
+ * moment, so no other moment (haunted, inspecting, honest, done) changes. */
+.room-scene[data-moment='right'] .possessed {
+  transition: none;
+  animation: none;
+}

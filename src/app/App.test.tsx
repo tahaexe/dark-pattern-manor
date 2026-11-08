@@ -51,8 +51,6 @@ describe('App', () => {
 
   it('navigating to #/room/1 shows the heading "The Foyer"', async () => {
     render(<App />);
-    // The primary action is an anchor to #/room/1; the hash router drives the
-    // transition the same way the anchor click would.
     setHashAndTrigger('#/room/1');
     await waitFor(() => {
       const foyer = screen.queryByText('The Foyer');
@@ -60,17 +58,19 @@ describe('App', () => {
     }, { timeout: 1000 });
   });
 
-  it('clicking Back returns to the title', async () => {
+  it('clicking "‹ Manor" in the bar returns to the title', async () => {
     render(<App />);
     setHashAndTrigger('#/room/1');
 
     await waitFor(() => {
-      const foyer = screen.queryByText('The Foyer');
-      expect(foyer).toBeDefined();
+      expect(screen.queryByText('The Foyer')).toBeDefined();
     }, { timeout: 1000 });
 
-    const backBtn = screen.getByText('Back');
-    backBtn.click();
+    // The bar's quiet "‹ Manor" button replaces the old Back button.
+    const manorBtn = await screen.findByRole('button', { name: /Manor/ });
+    manorBtn.click();
+    // The button sets the hash; mirror the hashchange the way the router hears it.
+    setHashAndTrigger('#/');
 
     await waitFor(() => {
       const title = screen.queryByText('Dark Pattern Manor');
@@ -88,17 +88,11 @@ describe('App', () => {
   });
 
   it('reserves the room scene while the room chunk is loading (no layout shift)', () => {
-    // Before the lazily-loaded room chunk resolves, the loading state must live
-    // inside the same `room-scene` box (with the backdrop) as the loaded room,
-    // so swapping in the room adds no layout shift (CLS). We assert the pending
-    // scene and its backdrop render synchronously, before the chunk arrives.
     setHashAndTrigger('#/room/1');
     const { container } = render(<App />);
     const scene = container.querySelector('.room-scene.room-scene-pending');
     expect(scene).not.toBeNull();
-    // The backdrop wall is reserved behind the loading message.
     expect(scene!.querySelector('.room-wall')).not.toBeNull();
-    // The loading message is the status region, inside the reserved scene.
     expect(scene!.querySelector('.room-loading[role="status"]')).not.toBeNull();
   });
 
@@ -145,8 +139,6 @@ describe('App', () => {
   });
 
   it('opening #/teach renders the teaching page, without finishing the game', async () => {
-    // The teaching page is for the teacher, who may not play all twelve rooms
-    // first, so it is never gated on progress.
     setHashAndTrigger('#/teach');
     render(<App />);
     await waitFor(() => {
@@ -156,9 +148,7 @@ describe('App', () => {
 
   it('shows the "The manor is quiet" link on the title only once all twelve rooms are complete', () => {
     render(<App />);
-    // Not yet complete: no end link on the title screen.
     expect(screen.queryByText('The manor is quiet')).toBeNull();
-    // The no-progress primary action is "Enter the manor".
     expect(screen.getByText('Enter the manor')).toBeDefined();
   });
 

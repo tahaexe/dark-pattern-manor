@@ -3,9 +3,10 @@ import type { ComponentType } from 'preact';
 import LookPage from '../look/LookPage';
 import Room from '../engine/Room';
 import TitleScreen from './TitleScreen';
-import { loadRoom, roomSlugs } from '../engine/registry';
+import { loadRoom, roomSlugs, ROOM_NAMES } from '../engine/registry';
 import type { RoomData } from '../engine/types';
 import SoundToggle from '../audio/SoundToggle';
+import { loadProgress } from '../engine/progress';
 
 type Route = 'title' | 'room' | 'look' | 'end' | 'teach';
 
@@ -26,20 +27,27 @@ export function parseHash(raw: string): { route: Route; room: number } | null {
   return null;
 }
 
+/** The set of freed room numbers (1-based), from the completed slugs. */
+function freedRoomNumbers(): Set<number> {
+  const completed = new Set(loadProgress().completed);
+  const freed = new Set<number>();
+  ROOM_ORDER.forEach((slug, i) => {
+    if (completed.has(slug)) freed.add(i + 1);
+  });
+  return freed;
+}
+
 export default function App() {
-  // The first render already shows the hash's route: rendering the title first and switching in an effect shifted the whole
-  // app on a direct visit to #/room/N (Lighthouse mobile CLS 0.39-0.50).
   const initial = parseHash(window.location.hash) ?? { route: 'title' as Route, room: 1 };
   const [route, setRoute] = useState<Route>(initial.route);
   const [roomNum, setRoomNum] = useState<number>(initial.room);
   const [room, setRoom] = useState<RoomData | null>(null);
   const [loadError, setLoadError] = useState(false);
-  // The ending is loaded on demand, the same way a room chunk is, so it never
-  // weighs on the initial bundle.
   const [Ending, setEnding] = useState<ComponentType | null>(null);
-  // The teaching page is loaded on demand the same way, so it stays out of the
-  // initial bundle too.
   const [Classroom, setClassroom] = useState<ComponentType | null>(null);
+  // The freed set, read from progress and refreshed on each room entry so the
+  // bar's dots reflect the latest completions.
+  const [freed, setFreed] = useState<Set<number>>(() => freedRoomNumbers());
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -54,12 +62,13 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
-  // Load the room's chunk on demand when entering a room.
+  // Load the room's chunk on demand when entering a room; refresh the freed set.
   useEffect(() => {
     if (route !== 'room') return;
     let active = true;
     setRoom(null);
     setLoadError(false);
+    setFreed(freedRoomNumbers());
     const slug = ROOM_ORDER[roomNum - 1];
     if (!slug) {
       setLoadError(true);
@@ -77,7 +86,6 @@ export default function App() {
     };
   }, [route, roomNum]);
 
-  // Load the ending chunk on demand when entering the end route.
   useEffect(() => {
     if (route !== 'end') return;
     let active = true;
@@ -94,7 +102,6 @@ export default function App() {
     };
   }, [route]);
 
-  // Load the teaching-page chunk on demand when entering the teach route.
   useEffect(() => {
     if (route !== 'teach') return;
     let active = true;
@@ -111,9 +118,7 @@ export default function App() {
     };
   }, [route]);
 
-  // Focus the title heading when returning to the title screen (not on the
-  // first load, where focus already starts at the top of the page and a
-  // programmatic focus only drew a ring around the title).
+  // Focus the title heading when returning to the title screen (not on first load).
   const firstRoute = useRef(true);
   useEffect(() => {
     if (firstRoute.current) {
@@ -125,20 +130,18 @@ export default function App() {
     }
   }, [route]);
 
-  const handleBack = () => {
-    window.location.hash = '#/';
-    window.dispatchEvent(new HashChangeEvent('hashchange'));
-  };
-
   const nextSlug = ROOM_ORDER[roomNum] ?? undefined;
-  // The continue affordance: rooms 1–11 reach the next room, room 12 reaches
-  // the ending.
+  const nextName = ROOM_NAMES[roomNum] ?? undefined;
+  // Rooms 1–11 reach the next room, room 12 reaches the ending.
   const nextHash = roomNum >= 12 ? '#/end' : `#/room/${roomNum + 1}`;
+
+  // The floating Sound toggle shows on every page EXCEPT the room route, where
+  // it moves into the compact bar.
+  const showFloatingSound = route !== 'room';
 
   return (
     <div class="app">
-      {/* One Sound toggle on every page, top-right inside the manor frame. */}
-      <SoundToggle />
+      {showFloatingSound ? <SoundToggle /> : null}
 
       {route === 'title' ? (
         <TitleScreen />
@@ -186,17 +189,16 @@ export default function App() {
         )
       ) : (
         <div class="room-route">
-          <button onClick={handleBack} class="back-button">
-            Back
-          </button>
           {room ? (
-            <Room room={room} nextSlug={nextSlug} nextHash={nextHash} />
+            <Room
+              room={room}
+              roomNum={roomNum}
+              freed={freed}
+              nextSlug={nextSlug}
+              nextName={nextName}
+              nextHash={nextHash}
+            />
           ) : (
-            // Reserve the room's full-height scene before the chunk arrives so
-            // swapping in the loaded room adds no layout shift (CLS). The
-            // loading and error states live inside the same `room-scene` box,
-            // with the same backdrop, as the loaded room — the layout box is
-            // identical before and after the chunk resolves.
             <div class="room-scene room-scene-pending">
               <div class="room" aria-hidden="true">
                 <div class="room-wall"></div>

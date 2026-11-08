@@ -24,8 +24,8 @@ export const rooms: Record<string, () => Promise<{ default: RoomData }>> = {
 /**
  * Room display names in product order, where index `i` is room number `i + 1`.
  * These are static strings (the same titles the ending's checklist shows), so
- * the title screen can name the next unfinished room without loading any room
- * chunk. The order matches `roomSlugs()`.
+ * the title screen and the Rooms dialog can name a room without loading any
+ * room chunk. The order matches `roomSlugs()`.
  */
 export const ROOM_NAMES: readonly string[] = [
   'The Foyer',
@@ -42,17 +42,45 @@ export const ROOM_NAMES: readonly string[] = [
   'The Cellar',
 ];
 
+/**
+ * One cached promise per slug, so a prefetch on reaching the honest step and
+ * the App's own loader share a single dynamic import — the next room's chunk is
+ * fetched once, and following the continue link resolves instantly.
+ */
+const memo: Record<string, Promise<RoomData>> = {};
+
+function load(slug: string): Promise<RoomData> {
+  return (memo[slug] ??= rooms[slug]().then((mod) => mod.default));
+}
+
 /** Every registered room slug. */
 export function roomSlugs(): string[] {
   return Object.keys(rooms);
 }
 
-/** Load one room's data on demand by slug. */
+/**
+ * Warm the next room's chunk early. A no-op for an unknown or missing slug, or
+ * when the chunk is already in flight or loaded (the memo dedupes). Failures
+ * are swallowed; the App's loader will retry and surface its own retry UI.
+ */
+export function prefetch(slug?: string): void {
+  if (!slug || !rooms[slug]) return;
+  void load(slug).catch(() => {
+    // Drop the rejected promise so a later loadRoom can try again.
+    delete memo[slug];
+  });
+}
+
+/** Load one room's data on demand by slug, reusing any prefetched promise. */
 export async function loadRoom(slug: string): Promise<RoomData> {
-  const loader = rooms[slug];
-  if (!loader) throw new Error(`Unknown room slug: ${slug}`);
-  const mod = await loader();
-  return mod.default;
+  if (!rooms[slug]) throw new Error(`Unknown room slug: ${slug}`);
+  try {
+    return await load(slug);
+  } catch (err) {
+    // Drop the rejected promise so a retry re-issues the import.
+    delete memo[slug];
+    throw err;
+  }
 }
 
 /** Load every registered room's data (used by tests and the check script). */

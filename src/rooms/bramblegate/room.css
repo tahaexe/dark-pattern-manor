@@ -161,6 +161,13 @@
  * keyboard-reachable with the visible line text as its accessible name (no
  * aria-label). It is NOT a live region. It is small and quiet — the maze is the
  * only way out — but still meets WCAG AA contrast.
+ *
+ * Tap area: the line keeps its small, quiet look but reserves a 44 px tall hit
+ * box (a matching bottom pad added to the top pad) so it clears the first-sight
+ * band of 44 px — the trick (wording, weight, placement, flicker, maze act) is
+ * unchanged; only the hit area grows, an accessibility win (playability chrome
+ * change, Nov 2026). At 412 px the larger reserved strip below (for the ghost)
+ * already exceeds this, so the narrow rule is untouched.
  * ------------------------------------------------------------------ */
 .cancel-line {
   display: block;
@@ -169,7 +176,7 @@
   background: transparent;
   border: none;
   border-top: 1px solid var(--manor-line);
-  padding: var(--spacing-md) 0 0;
+  padding: var(--spacing-md) 0;
   /* Small and quiet, but readable: a soft parchment-edge grey on dark wood
      that still meets WCAG AA. */
   color: var(--parchment-edge);

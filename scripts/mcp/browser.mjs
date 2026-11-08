@@ -181,6 +181,8 @@ async function getPageTarget(debugPort, { tries = 100, waitMs = 150 } = {}) {
  *   ev: (expr: string) => Promise<any>,
  *   key: (name: string) => Promise<void>,
  *   rawKey: (name: string, code: string, vk: number) => Promise<void>,
+ *   mouseClick: (x: number, y: number) => Promise<void>,
+ *   tap: (x: number, y: number) => Promise<void>,
  *   on: (method: string, cb: (params: any) => void) => void,
  *   close: () => void,
  * }>}
@@ -257,6 +259,42 @@ export async function connectCdp(debugPort) {
     await rawKey(name, spec[0], spec[1]);
   };
 
+  // A real left-button mouse click at a viewport point: press then release,
+  // with clickCount 1 so the page sees a genuine click (used by the walk to
+  // finish the honest task by pointer at the desktop size).
+  const mouseClick = async (x, y) => {
+    await send('Input.dispatchMouseEvent', {
+      type: 'mousePressed',
+      x,
+      y,
+      button: 'left',
+      buttons: 1,
+      clickCount: 1,
+    });
+    await send('Input.dispatchMouseEvent', {
+      type: 'mouseReleased',
+      x,
+      y,
+      button: 'left',
+      buttons: 0,
+      clickCount: 1,
+    });
+  };
+
+  // A real touch tap at a viewport point: touchStart then touchEnd at the same
+  // point (used by the walk to finish the honest task by touch at the phone
+  // size). touchEnd carries no touch points, as the protocol expects.
+  const tap = async (x, y) => {
+    await send('Input.dispatchTouchEvent', {
+      type: 'touchStart',
+      touchPoints: [{ x, y }],
+    });
+    await send('Input.dispatchTouchEvent', {
+      type: 'touchEnd',
+      touchPoints: [],
+    });
+  };
+
   const on = (method, cb) => {
     if (!listeners.has(method)) listeners.set(method, []);
     listeners.get(method).push(cb);
@@ -270,5 +308,5 @@ export async function connectCdp(debugPort) {
     }
   };
 
-  return { send, ev, key, rawKey, on, close };
+  return { send, ev, key, rawKey, mouseClick, tap, on, close };
 }

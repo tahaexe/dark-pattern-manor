@@ -3,11 +3,13 @@ import { render, screen, fireEvent } from '@testing-library/preact';
 import Lantern from './Lantern';
 
 describe('Lantern', () => {
-  it('renders a button labelled "Lantern (L)" with a visible key hint', () => {
+  it('renders a button whose accessible name says what it does and the L key', () => {
     render(<Lantern onLantern={() => {}} keyActive />);
-    const btn = screen.getByRole('button', { name: /Lantern \(L\)/ });
+    const btn = screen.getByRole('button', { name: /Lantern: show me the trick \(L\)/ });
     expect(btn.tagName).toBe('BUTTON');
-    expect(screen.getByText('L')).toBeDefined();
+    // The visible word "Lantern" and the small "hint" label are present.
+    expect(screen.getByText('Lantern')).toBeDefined();
+    expect(screen.getByText('hint')).toBeDefined();
   });
 
   it('click dispatches the lantern', () => {
@@ -29,5 +31,10 @@ describe('Lantern', () => {
     render(<Lantern onLantern={onLantern} keyActive={false} />);
     fireEvent.keyDown(window, { key: 'l' });
     expect(onLantern).not.toHaveBeenCalled();
+  });
+
+  it('glows when stuck help is active', () => {
+    const { container } = render(<Lantern onLantern={() => {}} keyActive stuck />);
+    expect(container.querySelector('.lantern-button.is-stuck')).not.toBeNull();
   });
 });

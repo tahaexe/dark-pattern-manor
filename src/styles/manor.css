@@ -46,7 +46,11 @@
   z-index: 3;
 }
 
-/* Task bar */
+/* ------------------------------------------------------------------ *
+ * Task bar — the standalone look page still uses this older bar (the room
+ * route now uses the compact .room-bar + .room-instructions below). Kept so
+ * the look prototype keeps its styling.
+ * ------------------------------------------------------------------ */
 .task-bar {
   display: flex;
   align-items: center;
@@ -120,15 +124,6 @@
   opacity: 0.8;
 }
 
-/* ------------------------------------------------------------------ *
- * Under 600px the task does not fit on one line beside the title and the
- * lantern (it squeezed into a narrow column — four lines in Room 3, three in
- * Room 2). Lay the bar out in two rows: the room title with the lantern on the
- * first row, the task on the second at the bar's full width. Above 600px it
- * stays as it is. This is a viewport breakpoint, not an interaction, and the
- * same three items render in every room and every state, so the switch causes
- * no layout shift at runtime (CLS stays 0).
- * ------------------------------------------------------------------ */
 @media (max-width: 600px) {
   .task-bar {
     display: grid;
@@ -156,13 +151,593 @@
   }
 }
 
+/* ------------------------------------------------------------------ *
+ * The compact top bar (RoomBar). One row along the top: "‹ Manor", the room
+ * counter with twelve dots, then "Rooms", "?" and the Sound toggle. A dark
+ * wood plate; ghost-white / candle text at WCAG AA; every control at least
+ * 44 x 44. It sits above the backdrop (z-index 2) and causes no layout shift:
+ * the same items render in every room and state. The bar stays a SINGLE row at
+ * every size (flex-wrap: nowrap); on a phone the action buttons shrink to
+ * 44 x 44 icons rather than wrapping to a second row.
+ * ------------------------------------------------------------------ */
+.room-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: nowrap;
+  width: 100%;
+  max-width: 1100px;
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs) var(--spacing-md);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 2;
+}
+
+.room-bar-manor {
+  background: transparent;
+  color: var(--ghost);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  cursor: pointer;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.room-bar-manor:hover,
+.room-bar-manor:focus {
+  color: var(--candle);
+  background: transparent;
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.room-bar-counter {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--ghost);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  flex: 1 1 auto;
+  text-align: center;
+  min-width: 0;
+}
+
+.room-bar-counter-text {
+  white-space: nowrap;
+}
+
+.room-bar-dots {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.room-bar-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--candle);
+  background: transparent;
+}
+
+.room-bar-dot.is-freed {
+  background: var(--candle);
+}
+
+.room-bar-dot.is-current {
+  box-shadow: 0 0 0 2px var(--candle);
+  background: transparent;
+}
+
+.room-bar-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex: 0 0 auto;
+}
+
+.room-bar-button {
+  background: transparent;
+  color: var(--ghost);
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.room-bar-button:hover,
+.room-bar-button:focus {
+  color: var(--candle);
+  background: transparent;
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.room-bar-help {
+  font-size: 1.1rem;
+}
+
+/* The "Rooms" button shows its word on wide screens; the icon is only for the
+   phone layout, so it is hidden here. */
+.room-bar-button-icon {
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ------------------------------------------------------------------ *
+ * The instruction card (RoomInstructions). A small first line names the room
+ * and the task; the large line is the current step; the lantern sits on the
+ * right. The step line has a reserved min-height so switching between the
+ * states' lines (which wrap to different line-counts) never changes the card's
+ * height — no layout shift (CLS stays 0). The card is kept compact so the
+ * haunted frame clears the fold.
+ * ------------------------------------------------------------------ */
+.room-instructions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  max-width: 1100px;
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs) var(--spacing-lg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  z-index: 2;
+}
+
+.room-instructions-text {
+  min-width: 0;
+}
+
+.room-instructions-meta {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--ghost);
+  margin: 0 0 2px;
+  line-height: var(--line-height-tight);
+}
+
+.room-instructions-name {
+  font-weight: 700;
+  color: var(--candle);
+}
+
+.room-step {
+  font-family: var(--font-ui);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--ghost);
+  margin: 0;
+  line-height: var(--line-height-tight);
+  /* Reserve two lines so shorter step lines do not shrink the card. */
+  min-height: 2.5em;
+}
+
+.room-step:focus {
+  outline: none;
+}
+
+.room-step:focus-visible {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+  border-radius: var(--radius-md);
+}
+
+/* The lantern button: visible "Lantern" word and a small "hint" under it, at
+   least 44 x 44. Glows when stuck help is active. */
+.lantern-button {
+  background: linear-gradient(135deg, var(--gold), var(--candle));
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  min-width: 72px;
+  min-height: 44px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+  flex: 0 0 auto;
+  padding: var(--spacing-xs) var(--spacing-md);
+  color: var(--ink);
+}
+
+.lantern-button svg {
+  width: 24px;
+  height: 24px;
+  stroke: var(--ink);
+  stroke-width: 2;
+  fill: none;
+}
+
+.lantern-button-text {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.lantern-button-hint {
+  font-family: var(--font-ui);
+  font-size: 0.625rem;
+  font-weight: 600;
+  color: var(--ink);
+  opacity: 0.85;
+  line-height: 1;
+}
+
+.lantern-button:hover,
+.lantern-button:focus {
+  transform: translateY(-2px);
+  box-shadow: 0 0 12px var(--candle);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.lantern-button.is-stuck {
+  animation: lantern-stuck-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes lantern-stuck-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(240, 190, 119, 0); }
+  50% { box-shadow: 0 0 18px rgba(240, 190, 119, 0.85); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lantern-button.is-stuck {
+    animation: none;
+    outline: 2px dashed var(--candle);
+    outline-offset: 3px;
+  }
+}
+
+/* The candle ring drawn around the possessed element once the lantern is lit.
+   Absolutely positioned inside the frame from the element's offsets; aria-hidden
+   and non-interactive. A soft glow pulses; under reduced motion it holds still. */
+.possessed-ring {
+  position: absolute;
+  z-index: 4;
+  border: 3px solid var(--candle);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 10px var(--candle);
+  pointer-events: none;
+  animation: possessed-ring-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes possessed-ring-pulse {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+.possessed-ring.is-still {
+  animation: none;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .possessed-ring {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Phone layout (below 600 px). The bar is a single row at most 56 px tall:
+ * "‹ Manor", the counter + dots, then "Rooms", "?" and the Sound toggle as
+ * 44 x 44 icon buttons — each keeps its accessible name (the visible word is
+ * taken out of flow with the visually-hidden pattern, not removed, so screen
+ * readers still read it). The instruction card keeps the step line on the left
+ * and the lantern on the right (never on its own row); the lantern drops its
+ * "hint" sub-label to fit.
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .room-bar {
+    gap: var(--spacing-xs);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    max-height: 56px;
+  }
+
+  .room-bar-manor {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+  }
+
+  .room-bar-counter {
+    gap: 2px;
+    font-size: 0.75rem;
+  }
+
+  .room-bar-dots {
+    gap: 4px;
+  }
+
+  .room-bar-dot {
+    width: 7px;
+    height: 7px;
+  }
+
+  .room-bar-actions {
+    gap: var(--spacing-xs);
+  }
+
+  /* The action buttons become square 44 x 44 icon buttons. */
+  .room-bar-button {
+    width: 44px;
+    min-width: 44px;
+    padding: 0;
+  }
+
+  /* "Rooms": hide the word (kept in the a11y tree via visually-hidden) and show
+     the grid icon instead. The button's accessible name also comes from its
+     aria-label, so the name is never lost. */
+  .room-bar-button-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .room-bar-button-icon {
+    display: inline-flex;
+  }
+
+  /* The Sound toggle keeps its speaker icon; its "Sound" word is taken out of
+     flow (visually hidden) so the accessible name stays while the row stays
+     tight. */
+  .sound-toggle.sound-toggle-in-bar {
+    min-width: 44px;
+    width: 44px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .sound-toggle.sound-toggle-in-bar .sound-toggle-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* The instruction card stays a two-column grid: the text (room/task + step)
+     on the left and the lantern on the right, never a third row. */
+  .room-instructions {
+    grid-template-columns: 1fr auto;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-xs) var(--spacing-md);
+  }
+
+  .room-step {
+    font-size: 1rem;
+    /* Three lines reserved at the narrow size (the longest step wraps more). */
+    min-height: 3.6em;
+  }
+
+  /* On the phone the lantern is a compact square beside the step line; its
+     "hint" sub-label is dropped to keep the card short. */
+  .lantern-button {
+    min-width: 44px;
+    padding: var(--spacing-xs);
+    gap: 0;
+  }
+
+  .lantern-button-hint {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * The Rooms dialog (native modal). Twelve rooms as links; freed rooms show
+ * their pattern. All controls at least 44 px tall.
+ * ------------------------------------------------------------------ */
+.rooms-dialog {
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  color: var(--ghost);
+  padding: 0;
+  max-width: 28rem;
+  width: calc(100% - 2 * var(--spacing-lg));
+}
+
+.rooms-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.rooms-dialog-inner {
+  padding: var(--spacing-xl);
+}
+
+.rooms-dialog-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--candle);
+  margin: 0 0 var(--spacing-lg);
+}
+
+.rooms-dialog-list {
+  list-style: none;
+  margin: 0 0 var(--spacing-lg);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.rooms-dialog-link {
+  display: flex;
+  flex-direction: column;
+  min-height: 44px;
+  justify-content: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  color: var(--ghost);
+  text-decoration: none;
+}
+
+.rooms-dialog-link:hover,
+.rooms-dialog-link:focus {
+  color: var(--candle);
+  text-decoration: none;
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.rooms-dialog-link[aria-current='page'] {
+  box-shadow: inset 0 0 0 1px var(--candle);
+}
+
+.rooms-dialog-roomname {
+  font-weight: 700;
+}
+
+.rooms-dialog-freed {
+  font-size: var(--font-size-sm);
+  color: var(--candle);
+}
+
+.rooms-dialog-close {
+  background: transparent;
+  color: var(--ghost);
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rooms-dialog-close:hover,
+.rooms-dialog-close:focus {
+  color: var(--candle);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The How-to-play popover behind "?".
+ * ------------------------------------------------------------------ */
+.how-to-play {
+  position: absolute;
+  top: calc(100% + var(--spacing-sm));
+  right: var(--spacing-md);
+  z-index: 20;
+  width: min(22rem, calc(100vw - 2 * var(--spacing-lg)));
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.how-to-play-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--candle);
+  margin: 0 0 var(--spacing-md);
+}
+
+.how-to-play-list {
+  list-style: none;
+  margin: 0 0 var(--spacing-md);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.how-to-play-step {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.how-to-play-step-title {
+  font-weight: 700;
+  color: var(--candle);
+}
+
+.how-to-play-step-body {
+  color: var(--ghost);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.how-to-play-close {
+  background: transparent;
+  color: var(--ghost);
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-family: var(--font-ui);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.how-to-play-close:hover,
+.how-to-play-close:focus {
+  color: var(--candle);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
 /* Spell cards container */
+.spell-cards-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
 .spell-cards {
   display: flex;
   gap: var(--spacing-lg);
   justify-content: center;
   flex-wrap: wrap;
-  margin: var(--spacing-2xl) 0;
+  margin: var(--spacing-xl) 0 var(--spacing-md);
   position: relative;
   z-index: 2;
 }
@@ -174,7 +749,26 @@
   }
 }
 
-/* Individual spell card - now a real button */
+/* The inline wrong-card reason, right under the cards: the visible copy of the
+   whisper, announced politely from the same node (so it is spoken and shown by
+   one element). On a dark plate in ghost white, AA over any part of the
+   backdrop. */
+.spell-card-reason {
+  margin: 0 auto var(--spacing-lg);
+  max-width: 44rem;
+  padding: 0.55rem 1.1rem;
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--manor-night) 88%, transparent);
+  color: var(--ghost);
+  font-family: var(--font-display);
+  font-size: 1.2rem;
+  font-style: italic;
+  line-height: var(--line-height-tight);
+  text-align: center;
+}
+
+/* Individual spell card - a real button, at least 44 x 44 (it is far larger). */
 .spell-card {
   background-color: var(--parchment);
   border: 2px solid var(--bronze);
@@ -182,6 +776,8 @@
   padding: var(--spacing-lg);
   width: 180px;
   height: 220px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -252,12 +848,10 @@
   opacity: 0.7;
 }
 
-/* Whisper region for feedback.
-   Positioned above the room's backdrop: `.room-wall` is absolutely
-   positioned, so a static region was painted under it and neither the
-   instruction nor the whispered hint showed (7 Nov review). Both lines sit
-   on dark plates in ghost white, so they pass AA over any part of the
-   painted backdrop. */
+/* Whisper region for feedback. The LiveRegion renders this with the
+   visually-hidden class, so it never shows as a strip and never shifts the
+   page; these rules remain only for the rare case the region is rendered
+   visibly in a prototype. */
 .spell-card-whisper-region {
   position: relative;
   z-index: 2;
@@ -269,6 +863,25 @@
   min-height: 2em;
   margin: var(--spacing-md) auto;
   text-align: center;
+}
+
+/* The hidden live region: out of flow (a 1 px clipped box), so changing its
+   words never moves the page — the single remaining source of layout shift
+   during play is removed. It keeps announcing to assistive technology. This
+   two-class selector beats the single-class rule above regardless of import
+   order. */
+.spell-card-whisper-region.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  min-height: 0;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  display: block;
 }
 
 .live-announcement {
@@ -315,84 +928,6 @@
 @media (prefers-reduced-motion: reduce) {
   .spell-card-whisper {
     animation: none;
-  }
-}
-
-/* Ghost inline SVG */
-.ghost {
-  fill: none;
-  stroke: var(--ghost);
-  stroke-width: 1.5;
-  opacity: 0.85;
-  filter: drop-shadow(0 0 8px rgba(244, 239, 230, 0.3));
-}
-
-/* Possessed element effects */
-.possessed {
-  position: relative;
-  animation: flicker 0.5s ease-in-out;
-}
-
-@keyframes flicker {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.85; }
-}
-
-.possessed::before {
-  content: '';
-  position: absolute;
-  top: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 12px;
-  height: 12px;
-  background: rgba(240, 190, 119, 0.3);
-  border-radius: 50%;
-  animation: mist-puff 4s ease-out infinite;
-}
-
-@keyframes mist-puff {
-  0% {
-    opacity: 0.5;
-    transform: translateX(-50%) translateY(0);
-  }
-  50% {
-    opacity: 0.3;
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-20px);
-  }
-}
-
-.possessed svg {
-  position: relative;
-  filter: drop-shadow(0 0 4px rgba(240, 190, 119, 0.4));
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .possessed {
-    animation: none;
-    outline: 2px dashed var(--candle);
-    outline-offset: 2px;
-    position: relative;
-  }
-
-  /* Only where the room has no label of its own: rooms 1 and 2 render a .stirs-label beside their ghost, and this
-     fallback drew a second one under the outline (6 Nov, room 2's reduced-motion shot). */
-  .possessed:not(:has(.stirs-label))::after {
-    content: 'Something stirs here';
-    position: absolute;
-    font-size: 0.75rem;
-    color: var(--candle);
-    white-space: nowrap;
-    bottom: -20px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-
-  .possessed::before {
-    display: none;
   }
 }
 
@@ -472,8 +1007,8 @@
   background: transparent;
   border: 2px solid var(--ink);
   border-radius: var(--radius-md);
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -493,9 +1028,7 @@
   outline-offset: 1px;
 }
 
-/* Split view (Before/After) — the standalone look-page prototype. The engine
-   Room uses the `.comparison*` rules at the end of this file; these `.split*`
-   rules are kept for the look page. */
+/* Split view (Before/After) — the standalone look-page prototype. */
 .split {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -611,17 +1144,6 @@
 
 /* ------------------------------------------------------------------ *
  * The Before/After comparison wipe (engine Room, Requirement 9).
- *
- * A classic before/after wipe: the haunted preview and the honest twin are
- * stacked in ONE grid cell, so the box is as tall as the taller version and
- * nothing shifts as the reveal moves. The haunted preview is underneath; the
- * honest twin is on top, revealed from the left edge up to `--split` with a
- * clip-path. A candle-colour divider with a round grip marks the reveal edge;
- * a "Haunted" tag sits top-right and a "Honest" tag top-left, each visible only
- * on its own side of the divider.
- *
- * These `.comparison*` classes are the engine's own; the standalone look-page
- * prototype keeps using the `.split*` rules above, untouched.
  * ------------------------------------------------------------------ */
 .comparison {
   display: grid;
@@ -633,22 +1155,14 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
   position: relative;
   z-index: 2;
-  /* Vertical swipes still scroll the page on a phone; only horizontal drags
-     move the divider (none trapped the scroll over a tall comparison). */
   touch-action: pan-y;
 }
 
-/* Both versions occupy the same single cell, so the box takes the height of
-   the taller one and neither shifts the layout. */
 .comparison-cell {
   grid-area: 1 / 1;
   min-width: 0;
   padding: var(--spacing-xl);
   position: relative;
-  /* Each layer is its own stacking context, so a z-indexed element inside the
-     haunted preview (a banner, a ghost, a modal) can never paint over the
-     honest twin (found 7 Nov: room 12's account card and room 1's banner
-     showed through at 100). */
   isolation: isolate;
 }
 
@@ -658,9 +1172,6 @@
   color: var(--ghost);
 }
 
-/* The honest twin is drawn on top and revealed from the left up to `--split`.
-   The clip-path means the clipped-away part receives no pointer events, so the
-   haunted preview underneath is what shows on the right side. */
 .comparison-honest {
   z-index: 1;
   background-color: var(--parchment);
@@ -669,18 +1180,12 @@
   clip-path: inset(0 calc(100% - var(--split, 50%)) 0 0);
 }
 
-/* The corner tags. The "Haunted" tag at top-right shows only over the haunted
-   side because the honest layer (on top) covers the left region; the "Honest"
-   tag at top-left is inside the honest layer, so it is clipped to the honest
-   side with it. */
 .comparison-tag {
   position: absolute;
   top: var(--spacing-md);
   z-index: 3;
   padding: 0.15rem 0.5rem;
   border-radius: var(--radius-sm);
-  /* Its own dark plate: on a phone the tag sat over the page's parchment and
-     ghost-white text read at 2:1 (7 Nov, the pixel contrast check). */
   background: color-mix(in srgb, var(--manor-night) 88%, transparent);
   color: var(--ghost);
   font-size: 0.75rem;
@@ -698,25 +1203,6 @@
   left: var(--spacing-md);
 }
 
-/* The reveal edge. Keeping the goal of the last change — move the edge by
-   transform, never by `left`, so easing `--split` from 0 to the rest point
-   composites and never reflows (no per-step layout shift; the honest layer
-   already wipes with a `clip-path`, which does not shift) — but placing it
-   correctly this time.
-
-   The divider is a transparent, full-width TRACK spanning the whole box
-   (left/right/top/bottom: 0), moved by `transform: translateX(var(--split))`.
-   Because the track is as wide as the box, a percentage in translateX resolves
-   against the box's width, so translateX(50%) moves the track half the box —
-   the earlier bug moved a 2px element by 50% of its own 2px (1px), pinning the
-   edge at the left whatever the slider said. The track takes no pointer events;
-   the slider and the drag carry the real control.
-
-   The visible 2px candle edge and its glow are drawn as the track's ::before at
-   `left: -1px`, so the edge is centred on the split exactly as the old
-   `margin-left: -1px` did. The round grip sits at the track's left edge
-   (`left: 0`), centred on it by its own `translate(-50%, -50%)`, so it rides
-   along with the edge. */
 .comparison-divider {
   position: absolute;
   left: 0;
@@ -753,7 +1239,6 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
 }
 
-/* Below 600px the box is full width; the same wipe works unchanged. */
 @media (max-width: 600px) {
   .comparison {
     max-width: none;
@@ -766,8 +1251,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .comparison-honest {
-    /* The reveal is driven by JS state, not a CSS transition; the rule is kept
-       explicit so no transition sneaks in under reduced motion. */
     transition: none;
   }
 }
@@ -799,18 +1282,10 @@
 }
 
 /* ------------------------------------------------------------------ *
- * The Sound toggle: one button on every page, top-right inside the manor
- * frame. Colours come only from tokens; text meets WCAG AA contrast; the
- * focus ring is a 3px candle outline on the dark surface. Under reduced
- * motion it holds still (the sound itself keeps playing — sound is not
- * motion). The 44x44 target and the top-right placement keep it clear of the
- * task bar, the possessed element, the ghost and the spell cards at both
- * 1920x1080 and 412px wide: the toggle sits in the top-right corner and the
- * routed content (task bar, frame, cards) flows below and to the left of it.
+ * The Sound toggle. On most pages it floats top-right inside the manor frame;
+ * on the room route it renders inline inside the bar (`.sound-toggle-in-bar`).
  * ------------------------------------------------------------------ */
 .sound-toggle {
-  /* Scrolls with the page like the Back button (fixed, it sat over the
-     stacked spell cards on a phone once the page scrolled; 7 Nov review). */
   position: absolute;
   top: var(--spacing-md);
   right: var(--spacing-md);
@@ -830,6 +1305,14 @@
   font-weight: 700;
   cursor: pointer;
   transition: box-shadow var(--duration-hover) var(--easing);
+}
+
+/* Inline in the room bar: not floated, flows with the other bar actions. */
+.sound-toggle-in-bar {
+  position: static;
+  top: auto;
+  right: auto;
+  z-index: auto;
 }
 
 .sound-toggle svg {
@@ -854,7 +1337,6 @@
   outline-offset: 2px;
 }
 
-/* aria-pressed=false (sound off): a dimmer glyph, still AA against the wood. */
 .sound-toggle[aria-pressed='false'] {
   color: var(--gold);
 }
