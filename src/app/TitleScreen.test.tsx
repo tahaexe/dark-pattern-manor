@@ -4,6 +4,7 @@ import axe from 'axe-core';
 import TitleScreen from './TitleScreen';
 import { __resetForTests, completeRoom } from '../engine/progress';
 import { roomSlugs } from '../engine/registry';
+import { TITLE_STEPS } from './howToPlay';
 
 const SLUGS = roomSlugs();
 
@@ -84,6 +85,79 @@ describe('TitleScreen', () => {
     expect(heading.tabIndex).toBe(-1);
     heading.focus();
     expect(document.activeElement).toBe(heading);
+  });
+
+  describe('the three steps of play', () => {
+    it('shows the three steps in order, each with its title and line', () => {
+      const { container } = render(<TitleScreen />);
+      const items = container.querySelectorAll('.title-steps .title-step');
+      expect(items.length).toBe(3);
+      TITLE_STEPS.forEach((step, i) => {
+        const el = items[i];
+        expect(el.querySelector('.title-step-title')!.textContent).toBe(step.title);
+        // Raw textContent keeps the non-breaking space the source carries.
+        expect(el.querySelector('.title-step-line')!.textContent).toBe(step.line);
+      });
+    });
+
+    it('each step line carries a non-breaking space before its last word (no widow)', () => {
+      const { container } = render(<TitleScreen />);
+      const lines = container.querySelectorAll('.title-step-line');
+      expect(lines.length).toBe(3);
+      lines.forEach((el) => {
+        const text = el.textContent || '';
+        const lastNbsp = text.lastIndexOf('\u00A0');
+        expect(lastNbsp).toBeGreaterThan(-1);
+        // No plain space after the last non-breaking space, so the final word
+        // can never wrap onto a line of its own.
+        expect(text.slice(lastNbsp + 1)).not.toContain(' ');
+      });
+    });
+
+    it('shows the exact step titles and lines word for word', () => {
+      render(<TitleScreen />);
+      // @testing-library normalizes the rendered non-breaking spaces to plain
+      // spaces, so the visible words match these plain-space strings.
+      expect(screen.getByText('Spot the trick')).toBeDefined();
+      expect(screen.getByText('One part of the page is haunted. Tap it.')).toBeDefined();
+      expect(screen.getByText('Name it')).toBeDefined();
+      expect(screen.getByText('Pick the card that names the trick.')).toBeDefined();
+      expect(screen.getByText('Set the page free')).toBeDefined();
+      expect(screen.getByText('See the honest page and finish your task.')).toBeDefined();
+    });
+
+    it('each step drawing is aria-hidden (decorative)', () => {
+      const { container } = render(<TitleScreen />);
+      const glyphs = container.querySelectorAll('.title-step-glyph');
+      expect(glyphs.length).toBe(3);
+      glyphs.forEach((g) => {
+        expect(g.getAttribute('aria-hidden')).toBe('true');
+        expect(g.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true');
+      });
+    });
+
+    it('the steps show alongside the "Enter the manor" button, which still starts in one tap', () => {
+      const { container } = render(<TitleScreen />);
+      expect(container.querySelector('.title-steps')).not.toBeNull();
+      const primary = screen.getByText('Enter the manor') as HTMLAnchorElement;
+      expect(primary.getAttribute('href')).toBe('#/room/1');
+    });
+
+    it('the steps still show in the in-progress state without removing the controls', () => {
+      complete(3);
+      const { container } = render(<TitleScreen />);
+      expect(container.querySelectorAll('.title-step').length).toBe(3);
+      expect(screen.getByText('Continue: The Parlour')).toBeDefined();
+      expect(screen.getByText('Start from the Foyer')).toBeDefined();
+    });
+
+    it('the steps still show in the complete state without removing the controls', () => {
+      complete(12);
+      const { container } = render(<TitleScreen />);
+      expect(container.querySelectorAll('.title-step').length).toBe(3);
+      expect(screen.getByText('The manor is quiet')).toBeDefined();
+      expect(screen.getByText('Walk the rooms again')).toBeDefined();
+    });
   });
 
   async function expectNoViolations(container: HTMLElement) {

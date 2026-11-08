@@ -72,6 +72,18 @@ function summariseWalk(label, text) {
   let fails = 0;
   for (const r of parsed.report || []) {
     if (!r.room) {
+      // The title entry (checked once per size): report its button box and any
+      // first-screen failure. The ending entry reports its checklist count.
+      if (r.title !== undefined) {
+        const bad = r.fail && r.fail.length ? ` FAIL: ${r.fail.join(' | ')}` : '';
+        if (r.fail && r.fail.length) fails += r.fail.length;
+        console.log(
+          `title: button=${r.checks?.['button box']} bottom=${r.checks?.['button bottom']}` +
+            ` vp=${r.checks?.['viewport']} below=${r.checks?.['space below button']}` +
+            ` onFirstScreen=${r.checks?.['button on first screen']}${bad || ' ok'}`,
+        );
+        continue;
+      }
       if (r.ending !== undefined) console.log(`ending: ${r.checklistItems} items (twelve=${r.twelve})`);
       continue;
     }

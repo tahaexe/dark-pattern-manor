@@ -150,4 +150,33 @@ describe('room data properties (live registry)', () => {
       expect(room.guide.eu.url.trim()).not.toBe('');
     }
   });
+
+  it('exactly one room (room 1, the Foyer) defines coach marks', async () => {
+    const rooms = await loadAllRooms();
+    const withCoach = rooms.filter((r) => Array.isArray(r.coach) && r.coach.length > 0);
+    expect(withCoach).toHaveLength(1);
+    expect(withCoach[0].id).toBe(1);
+    expect(withCoach[0].slug).toBe('gravemoor-gazette');
+  });
+
+  it("room 1's coach marks cover spot, name and free with non-empty target and body", async () => {
+    const rooms = await loadAllRooms();
+    const foyer = rooms.find((r) => r.id === 1)!;
+    expect(foyer.coach).toBeDefined();
+    const steps = foyer.coach!.map((m) => m.step);
+    expect(steps).toEqual(['spot', 'name', 'free']);
+    for (const mark of foyer.coach!) {
+      expect(['spot', 'name', 'free']).toContain(mark.step);
+      expect(mark.target.trim()).not.toBe('');
+      expect(mark.body.trim()).not.toBe('');
+    }
+  });
+
+  it('no room other than room 1 defines a coach field', async () => {
+    const rooms = await loadAllRooms();
+    for (const room of rooms) {
+      if (room.id === 1) continue;
+      expect(room.coach).toBeUndefined();
+    }
+  });
 });

@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'preact/hooks';
 import type { ComponentType } from 'preact';
-import type { RoomData, SpellCard } from './types';
+import type { CoachStep, RoomData, SpellCard } from './types';
 import { initialState, reduce, stepLine } from './machine';
 import type { RoomEvent, RoomState } from './machine';
-import { completeRoom } from './progress';
+import { areTipsSkipped, completeRoom, loadProgress, skipTips } from './progress';
 import { prefetch } from './registry';
 import RoomBar from '../ui/RoomBar';
 import RoomInstructions from '../ui/RoomInstructions';
@@ -11,6 +11,7 @@ import SpellPicker from '../ui/SpellPicker';
 import LiveRegion from '../ui/LiveRegion';
 import BeforeAfterSlider from '../ui/BeforeAfterSlider';
 import GuideCard from '../ui/GuideCard';
+import CoachMarks from '../ui/CoachMarks';
 import type { AtmosphereProps } from '../ui/Atmosphere';
 import {
   cold,
@@ -103,6 +104,19 @@ const STATE_HEADING: Record<RoomState['tag'], string> = {
 
 const HAUNTED_TAGS: ReadonlyArray<RoomState['tag']> = ['haunted', 'inspecting', 'picking'];
 
+/**
+ * The coach step for the current state, or null where no mark shows. The spot
+ * mark covers haunted/inspecting, the name mark covers picking, the free mark
+ * covers honest/done; `named` (the brief flee) shows no mark so nothing
+ * competes with the ghost's exit.
+ */
+function coachStepFor(tag: RoomState['tag']): CoachStep | null {
+  if (tag === 'haunted' || tag === 'inspecting') return 'spot';
+  if (tag === 'picking') return 'name';
+  if (tag === 'honest' || tag === 'done') return 'free';
+  return null;
+}
+
 /** The box the ring draws around the possessed element, in frame coordinates. */
 interface RingBox {
   top: number;
@@ -167,11 +181,23 @@ export default function Room({
   const prevTag = useRef<RoomState['tag'] | null>(null);
 
   const frameRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<HTMLDivElement>(null);
   const comparisonRef = useRef<HTMLDivElement>(null);
   const honestLayerRef = useRef<HTMLDivElement>(null);
   const continueRef = useRef<HTMLAnchorElement>(null);
   const draggingRef = useRef(false);
   const sweptRef = useRef(false);
+
+  // First-minute tutorial (room 1 only): the coach marks show while the room is
+  // not done and the player has not skipped the tips. `completedAtMount` is read
+  // once, so a later visit to an unfinished room still coaches, but a finished
+  // room never does. The skip choice lives in the persisted progress.
+  const [tipsSkippedState, setTipsSkipped] = useState(() => areTipsSkipped());
+  const completedAtMount = useRef(loadProgress().completed.includes(room.slug));
+  const onSkipTips = () => {
+    skipTips();
+    setTipsSkipped(true);
+  };
 
   // Hold `named` for the ghost's flee, then advance to honest with no input.
   useEffect(() => {
@@ -285,6 +311,41 @@ export default function Room({
   const signsActive = state.tag === 'haunted' || state.tag === 'inspecting' || fleeing;
   const showSplit = state.tag === 'honest' || state.tag === 'done';
   const moment = momentOf(state);
+
+  // The coach marks apply only to room 1 (the room that carries `coach`), while
+  // the room is neither already completed on entry nor completed this session,
+  // and the tips are not skipped.
+  const coachApplies =
+    !!room.coach &&
+    room.coach.length > 0 &&
+    !completedAtMount.current &&
+    !doneRef.current &&
+    !tipsSkippedState;
+  const coachStep = coachStepFor(state.tag);
+  const activeMark =
+    coachApplies && coachStep ? (room.coach!.find((m) => m.step === coachStep) ?? null) : null;
+
+  // Announce each coach step's body once, through the shared polite region. We
+  // pass `extra` to LiveRegion only on the frame the step changes (tracked by a
+  // ref), so the coach line is spoken once per step, not repeated while it holds.
+  const lastCoachStep = useRef<CoachStep | null>(null);
+  const [coachExtra, setCoachExtra] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!activeMark || !coachStep) {
+      lastCoachStep.current = coachStep ?? null;
+      setCoachExtra(undefined);
+      return;
+    }
+    if (lastCoachStep.current !== coachStep) {
+      lastCoachStep.current = coachStep;
+      setCoachExtra(activeMark.body);
+      // Clear after a tick so a later re-render of the same step does not
+      // re-announce; the region keeps the spoken text until the next change.
+      const id = setTimeout(() => setCoachExtra(undefined), 1200);
+      return () => clearTimeout(id);
+    }
+    return undefined;
+  }, [activeMark, coachStep]);
 
   // The opening sweep (~0.8 s), once per room; held at rest under reduced motion.
   useLayoutEffect(() => {
@@ -408,6 +469,7 @@ export default function Room({
   return (
     <div
       class="room-scene"
+      ref={sceneRef}
       data-moment={moment?.name}
       data-moment-key={moment ? String(moment.key) : undefined}
       data-fleeing={fleeing ? 'true' : undefined}
@@ -431,7 +493,7 @@ export default function Room({
 
       <h2 class="visually-hidden">{STATE_HEADING[state.tag]}</h2>
 
-      <LiveRegion state={state} />
+      <LiveRegion state={state} extra={coachExtra} />
 
       {!showSplit ? (
         <div class="manor-frame" ref={frameRef}>
@@ -529,6 +591,19 @@ export default function Room({
 
           <GuideCard pattern={room.pattern} guide={room.guide} />
         </>
+      ) : null}
+
+      {/* The first-minute coach marks: room 1 only, while not done and not
+          skipped. A positioned overlay beside the current step's target that
+          never moves the page, covers the target, or takes focus. */}
+      {activeMark ? (
+        <CoachMarks
+          marks={room.coach!}
+          step={coachStep!}
+          sceneRef={sceneRef}
+          onSkip={onSkipTips}
+          reducedMotion={reducedMotion}
+        />
       ) : null}
     </div>
   );

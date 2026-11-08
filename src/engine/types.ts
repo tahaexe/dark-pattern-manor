@@ -76,6 +76,24 @@ export interface HonestProps {
 /** Exactly three spell cards. */
 export type SpellCards = [SpellCard, SpellCard, SpellCard];
 
+/** The loop step a coach mark belongs to. */
+export type CoachStep = 'spot' | 'name' | 'free';
+
+/**
+ * One tutorial coach mark. Set on room 1 only (the Foyer). Each mark belongs to
+ * one loop step, points at an element found by `target` within the room scene,
+ * and carries the words shown on the mark (also spoken once through the polite
+ * live region when its step begins). No other room defines `coach`.
+ */
+export interface CoachMark {
+  /** The loop step this mark belongs to. */
+  step: CoachStep;
+  /** CSS selector for the element the mark points at, within the room scene. */
+  target: string;
+  /** The mark's body text (and its once-per-step announcement). */
+  body: string;
+}
+
 /**
  * The single typed object describing one room. The engine renders every room
  * from this object and hard-codes nothing brand- or pattern-specific.
@@ -104,4 +122,10 @@ export interface RoomData {
   /** Exactly three cards: one correct, one relative, one different. */
   cards: SpellCards;
   guide: GuideEntry;
+  /**
+   * Tutorial coach marks, set on room 1 only. Absent on every other room. When
+   * present, the engine shows one mark per loop step while the room is not done
+   * and the player has not skipped the tips.
+   */
+  coach?: ReadonlyArray<CoachMark>;
 }

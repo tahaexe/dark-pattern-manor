@@ -3,6 +3,8 @@ import {
   loadProgress,
   completeRoom,
   doneCount,
+  areTipsSkipped,
+  skipTips,
   __resetForTests,
 } from './progress';
 
@@ -68,5 +70,53 @@ describe('progress store', () => {
       }
       __resetForTests();
     }
+  });
+
+  describe('the first-minute tips flag', () => {
+    it('is not skipped by default', () => {
+      expect(areTipsSkipped()).toBe(false);
+      expect(loadProgress().tipsSkipped).toBe(false);
+    });
+
+    it('turns on after skipTips and survives a reload', () => {
+      skipTips();
+      expect(areTipsSkipped()).toBe(true);
+      // A fresh read (reload) still sees it.
+      expect(loadProgress().tipsSkipped).toBe(true);
+    });
+
+    it('is monotonic and does not disturb completed/unlocked', () => {
+      completeRoom('gravemoor-gazette', 'inkbone-books');
+      skipTips();
+      skipTips();
+      const p = loadProgress();
+      expect(p.tipsSkipped).toBe(true);
+      expect(p.completed).toEqual(['gravemoor-gazette']);
+      expect(p.unlocked).toEqual(['inkbone-books']);
+      // Completing another room leaves the flag on.
+      completeRoom('inkbone-books', 'grimsupper');
+      expect(areTipsSkipped()).toBe(true);
+    });
+
+    it('works when localStorage is unavailable (in-memory fallback)', () => {
+      const original = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+      Object.defineProperty(globalThis, 'localStorage', {
+        configurable: true,
+        get() {
+          throw new Error('localStorage blocked');
+        },
+      });
+      try {
+        __resetForTests();
+        expect(areTipsSkipped()).toBe(false);
+        expect(() => skipTips()).not.toThrow();
+        expect(areTipsSkipped()).toBe(true);
+      } finally {
+        if (original) {
+          Object.defineProperty(globalThis, 'localStorage', original);
+        }
+        __resetForTests();
+      }
+    });
   });
 });

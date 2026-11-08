@@ -1,0 +1,118 @@
+@import '../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * The first-minute coach marks (room 1 only). A small positioned overlay that
+ * points at the current step's target — the possessed element, the spell
+ * cards, then the comparison. It is absolutely anchored to the scene's
+ * top-left (.room-scene is position: relative) and placed purely with a CSS
+ * transform, so it takes no layout space and moving it never contributes to
+ * cumulative layout shift (CLS stays 0). It sits above the frame and the
+ * possessed ring but below the How-to-play popover. A dark wood plate with
+ * ghost/candle text at WCAG AA; it sits BESIDE its target (above it, or below
+ * when there is no room above), never over it, so it never covers the element
+ * it points at and never blocks a tap on it. A small arrow points at the
+ * target. Only the "Skip the tips" button is focusable; the mark itself takes
+ * no focus.
+ * ------------------------------------------------------------------ */
+.coach-mark {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 15;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  animation: coach-mark-in 200ms var(--easing);
+  will-change: transform;
+}
+
+.coach-mark.is-still {
+  animation: none;
+}
+
+/* While the plate is being measured (before its position has settled) it is
+   laid out at full size — including the skip button, so its measured height is
+   the real height — but kept invisible, so the refining moves happen before
+   anything is painted and never register as a visible layout shift. A
+   visibility:hidden element is out of the Tab order and the a11y tree, so the
+   skip button inside it cannot be reached while invisible. */
+.coach-mark.is-measuring {
+  visibility: hidden;
+  animation: none;
+}
+
+@keyframes coach-mark-in {
+  from {
+    opacity: 0.4;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* A small candle-coloured arrow pointing from the plate toward its target: it
+   points down when the plate sits above the target, up when it sits below. */
+.coach-mark-arrow {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: var(--manor-wood);
+  border-left: 2px solid var(--bronze);
+  border-top: 2px solid var(--bronze);
+  left: 50%;
+}
+
+.coach-mark-below .coach-mark-arrow {
+  top: -8px;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.coach-mark-above .coach-mark-arrow {
+  bottom: -8px;
+  transform: translateX(-50%) rotate(225deg);
+}
+
+.coach-mark-body {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--ghost);
+  line-height: var(--line-height-normal);
+}
+
+.coach-mark-skip {
+  align-self: flex-start;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: transparent;
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  color: var(--candle);
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.coach-mark-skip:hover,
+.coach-mark-skip:focus {
+  color: var(--gold);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .coach-mark {
+    animation: none;
+  }
+}

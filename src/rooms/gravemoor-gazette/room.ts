@@ -7,6 +7,10 @@ import './room.css';
  * Room 1 — The Foyer. The fictional news brand The Gravemoor Gazette at
  * gravemoor-gazette.manor, possessed by Visual interference: the "Reject all"
  * choice is a faint text link beside a bright "Accept all" button.
+ *
+ * Room 1 is the tutorial: it alone carries a `coach` field, so the engine shows
+ * one skippable coach mark per loop step (spot → name → free) while the room is
+ * not done and the tips are not skipped. No other room defines `coach`.
  */
 const room: RoomData = {
   id: 1,
@@ -49,6 +53,19 @@ const room: RoomData = {
     },
     tip: 'Find the quiet option before you click the loud one; "Reject all" is often there, just pale.',
   },
+  coach: [
+    { step: 'spot', target: '#foyer-reject', body: 'This part is tricking you. Tap it.' },
+    {
+      step: 'name',
+      target: '.spell-cards',
+      body: 'Pick the card that names the trick. A wrong card costs nothing.',
+    },
+    {
+      step: 'free',
+      target: '.comparison',
+      body: 'Drag the line to compare, then finish your task on the honest page.',
+    },
+  ],
 };
 
 export default room;

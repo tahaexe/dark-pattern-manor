@@ -143,9 +143,10 @@ export default function ClassroomPage() {
         <p class="classroom-lead">
           <strong>A free browser game for one class period.</strong> Twelve haunted rooms, each a
           familiar web page with one ghost in it: a real dark pattern. Students spot the trick, name
-          it, and watch the page turn honest. No sign-up, no ads, no tracking; progress is kept only
-          in the student's own browser. It works on school laptops, tablets and phones, by mouse,
-          touch, keyboard or screen reader.
+          it, and set the page free — the page turns honest beside its haunted twin, and they finish
+          the task on the honest page. Stuck on a room? The lantern lights the trick. No sign-up, no
+          ads, no tracking; progress is kept only in the student's own browser. It works on school
+          laptops, tablets and phones, by mouse, touch, keyboard or screen reader.
         </p>
 
         <p class="classroom-para">

@@ -13,6 +13,11 @@
 // pointer path all the way to `done` is exercised and a comparison that
 // captures a control's click (the pointer dead-end bug) is caught.
 //
+// Title: before the rooms, the walk visits the title and confirms the primary
+// "Enter the manor" button is fully inside the viewport at this size, so a
+// newcomer sees it on the first screen and one tap starts the game. A button
+// pushed below the fold is a failure (via the pure buttonFullyInViewport rule).
+//
 // First sight: on entry each room is measured against the first-sight rule
 // (at least half the possessed element's box and at least 44 px of its height
 // inside the viewport) AND the frame-top rule (the live haunted frame's top at
@@ -22,6 +27,13 @@
 // Target size: the engine's own controls (the bar buttons, the lantern, the
 // spell cards, the slider, the continue link, the dialog controls) must be at
 // least 44 x 44; the possessed element's tap area at least 24 x 24.
+//
+// Room 1 tutorial: room 1 alone carries coach marks. The walk checks, at each
+// step, that the step's `.coach-mark` is visible and does not cover its target
+// (document.elementFromPoint at the target's centre is the target, not the
+// mark), and that clicking "Skip the tips" removes the marks. No other room has
+// coach marks, so the check runs for room 1 only; first sight on entry is
+// unchanged and still passes with the first coach mark showing.
 //
 // Next-room time: after the room is freed, the walk clicks the continue link
 // and RECORDS (does not fail on) how long until the next room's instruction is
@@ -52,6 +64,7 @@ import {
   TARGET_MIN,
   POSSESSED_MIN,
 } from './firstsight.mjs';
+import { buttonFullyInViewport } from './title.mjs';
 
 const ROOM_READY_TIMEOUT_MS = 15000;
 const ROOM_POLL_MS = 100;
@@ -59,6 +72,30 @@ const ROOM_SETTLE_MS = 1500;
 
 /** The room name shown in the instruction card, or null when no room renders. */
 const ROOM_TITLE = "(document.querySelector('.room-instructions-name') || {}).textContent || null";
+
+/**
+ * The title's primary "Enter the manor" button box and the viewport, so the
+ * walk can confirm a newcomer sees the button on the first screen (one tap
+ * starts the game). Returns null when the button is not present (e.g. once the
+ * manor is complete, when the primary label reads differently).
+ */
+const TITLE_BUTTON_BOX = `(() => {
+  const b = [...document.querySelectorAll('.title-button')].find(
+    (x) => /Enter the manor/.test(x.textContent || ''),
+  );
+  if (!b) return null;
+  const r = b.getBoundingClientRect();
+  return {
+    left: r.left,
+    top: r.top,
+    right: r.right,
+    bottom: r.bottom,
+    width: r.width,
+    height: r.height,
+    vw: innerWidth,
+    vh: innerHeight,
+  };
+})()`;
 
 /** A snapshot of the page for roomReadiness. */
 const ROOM_STATE = `(() => {
@@ -154,6 +191,37 @@ const FRAME_TOP = `(() => {
   );
   if (!frame) return null;
   return frame.getBoundingClientRect().top;
+})()`;
+
+/**
+ * Room 1 coach-mark probe: is the coach mark for the current step visible, and
+ * does it leave its target uncovered? It reads the `.coach-mark`, scrolls its
+ * target into view, and checks `document.elementFromPoint` at the target's
+ * centre is the target (or inside it) — not the coach mark. Returns the mark's
+ * data-step, whether it is visible, and whether the target is uncovered.
+ */
+const COACH_MARK_HIT = (targetSel) => `(() => {
+  const mark = document.querySelector('.coach-mark');
+  const markVisible = !!(mark && mark.getClientRects().length && getComputedStyle(mark).display !== 'none');
+  const target = document.querySelector(${JSON.stringify(targetSel)});
+  let onTop = false;
+  let cover = 'no target';
+  if (target) {
+    target.scrollIntoView({ block: 'center' });
+    const r = target.getBoundingClientRect();
+    const x = r.left + r.width / 2;
+    const y = Math.max(0, Math.min(innerHeight - 1, r.top + r.height / 2));
+    const top = document.elementFromPoint(x, y);
+    onTop = !!(top && (top === target || target.contains(top) || (top.contains && top.contains(target))));
+    cover = onTop ? '' : (top ? (top.className || top.tagName) : 'nothing');
+    if (top && top.closest && top.closest('.coach-mark')) cover = 'coach-mark';
+  }
+  return {
+    step: mark ? mark.getAttribute('data-step') : null,
+    visible: markVisible,
+    uncovered: onTop,
+    cover,
+  };
 })()`;
 
 /** Measure a single engine control's box by selector, or null if absent. */
@@ -254,6 +322,30 @@ async function checkFrameTop(cdp, r, check, width) {
   }
 }
 
+/**
+ * Room 1 only: the coach mark for the given step must be visible and must not
+ * cover its target. Records what it found; fails the walk on a missing or
+ * covering mark.
+ */
+async function checkCoachMark(cdp, r, check, step, targetSel) {
+  const hit = await cdp.ev(COACH_MARK_HIT(targetSel));
+  if (!hit) {
+    check(`coach ${step}: measurable`, 'missing');
+    return;
+  }
+  r.checks[`coach ${step}`] =
+    `${hit.step || 'none'} visible=${hit.visible} uncovered=${hit.uncovered}`;
+  const visibleAndRight = hit.visible && hit.step === step;
+  check(`coach ${step}: mark visible`, visibleAndRight, true);
+  if (!visibleAndRight) {
+    r.fail.push(`coach ${step}: mark not visible (step=${hit.step}, visible=${hit.visible})`);
+  }
+  check(`coach ${step}: target uncovered`, hit.uncovered, true);
+  if (!hit.uncovered) {
+    r.fail.push(`coach ${step}: target ${targetSel} covered by ${hit.cover}`);
+  }
+}
+
 /** Target size: engine controls >= 44x44; possessed tap area >= 24x24. */
 async function checkTargetSizes(cdp, r, check) {
   const controls = [
@@ -299,6 +391,45 @@ async function checkCardTargetSizes(cdp, r, check) {
 }
 
 /**
+ * The title screen: a newcomer must see the primary "Enter the manor" button on
+ * the first screen so one tap starts the game. Navigate to the title, read the
+ * button's box and the viewport, and fail if the button is not fully inside the
+ * viewport at this size (a button pushed below the fold). Records the box and
+ * the margin below it either way. Returns a report entry with its own `fail`
+ * list, so the full-run summary counts a title failure like a room failure.
+ */
+async function walkTitle(cdp, baseUrl, width, height) {
+  const r = { title: 'Enter the manor', checks: {}, fail: [] };
+  await cdp.send('Page.navigate', { url: `${baseUrl}#/` });
+  // The title mounts fast (no room chunk); give it a moment to lay out.
+  let box = null;
+  const t0 = Date.now();
+  while (Date.now() - t0 < 5000) {
+    box = await cdp.ev(TITLE_BUTTON_BOX);
+    if (box && typeof box.bottom === 'number') break;
+    await sleep(ROOM_POLL_MS);
+  }
+  if (!box || typeof box.bottom !== 'number') {
+    r.fail.push(`title: "Enter the manor" button not found at ${width}x${height}`);
+    return r;
+  }
+  r.checks['button box'] =
+    `${Math.round(box.width)}x${Math.round(box.height)} @ ${Math.round(box.left)},${Math.round(box.top)}`;
+  r.checks['button bottom'] = Math.round(box.bottom);
+  r.checks['viewport'] = `${Math.round(box.vw)}x${Math.round(box.vh)}`;
+  r.checks['space below button'] = Math.round(box.vh - box.bottom);
+  const inView = buttonFullyInViewport(box, box.vw, box.vh);
+  r.checks['button on first screen'] = inView;
+  if (!inView) {
+    r.fail.push(
+      `title: "Enter the manor" not fully on the first screen at ${width}x${height} ` +
+        `(button bottom ${Math.round(box.bottom)} of ${Math.round(box.vh)})`,
+    );
+  }
+  return r;
+}
+
+/**
  * Drive one room from haunted to the honest comparison. EVEN rooms by keyboard
  * (lantern L, Tab to the ringed possessed element, Enter); ODD rooms by pointer
  * (click the possessed element straight away, no lantern).
@@ -312,6 +443,8 @@ export async function freeRoom(cdp, baseUrl, n, reducedMotion = false, width = 1
   };
   const byKeyboard = n % 2 === 0;
   r.checks['input path'] = byKeyboard ? 'keyboard' : 'pointer';
+  // Room 1 is the tutorial: it alone shows coach marks.
+  const isTutorial = n === 1;
 
   const prevTitle = (await cdp.ev(ROOM_TITLE)) || '';
   const navStart = Date.now();
@@ -353,6 +486,12 @@ export async function freeRoom(cdp, baseUrl, n, reducedMotion = false, width = 1
   await checkFirstSight(cdp, r, check, width, height);
   await checkFrameTop(cdp, r, check, width);
   await checkTargetSizes(cdp, r, check);
+
+  // Room 1 tutorial: the spot coach mark points at the possessed element and
+  // must not cover it (first sight above still passes with the mark showing).
+  if (isTutorial) {
+    await checkCoachMark(cdp, r, check, 'spot', '#foyer-reject');
+  }
 
   if (byKeyboard) {
     await cdp.ev("(document.querySelector('.room-step') || document.querySelector('h1'))?.focus()");
@@ -412,6 +551,12 @@ export async function freeRoom(cdp, baseUrl, n, reducedMotion = false, width = 1
     true,
   );
   await checkCardTargetSizes(cdp, r, check);
+
+  // Room 1 tutorial: the name coach mark points at the cards and must not cover
+  // them.
+  if (isTutorial) {
+    await checkCoachMark(cdp, r, check, 'name', '.spell-cards');
+  }
 
   let heldSampled = false;
   for (let c = 0; c < 3; c++) {
@@ -552,6 +697,7 @@ async function completeHonestTask(cdp, r, byKeyboard, width) {
 async function walkRoom(cdp, baseUrl, n, reducedMotion = false, width = 1280, height = 720) {
   const { r, check } = await freeRoom(cdp, baseUrl, n, reducedMotion, width, height);
   const byKeyboard = n % 2 === 0;
+  const isTutorial = n === 1;
 
   const sig0 = await sigAt(cdp, 0);
   check('all haunted at 0', await cdp.ev(LAYER('haunted')));
@@ -580,6 +726,23 @@ async function walkRoom(cdp, baseUrl, n, reducedMotion = false, width = 1280, he
     ),
     true,
   );
+
+  // Room 1 tutorial: the free coach mark points at the comparison and must not
+  // cover it; then confirm "Skip the tips" removes the marks for good. The skip
+  // flips persisted state and unmounts the marks on the next render, so give
+  // Preact a tick before reading that they are gone.
+  if (isTutorial) {
+    await checkCoachMark(cdp, r, check, 'free', '.comparison');
+    await cdp.ev(
+      "document.querySelector('.coach-mark-skip') && document.querySelector('.coach-mark-skip').click()",
+    );
+    let removed = false;
+    for (let i = 0; i < 12 && !removed; i++) {
+      await sleep(80);
+      removed = await cdp.ev('!document.querySelector(".coach-mark")');
+    }
+    check('coach skip hides the tips', removed, true);
+  }
 
   // Finish the honest task by the room's input path (even: keyboard; odd: a
   // real pointer). The shared check below then covers both paths.
@@ -669,6 +832,11 @@ export async function runWalk(args = {}) {
   const session = await openSession({ width, height, reducedMotion });
   const report = [];
   try {
+    // The title first: a newcomer must see "Enter the manor" on the first
+    // screen, so one tap starts the game. Confirm the button's box is fully
+    // inside the viewport at this size (a button pushed below the fold fails).
+    report.push(await walkTitle(session.cdp, session.baseUrl, width, height));
+
     for (const n of rooms) {
       report.push(await walkRoom(session.cdp, session.baseUrl, n, reducedMotion, width, height));
     }

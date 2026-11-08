@@ -139,6 +139,78 @@
   max-width: 44rem;
 }
 
+/* ------------------------------------------------------------------ *
+ * The three steps of play, drawn above "Enter the manor". Each step is a
+ * narrow column: a small ink drawing (thin white lines, like the ghost), the
+ * step name in the display font (>= 22px, candle), and one short line in the
+ * body font (ghost, AA over the vignette). The row wraps and the glyph box is
+ * reserved, so showing the steps causes no shift. The steps are page content,
+ * not a dialog — the single "Enter the manor" button sits just below them.
+ * ------------------------------------------------------------------ */
+.title-steps {
+  position: relative;
+  z-index: 1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  max-width: 46rem;
+  width: 100%;
+}
+
+.title-step {
+  flex: 1 1 11rem;
+  max-width: 14rem;
+  min-width: 9rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+/* Reserved box so the drawing's presence shifts nothing. Thin white ink lines,
+   the same language as the ghost, over the darkened backdrop. */
+.title-step-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
+}
+
+.title-step-glyph svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: var(--ghost);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.9;
+  filter: drop-shadow(0 0 6px rgba(244, 239, 230, 0.25));
+}
+
+.title-step-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.375rem; /* 22px: the display-font floor */
+  color: var(--candle);
+  line-height: var(--line-height-tight);
+}
+
+.title-step-line {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-sm);
+  color: var(--ghost);
+  line-height: var(--line-height-normal);
+}
+
 /* The controls. The primary is a candle button (the rooms' candle look); the
    secondary is a quieter candle link. Both are real anchors so the hash router
    drives navigation; both present at least a 44px target and a 3px candle
@@ -241,6 +313,98 @@
   outline: 3px solid var(--candle);
   outline-offset: 3px;
   border-radius: var(--radius-md);
+}
+
+/* On a phone keep the steps compact so "Enter the manor" stays on the first
+   screen at 412 x 915: a short stacked column with a small glyph beside the
+   text, tight gaps. */
+@media (max-width: 600px) {
+  .title-steps {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-sm);
+    max-width: 22rem;
+  }
+
+  .title-step {
+    flex: 1 1 auto;
+    max-width: none;
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+  }
+
+  .title-step-glyph {
+    width: 36px;
+    height: 36px;
+  }
+
+  .title-step-title {
+    font-size: 1.25rem;
+    flex: 0 0 auto;
+  }
+
+  .title-step-line {
+    flex: 1 1 100%;
+    font-size: 0.8rem;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Short viewports (a laptop at 1280 x 720 and the like, up to ~800 px tall).
+ * The full-height column of heading, tagline, facts, the three steps and the
+ * button is a little taller than one screen here, so "Enter the manor" fell
+ * just below the fold. Tighten everything vertically — a smaller heading and
+ * ghost, less outer padding and smaller gaps between the pieces — so the
+ * button sits fully on the first screen with room to spare, without dropping
+ * any text. Taller viewports (the 412 x 915 phone included) are untouched, and
+ * the step titles keep the >= 22px display-font floor. This narrows only the
+ * vertical rhythm, so nothing shifts and contrast is unchanged.
+ * ------------------------------------------------------------------ */
+@media (max-height: 800px) {
+  .title-screen {
+    padding: var(--spacing-lg) var(--spacing-xl);
+  }
+
+  .title-inner {
+    gap: var(--spacing-sm);
+    max-width: 52rem;
+  }
+
+  .title-heading {
+    /* Smaller than the default clamp so the tall heading does not dominate the
+       short screen; still well above the display-font floor. */
+    font-size: clamp(2.5rem, 1.5rem + 3vw, 3.75rem);
+  }
+
+  .title-ghost {
+    width: clamp(56px, 5vw, 84px);
+    height: clamp(64px, 6vw, 96px);
+  }
+
+  .title-steps {
+    gap: var(--spacing-md);
+  }
+
+  .title-step {
+    gap: 2px;
+  }
+
+  .title-step-glyph {
+    width: 38px;
+    height: 38px;
+  }
+
+  .title-actions {
+    margin-top: var(--spacing-xs);
+    gap: var(--spacing-sm);
+  }
+
+  .title-footer {
+    margin-top: var(--spacing-xs);
+  }
 }
 
 /* Under reduced motion the ghost holds still and the button does not lift. */
