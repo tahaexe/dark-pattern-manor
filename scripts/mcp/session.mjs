@@ -27,6 +27,10 @@ export function distReady() {
 // Added for motion QA:
 //  - a buffered PerformanceObserver that sums layout-shift into window.__cls,
 //    with __clsReset() to zero it at the start of each room's walk;
+//  - a requestAnimationFrame COUNTER (window.__rafCount), installed before any
+//    app code runs by wrapping requestAnimationFrame, with __rafReset() to zero
+//    it — so the walk can prove an honest room requests NO animation frames for
+//    a couple of seconds (the atmosphere's still pose means nothing paints);
 //  - __animStates() → the play state of every running/finished animation, so
 //    the reduced-motion walk can assert none is running;
 //  - __stirsVisible() → whether the possessed element's "Something stirs here"
@@ -42,6 +46,16 @@ export function distReady() {
 //    hold nothing but the shared flee keeps moving (via the pure
 //    heldMotionOffenders rule).
 export const HELPERS = `
+// Count every requestAnimationFrame call. Wrapped before app code runs (this
+// script is added on new document), so an idle honest room's zero frames is
+// genuinely measured. __rafReset() zeroes the counter for a fresh window.
+window.__rafCount = 0;
+window.__rafReset = () => { window.__rafCount = 0; };
+try {
+  const __raf = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = (cb) => { window.__rafCount++; return __raf(cb); };
+} catch (_e) { /* no rAF: __rafCount stays 0 */ }
+
 window.__el = (x) => (typeof x === 'string' ? document.querySelector(x) : x);
 window.__vis = (x) => {
   const el = window.__el(x);

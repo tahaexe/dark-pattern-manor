@@ -19,20 +19,34 @@ import { freeRoom } from './walk.mjs';
 import { parseColor, contrastOfBox } from './contrast.mjs';
 import { wantsReducedMotion } from './motion.mjs';
 
-// In-page: collect every *visible* text node inside .comparison with its
+// In-page: collect every *visible* text node inside the comparison with its
 // colour, size, weight and box. The comparison box is scrolled into view
 // first, and the box rect is returned in PAGE coordinates (viewport + scroll)
 // so it matches the CDP screenshot clip, which is page-relative. Each text
 // box is returned relative to the comparison box's top-left.
 //
-// Only text actually painted at the current slider state is kept: the
-// clipped-away layer's text (the side the wipe has hidden) is skipped, so the
-// scan measures what a player really sees. Each glyph box is padded by ~0.6x
-// the font size per side (clamped to the comparison box) so the background is
-// the majority and the 70th percentile lands on it, as the rule assumes.
-const COLLECT_TEXTS = `(() => {
+// The two cells (haunted and honest) overlap in the same grid area and are
+// revealed by the wipe. We only ever measure the cell that is actually shown
+// at this slider end — `cellSel` is `.comparison-haunted` at the haunted end
+// (slider 0) and `.comparison-honest` at the honest end (slider 100). The two
+// cells carry structurally identical controls (e.g. both have an "Accept all"
+// button), so walking the WHOLE comparison and leaning on element hit-testing
+// to tell the hidden copy from the shown one was unreliable where the copies
+// overlap: a corner sample of the clipped-under haunted "Accept all" could land
+// on the honest "Accept all" painted on top (dark ink on dark ink) and read a
+// false ~1.27:1. Scoping the walk to the revealed cell removes that ambiguity
+// entirely — it measures exactly what the player sees at this end.
+//
+// Each glyph box is padded by ~0.6x the font size per side (clamped to the
+// comparison box) so the background is the majority and the 70th percentile
+// lands on it, as the rule assumes. A text node whose box is clipped away by
+// the wipe at this end (outside the revealed region) is skipped.
+function collectTextsScript(cellSel) {
+  return `(() => {
   const g = document.querySelector('.comparison');
   if (!g) return null;
+  const cell = document.querySelector(${JSON.stringify(cellSel)});
+  if (!cell) return null;
   g.scrollIntoView({ block: 'center' });
   const gr = g.getBoundingClientRect();
   const visibleTop = (el, r) => {
@@ -45,7 +59,9 @@ const COLLECT_TEXTS = `(() => {
     return false;
   };
   const out = [];
-  const walker = document.createTreeWalker(g, NodeFilter.SHOW_TEXT);
+  // Walk only the revealed cell, so the clipped-under twin's identical controls
+  // are never measured.
+  const walker = document.createTreeWalker(cell, NodeFilter.SHOW_TEXT);
   const seen = new Set();
   while (walker.nextNode()) {
     const t = walker.currentNode;
@@ -81,6 +97,7 @@ const COLLECT_TEXTS = `(() => {
     texts: out,
   };
 })()`;
+}
 
 /**
  * Draw a PNG data-URL into a canvas in the page, then read the pixels inside a
@@ -120,58 +137,183 @@ function readPixelsScript(dataUrl, boxes, clipW, clipH) {
   })()`;
 }
 
-/** Scan one room at one slider end; push any flags. */
-async function scanState(cdp, n, state, flags) {
-  const data = await cdp.ev(COLLECT_TEXTS);
+// In-page: blur whatever has focus so no control holds a :focus colour.
+const BLUR = `(() => {
+  try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (_e) {}
+  return true;
+})()`;
+
+/**
+ * Drop any focus and any hover on the comparison's controls, so none is sampled
+ * in its focus/hover colours. Freeing the room finishes the honest task by a
+ * real pointer click/tap, which can leave the virtual mouse resting over a
+ * button; moving the mouse to the corner clears `:hover`, and blurring drops
+ * `:focus`. We measure the RESTING look a player sees.
+ */
+async function clearFocusHover(cdp) {
+  await cdp.ev(BLUR);
+  await cdp.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 1, y: 1, buttons: 0 });
+}
+
+/**
+ * Scan one room at one slider end; push any flags. `cellSel` names the cell
+ * actually revealed at this end (.comparison-haunted at 0, .comparison-honest
+ * at 100), so only the shown copy of overlapping controls is measured.
+ */
+async function scanState(cdp, n, state, cellSel, flags) {
+  const data = await cdp.ev(collectTextsScript(cellSel));
   if (!data || !data.texts || data.texts.length === 0) return;
 
-  // Screenshot the comparison box (page coordinates, CSS px at scale 1,
-  // capturing beyond the viewport so a tall box is caught whole).
-  const clip = { x: data.box.x, y: data.box.y, width: data.box.width, height: data.box.height, scale: 1 };
-  const shot = await cdp.send('Page.captureScreenshot', {
-    format: 'png',
-    clip,
-    captureBeyondViewport: true,
-  });
-  if (!shot || !shot.data) return;
-  const dataUrl = 'data:image/png;base64,' + shot.data;
-
   const boxes = data.texts.map((t) => ({ bx: t.bx, by: t.by, bw: t.bw, bh: t.bh }));
-  const script = readPixelsScript(dataUrl, boxes, data.box.width, data.box.height);
-  const pixelSets = await cdp.ev(script);
-  if (!Array.isArray(pixelSets)) return;
+  const clip = {
+    x: data.box.x,
+    y: data.box.y,
+    width: data.box.width,
+    height: data.box.height,
+    scale: 1,
+  };
 
-  data.texts.forEach((t, i) => {
-    const textColor = parseColor(t.color);
-    if (!textColor) return; // transparent text is skipped
-    const pixels = pixelSets[i];
-    if (!Array.isArray(pixels) || pixels.length === 0) return;
-    const { ratio, threshold, flagged } = contrastOfBox(textColor, pixels, {
-      size: t.size,
-      weight: t.weight,
+  // One capture → per-text {ratio, threshold, flagged}. `Page.captureScreenshot`
+  // with captureBeyondViewport re-renders the clipped region, and that fresh
+  // render can momentarily disagree with the settled DOM (a transient paint
+  // frame while the honest clip/transition flushes), so a single capture
+  // occasionally reads a false low-contrast even though the live element is
+  // compliant — the honest "Accept all" is dark ink text on a dark ink fill
+  // (~12:1), yet a transient can render the parchment cell where the button
+  // should be and read parchment-on-parchment (~1.27). We therefore take TWO
+  // captures a moment apart and keep only flags that reproduce in BOTH: a
+  // genuine low-contrast is stable across captures; a capture transient is not.
+  const captureFlags = async () => {
+    const shot = await cdp.send('Page.captureScreenshot', {
+      format: 'png',
+      clip,
+      captureBeyondViewport: true,
     });
-    if (flagged) {
-      flags.push({
-        room: n,
-        state,
-        text: t.text,
-        color: t.color,
+    if (!shot || !shot.data) return null;
+    const dataUrl = 'data:image/png;base64,' + shot.data;
+    const script = readPixelsScript(dataUrl, boxes, data.box.width, data.box.height);
+    const pixelSets = await cdp.ev(script);
+    if (!Array.isArray(pixelSets)) return null;
+    const perText = new Map();
+    data.texts.forEach((t, i) => {
+      const textColor = parseColor(t.color);
+      if (!textColor) return; // transparent text is skipped
+      const pixels = pixelSets[i];
+      if (!Array.isArray(pixels) || pixels.length === 0) return;
+      const { ratio, threshold, flagged } = contrastOfBox(textColor, pixels, {
         size: t.size,
         weight: t.weight,
-        ratio: Number(ratio.toFixed(2)),
-        threshold,
       });
-    }
+      perText.set(i, { ratio, threshold, flagged });
+    });
+    return perText;
+  };
+
+  const first = await captureFlags();
+  if (!first) return;
+  await sleep(150);
+  const second = await captureFlags();
+  if (!second) return;
+
+  data.texts.forEach((t, i) => {
+    const a = first.get(i);
+    const b = second.get(i);
+    // Keep a flag only when BOTH captures flag this text (a stable, real
+    // low-contrast). Report the worse (lower) ratio of the two.
+    if (!a || !b || !a.flagged || !b.flagged) return;
+    const ratio = Math.min(a.ratio, b.ratio);
+    flags.push({
+      room: n,
+      state,
+      text: t.text,
+      color: t.color,
+      size: t.size,
+      weight: t.weight,
+      ratio: Number(ratio.toFixed(2)),
+      threshold: a.threshold,
+    });
   });
 }
 
-/** Set the slider to one end (0 = haunted, 100 = honest). */
+/**
+ * Set the slider to one end (0 = haunted, 100 = honest) deterministically, drop
+ * any focus/hover on the comparison's controls, and wait until the wipe AND the
+ * revealed cell's paint have settled.
+ *
+ * The scan measures the RESTING look a player sees at each end of the wipe, so
+ * before pixels are read: the clip must have reached that end; no control may
+ * sit in a focus/hover state (freeing the room clicks a honest button and can
+ * leave the virtual mouse over it, so its `:hover` swaps `.cookie-button-equal`
+ * to a parchment background); and the content must have stopped moving.
+ *  1. set the native range value and dispatch `input` (updates `--split`
+ *     regardless of focus), with the Home/End key as a fallback;
+ *  2. clear focus (blur) and hover (move the virtual mouse to the corner);
+ *  3. poll `--split` until it reaches the target;
+ *  4. poll the revealed cell's geometry until it is STABLE across two reads,
+ *     flushing paint with a double requestAnimationFrame, then clear focus/hover
+ *     once more and wait out the hover transition (120 ms) so the resting
+ *     colours have landed.
+ */
 async function setSlider(cdp, end) {
-  await cdp.ev(
-    "(() => { const i = document.querySelector('.comparison input[type=range], .split-range'); if (i) i.focus(); return !!i; })()",
-  );
+  const target = end === 0 ? 0 : 100;
+  const cellSel = end === 0 ? '.comparison-haunted' : '.comparison-honest';
+  // Drive the range directly: set its value and fire a native `input` event so
+  // the Preact onInput handler updates `--split` without needing focus.
+  await cdp.ev(`(() => {
+    const i = document.querySelector('.comparison input[type=range], .split-range');
+    if (!i) return false;
+    i.focus();
+    const proto = Object.getPrototypeOf(i);
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value') &&
+      Object.getOwnPropertyDescriptor(proto, 'value').set;
+    if (setter) setter.call(i, String(${target}));
+    else i.value = String(${target});
+    i.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  })()`);
+  // Keyboard fallback (Home/End), harmless if the input event already took.
   await cdp.key(end === 0 ? 'Home' : 'End');
-  await sleep(350);
+
+  // Clear any focus/hover so no control is caught in its focus/hover colours.
+  await clearFocusHover(cdp);
+
+  // Poll the honest cell's `--split` until it reaches the target.
+  const readSplit = `(() => {
+    const cell = document.querySelector('.comparison-honest');
+    if (!cell) return null;
+    const v = getComputedStyle(cell).getPropertyValue('--split').trim();
+    const n = parseFloat(v);
+    return Number.isFinite(n) ? n : null;
+  })()`;
+  for (let i = 0; i < 20; i++) {
+    const v = await cdp.ev(readSplit);
+    if (v === null || v === target) break;
+    await sleep(50);
+  }
+
+  // Wait for the revealed cell's geometry to be STABLE across two reads, each
+  // after a double rAF (a paint flush), so content has settled into place
+  // before the screenshot — independent of process load.
+  const measureAfterPaint = `(async () => {
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const cell = document.querySelector(${JSON.stringify(cellSel)});
+    if (!cell) return null;
+    const btn = cell.querySelector('button, a, input');
+    const r = (btn || cell).getBoundingClientRect();
+    return Math.round(r.top) + 'x' + Math.round(r.left) + 'x' + Math.round(r.width) + 'x' + Math.round(r.height);
+  })()`;
+  let prev = null;
+  for (let i = 0; i < 20; i++) {
+    const sig = await cdp.ev(measureAfterPaint);
+    if (sig !== null && sig === prev) break;
+    prev = sig;
+    await sleep(50);
+  }
+  // Clear focus/hover once more (the rAF waits can let state settle) and wait
+  // out the hover transition (120 ms) plus a margin so the resting colours have
+  // landed before the screenshot.
+  await clearFocusHover(cdp);
+  await sleep(300);
 }
 
 /**
@@ -196,10 +338,10 @@ export async function runContrastScan(args = {}) {
       await sleep(400);
 
       await setSlider(session.cdp, 0);
-      await scanState(session.cdp, n, 'haunted', flags);
+      await scanState(session.cdp, n, 'haunted', '.comparison-haunted', flags);
 
       await setSlider(session.cdp, 100);
-      await scanState(session.cdp, n, 'honest', flags);
+      await scanState(session.cdp, n, 'honest', '.comparison-honest', flags);
     }
     return JSON.stringify({ rooms, width, height, reducedMotion, flags }, null, 2);
   } finally {

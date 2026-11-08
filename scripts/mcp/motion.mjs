@@ -1,9 +1,9 @@
 // Pure motion rules for the walk_rooms and contrast_scan tools: reading the
 // optional reducedMotion argument, the cumulative-layout-shift gate, the
-// "animations are at rest" rule, the label-clipping rule, and the named-hold
-// rule (nothing but the shared flee of `.ghost-wrap` may keep moving once the
-// right card lands). No I/O, no browser — imported directly by the motion
-// tests and by walk.mjs / contrast-scan.mjs.
+// "animations are at rest" rule, the "idle (no frames requested)" rule, the
+// label-clipping rule, and the named-hold rule (nothing but the shared flee of
+// `.ghost-wrap` may keep moving once the right card lands). No I/O, no browser —
+// imported directly by the motion tests and by walk.mjs / contrast-scan.mjs.
 
 /**
  * Read `reducedMotion` from tool arguments. Defaults to false; a non-boolean
@@ -43,6 +43,20 @@ export function animationsAtRest(playStates) {
   if (!Array.isArray(playStates)) return false;
   if (playStates.length === 0) return true;
   return playStates.every((s) => s === 'finished' || s === 'paused' || s === 'idle');
+}
+
+/**
+ * The idle rule: an honest room must request NO animation frames over the
+ * sampled window — the atmosphere's glow and fog are paused (still pose) and
+ * the motes loop is stopped, so nothing asks the browser to paint. True when
+ * the room PASSES (zero frames requested). A non-finite count is treated as 0
+ * (a pass): a missing measurement is not evidence of activity.
+ * @param {number} framesRequested
+ * @returns {boolean}
+ */
+export function idleWithinWindow(framesRequested) {
+  const n = Number.isFinite(framesRequested) && framesRequested > 0 ? framesRequested : 0;
+  return n === 0;
 }
 
 /**

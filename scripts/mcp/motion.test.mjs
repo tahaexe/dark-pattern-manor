@@ -7,13 +7,14 @@ import {
   wantsReducedMotion,
   clsWithinLimit,
   animationsAtRest,
+  idleWithinWindow,
   labelWithinClip,
   heldMotionOffenders,
   CLS_LIMIT,
   CLIP_TOLERANCE,
 } from './motion.mjs';
 
-// --- wantsReducedMotion (P8) ---------------------------------------------
+// --- wantsReducedMotion (P10) --------------------------------------------
 
 test('wantsReducedMotion defaults to false when absent', () => {
   assert.equal(wantsReducedMotion(), false);
@@ -39,7 +40,7 @@ test('property: only an explicit true yields true', () => {
   );
 });
 
-// --- clsWithinLimit (P6) --------------------------------------------------
+// --- clsWithinLimit (P7) --------------------------------------------------
 
 test('CLS passes at or below 0.01', () => {
   assert.equal(clsWithinLimit(0), true);
@@ -72,7 +73,7 @@ test('property: the gate is exactly cls <= limit for positive finite cls', () =>
   );
 });
 
-// --- animationsAtRest (P7) ------------------------------------------------
+// --- animationsAtRest (P8) ------------------------------------------------
 
 test('no animations is at rest', () => {
   assert.equal(animationsAtRest([]), true);
@@ -93,6 +94,31 @@ test('any running or pending animation is NOT at rest', () => {
 test('a non-array is treated as not at rest', () => {
   assert.equal(animationsAtRest(null), false);
   assert.equal(animationsAtRest(undefined), false);
+});
+
+// --- idleWithinWindow (P9) ------------------------------------------------
+
+test('zero frames requested is idle (a pass)', () => {
+  assert.equal(idleWithinWindow(0), true);
+});
+
+test('any frames requested is NOT idle', () => {
+  assert.equal(idleWithinWindow(1), false);
+  assert.equal(idleWithinWindow(48), false);
+});
+
+test('a missing or negative frame count is idle (no evidence of activity)', () => {
+  assert.equal(idleWithinWindow(NaN), true);
+  assert.equal(idleWithinWindow(undefined), true);
+  assert.equal(idleWithinWindow(-3), true);
+});
+
+test('property: idle is exactly a non-positive (or zero) frame count', () => {
+  fc.assert(
+    fc.property(fc.integer({ min: -10, max: 200 }), (n) => {
+      assert.equal(idleWithinWindow(n), n <= 0);
+    }),
+  );
 });
 
 // --- labelWithinClip ------------------------------------------------------

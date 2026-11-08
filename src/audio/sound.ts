@@ -7,12 +7,19 @@
  * playable in silence.
  *
  * Rules this module keeps (the invariants, kept at the top):
- *  - One AudioContext, created lazily and only inside a user gesture, never at
- *    import or page load, so the browser never blocks it and nothing plays
- *    before the player has acted. When the platform reports no user activation
- *    yet (`navigator.userActivation.hasBeenActive === false`), context creation
- *    is deferred until the first pointerdown/keydown, so opening a room's
- *    address directly never creates the context before a gesture.
+ *  - One AudioContext, created lazily and ONLY once sound has been ARMED — that
+ *    is, once the player has switched Sound on (the toggle is a user gesture)
+ *    OR the first pointerdown/keydown has fired after a room asked to play.
+ *    It is never created at import, at page load, or merely on a room's mount
+ *    before any of that, so an idle room on a fresh visit holds no audio engine
+ *    at all. When armed but the platform reports no user activation yet
+ *    (`navigator.userActivation.hasBeenActive === false`), creation is deferred
+ *    to that first gesture, so opening a room's address directly never creates
+ *    the context before a gesture.
+ *  - While sound is OFF, any context created earlier is SUSPENDED and no new one
+ *    is made; while the document is HIDDEN the context is suspended and it
+ *    resumes when the page is visible again and sound is on. So an idle or
+ *    backgrounded room pays nothing for audio.
  *  - If no AudioContext constructor exists (jsdom has none), every function is
  *    a silent no-op that throws nothing.
  *  - Everything passes through one master gain, held quiet: the whole ambience
@@ -60,11 +67,24 @@ export function creakDelayMs(rand: () => number = Math.random): number {
 }
 
 // --------------------------------------------------------------------------
-// The one AudioContext and master gain, born lazily inside a gesture.
+// The one AudioContext and master gain, born lazily once sound is armed,
+// suspended whenever sound is off or the tab hidden.
 // --------------------------------------------------------------------------
 
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
+
+/**
+ * True once sound has been armed this visit: either the player switched Sound
+ * on (the toggle, a user gesture) or the first captured pointerdown/keydown
+ * fired. Until then, a room asking to play on mount creates NO context — it
+ * only arms the gesture listener — so an idle room on a fresh visit never spins
+ * up the audio engine. Reset only by `__resetForTests`.
+ */
+let armed = false;
+
+/** True while the visibility listener is installed (armed once, on first ctx). */
+let visibilityArmed = false;
 
 type AudioCtorType = typeof AudioContext;
 
@@ -86,35 +106,35 @@ export function hasAudio(): boolean {
 /**
  * True only when the platform exposes `navigator.userActivation` AND it reports
  * that the page has not yet had a user gesture (`hasBeenActive === false`).
- * When `userActivation` is absent (jsdom, older browsers) this is false, so the
- * context is created on demand exactly as before. When a gesture has already
- * happened it is also false.
+ * When `userActivation` is absent (jsdom, older browsers) this is false, so an
+ * armed context is created on demand; when a gesture has already happened it is
+ * also false.
  */
 function awaitingFirstGesture(): boolean {
   if (typeof navigator === 'undefined') return false;
-  const ua = (
-    navigator as Navigator & { userActivation?: { hasBeenActive?: boolean } }
-  ).userActivation;
+  const ua = (navigator as Navigator & { userActivation?: { hasBeenActive?: boolean } })
+    .userActivation;
   return !!ua && ua.hasBeenActive === false;
 }
 
 /**
  * While true, a one-time capture-phase listener is armed on `window`, waiting
- * for the first gesture so the deferred context can be created then. The
- * stored cleanup removes those listeners (used on reset).
+ * for the first gesture so the deferred context can be created then. The stored
+ * cleanup removes those listeners (used on reset).
  */
 let pendingGestureCleanup: (() => void) | null = null;
 
 /**
  * Arm a one-time capture-phase pointerdown/keydown listener on `window`. On the
- * first gesture it removes itself, creates the context (user activation is true
- * by then), and resumes the ambience if sound is on and a room is still
- * haunted. Idempotent: a second call while already armed does nothing.
+ * first gesture it removes itself, arms sound, creates the context, and resumes
+ * the ambience if sound is on and a room is still haunted. Idempotent: a second
+ * call while already armed does nothing.
  */
 function armGestureListener(): void {
   if (pendingGestureCleanup || typeof window === 'undefined') return;
   const onGesture = () => {
     cleanup();
+    armed = true;
     const c = ensureContext();
     if (c && soundOn && roomTag && HAUNTED_TAGS.has(roomTag)) startAmbience();
   };
@@ -129,19 +149,43 @@ function armGestureListener(): void {
 }
 
 /**
+ * Suspend the context while hidden; resume it while visible and sound is on.
+ * Installed once, the first time a context is created, and removed on reset.
+ */
+function onVisibility(): void {
+  if (!ctx) return;
+  if (typeof document !== 'undefined' && document.hidden) {
+    void ctx.suspend?.().catch?.(() => {});
+  } else if (soundOn) {
+    void ctx.resume?.().catch?.(() => {});
+  }
+}
+
+function armVisibilityListener(): void {
+  if (visibilityArmed || typeof document === 'undefined') return;
+  document.addEventListener('visibilitychange', onVisibility);
+  visibilityArmed = true;
+}
+
+/**
  * The single place an AudioContext is born. Only ever reached from a public
- * sound function, each of which runs inside (or just after) a user gesture,
- * and only when sound is on — so no context exists at import or before a
- * gesture, and none is created while sound is off.
+ * sound function, and it creates a context ONLY when sound is armed (see
+ * `armed`) and on — so no context exists at import, at load, or on a fresh
+ * room's mount, and none is created while sound is off.
  *
- * If the platform reports no user activation yet, it creates nothing, arms a
- * one-time gesture listener, and returns null; the caller no-ops cleanly and
- * the context is created on that first gesture instead.
+ * If sound is on but not yet armed, it creates nothing, arms a one-time gesture
+ * listener, and returns null; the caller no-ops cleanly and the context is
+ * created on that first gesture instead. Likewise, if armed but the platform
+ * reports no user activation yet, it defers to the gesture listener.
+ *
+ * When the document is hidden, a freshly created or existing context is left
+ * suspended; the visibility listener resumes it when the page returns.
  */
 function ensureContext(): AudioContext | null {
   const Ctor = AudioCtor();
   if (!Ctor) return null;
-  if (!ctx && awaitingFirstGesture()) {
+  if (!soundOn) return null; // never create or resume a context while off
+  if (!ctx && (!armed || awaitingFirstGesture())) {
     armGestureListener();
     return null;
   }
@@ -150,8 +194,13 @@ function ensureContext(): AudioContext | null {
     master = ctx.createGain();
     master.gain.value = 1; // per-sound gains set the real levels
     master.connect(ctx.destination);
+    armVisibilityListener();
   }
-  if (ctx.state === 'suspended') {
+  const hidden = typeof document !== 'undefined' && document.hidden;
+  if (hidden) {
+    // Keep it suspended while the tab is hidden; the listener resumes it later.
+    void ctx.suspend?.().catch?.(() => {});
+  } else if (ctx.state === 'suspended') {
     // Resume inside the gesture; ignore rejection (sound simply stays silent).
     void ctx.resume().catch(() => {});
   }
@@ -210,19 +259,27 @@ function notify(): void {
 }
 
 /**
- * Turn sound on or off. Off stops everything at once, including the ambience.
- * On resumes the ambience if a room is currently haunted. The choice is
- * persisted; a throwing localStorage never throws.
+ * Turn sound on or off. Switching ON is a user gesture that ARMS sound: the
+ * context may now be created (or deferred to the first gesture if the platform
+ * reports none yet), and the ambience resumes if a room is haunted. Switching
+ * OFF stops everything at once AND suspends the context, so no audio engine
+ * keeps running while the sound is off. The choice is persisted; a throwing
+ * localStorage never throws.
  */
 export function setSoundOn(on: boolean): void {
+  if (on) armed = true; // the toggle gesture arms sound
   if (on === soundOn) {
     writeStored(on);
+    // Even with no state change, honour the invariant: off → suspend any
+    // existing context so none keeps running while the sound is off.
+    if (!on && ctx) void ctx.suspend?.().catch?.(() => {});
     return;
   }
   soundOn = on;
   writeStored(on);
   if (!on) {
     stopAmbience();
+    if (ctx) void ctx.suspend?.().catch?.(() => {});
   } else if (roomTag && HAUNTED_TAGS.has(roomTag)) {
     startAmbience();
   }
@@ -632,16 +689,19 @@ const buildFire: VoiceBuilder = (c, amb) => {
     const clicks = 2 + Math.floor(Math.random() * 3); // 2–4 clicks
     for (let i = 0; i < clicks; i++) {
       amb.timers.push(
-        setTimeout(() => {
-          if (ctx)
-            grain(ctx, amb, out, peak * 0.8, {
-              type: 'bandpass',
-              freq: 1800 + Math.random() * 1200,
-              q: 2,
-              dur: 0.012 + Math.random() * 0.015,
-              attack: 0.002,
-            });
-        }, i * (20 + Math.random() * 40)),
+        setTimeout(
+          () => {
+            if (ctx)
+              grain(ctx, amb, out, peak * 0.8, {
+                type: 'bandpass',
+                freq: 1800 + Math.random() * 1200,
+                q: 2,
+                dur: 0.012 + Math.random() * 0.015,
+                attack: 0.002,
+              });
+          },
+          i * (20 + Math.random() * 40),
+        ),
       );
     }
   };
@@ -727,13 +787,16 @@ const buildJarLid: VoiceBuilder = (c, amb) => {
     const rattles = 3 + Math.floor(Math.random() * 3); // 3–5 quick pings
     for (let i = 0; i < rattles; i++) {
       amb.timers.push(
-        setTimeout(() => {
-          if (ctx)
-            blip(ctx, amb, out, peak * (0.6 + Math.random() * 0.4), {
-              freq: 1500 + Math.random() * 500,
-              dur: 0.06,
-            });
-        }, i * (40 + Math.random() * 30)),
+        setTimeout(
+          () => {
+            if (ctx)
+              blip(ctx, amb, out, peak * (0.6 + Math.random() * 0.4), {
+                freq: 1500 + Math.random() * 500,
+                dur: 0.06,
+              });
+          },
+          i * (40 + Math.random() * 30),
+        ),
       );
     }
   });
@@ -831,7 +894,8 @@ export const VOICE_SLUGS: readonly string[] = Object.keys(VOICES);
 
 /**
  * Start the layered ambience, fading in over ~2 s. No-op when there is no
- * audio, sound is off, or the ambience already runs. Builds the shared layers
+ * audio, sound is off, the ambience already runs, or sound is not yet armed
+ * (no context — a gesture listener is armed instead). Builds the shared layers
  * (room tone, wind, clock, creak) and the current room's voice if it has one.
  */
 export function startAmbience(): void {
@@ -1179,10 +1243,30 @@ export function __ambienceLayerPeaks(): number[] {
   return [...layerPeaks];
 }
 
+/** Test-only: the live context's state, or null when there is no context. */
+export function __contextState(): string | null {
+  return ctx ? ctx.state : null;
+}
+
+/** Test-only: whether a context currently exists. */
+export function __hasContext(): boolean {
+  return ctx !== null;
+}
+
+/** Test-only: run the visibility handler (as a visibilitychange would). */
+export function __runVisibility(): void {
+  onVisibility();
+}
+
 /** Test-only: drop the context, master, ambience, pending gesture and listeners. */
 export function __resetForTests(): void {
   stopAmbience();
   pendingGestureCleanup?.();
+  if (visibilityArmed && typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', onVisibility);
+  }
+  visibilityArmed = false;
+  armed = false;
   if (master) safeDisconnect(master);
   if (ctx) {
     try {

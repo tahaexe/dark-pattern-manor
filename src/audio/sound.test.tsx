@@ -74,6 +74,10 @@ class FakeAudioContext {
   gains: FakeGain[] = [];
   filters: FakeFilter[] = [];
 
+  // How many times suspend()/resume() were called, for the lifecycle tests.
+  suspends = 0;
+  resumes = 0;
+
   constructor() {
     contextsCreated += 1;
   }
@@ -102,7 +106,13 @@ class FakeAudioContext {
     return new FakeBuffer(len) as unknown as AudioBuffer;
   }
   resume() {
+    this.resumes += 1;
     this.state = 'running';
+    return Promise.resolve();
+  }
+  suspend() {
+    this.suspends += 1;
+    this.state = 'suspended';
     return Promise.resolve();
   }
   close() {
@@ -206,10 +216,10 @@ afterEach(() => {
 });
 
 // --------------------------------------------------------------------------
-// Lazy, gesture-gated context creation.
+// Lazy, armed-gesture context creation.
 // --------------------------------------------------------------------------
 
-describe('sound — lazy, gesture-gated AudioContext', () => {
+describe('sound — lazy, armed context creation', () => {
   it('creates no AudioContext at import or before a gesture', () => {
     // Merely importing the module and resetting created nothing.
     expect(contextsCreated).toBe(0);
@@ -217,7 +227,7 @@ describe('sound — lazy, gesture-gated AudioContext', () => {
   });
 
   it('creates exactly one AudioContext after the first gesture with sound on, reused after', () => {
-    sound.setSoundOn(true);
+    sound.setSoundOn(true); // the toggle gesture arms sound
     expect(contextsCreated).toBe(0); // nothing yet; no sound made
     sound.lantern();
     expect(contextsCreated).toBe(1);
@@ -235,6 +245,22 @@ describe('sound — lazy, gesture-gated AudioContext', () => {
     sound.quiet();
     sound.startAmbience();
     expect(contextsCreated).toBe(0);
+  });
+
+  it('a cue before sound is armed creates no context (it arms a gesture listener)', () => {
+    // Fresh visit: sound defaults ON (stored preference) but has not been armed
+    // by a gesture. A room asking to play creates nothing until a gesture.
+    expect(sound.isSoundOn()).toBe(true);
+    sound.setRoomTag('haunted');
+    sound.startAmbience();
+    expect(contextsCreated).toBe(0);
+    sound.flee();
+    expect(contextsCreated).toBe(0);
+
+    // The first gesture arms and creates it, and (a room being haunted) starts
+    // the ambience.
+    window.dispatchEvent(new Event('pointerdown'));
+    expect(contextsCreated).toBe(1);
   });
 });
 
@@ -291,6 +317,80 @@ describe('sound — the toggle store', () => {
     expect(sound.isSoundOn()).toBe(false);
     fireEvent.click(btn);
     await waitFor(() => expect(btn.getAttribute('aria-pressed')).toBe('true'));
+  });
+});
+
+// --------------------------------------------------------------------------
+// The context lifecycle: suspended while off and while hidden; resumed when
+// visible and on. (Requirement 3.)
+// --------------------------------------------------------------------------
+
+describe('sound — context lifecycle (suspend/resume)', () => {
+  it('no context is created merely by mounting a room on a fresh visit', async () => {
+    // Sound defaults on, but no gesture has armed it, so the mount's ambience
+    // creates nothing — an idle room holds no audio engine.
+    const room = await foyer();
+    render(<Room room={room} rng={identityRng} />);
+    expect(sound.__hasContext()).toBe(false);
+    expect(contextsCreated).toBe(0);
+  });
+
+  it('switching sound off suspends the context; a cue while off neither creates nor resumes', () => {
+    // Arm + create a context with a cue while on.
+    sound.setSoundOn(true);
+    sound.lantern();
+    const c = liveContext();
+    expect(c).not.toBeNull();
+    expect(sound.__contextState()).toBe('running');
+
+    // Off: the context is suspended and nothing new is made.
+    sound.setSoundOn(false);
+    expect(c!.suspends).toBeGreaterThan(0);
+    expect(sound.__contextState()).toBe('suspended');
+
+    const created = contextsCreated;
+    sound.lantern();
+    sound.flee();
+    expect(contextsCreated).toBe(created); // no new context while off
+    expect(sound.__contextState()).toBe('suspended'); // still suspended
+  });
+
+  it('hidden suspends the context; visible + on resumes it', () => {
+    sound.setSoundOn(true);
+    sound.lantern();
+    const c = liveContext();
+    expect(c).not.toBeNull();
+    const resumesBefore = c!.resumes;
+
+    // The tab is hidden: the visibility handler suspends the context.
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+    try {
+      sound.__runVisibility();
+      expect(c!.suspends).toBeGreaterThan(0);
+      expect(sound.__contextState()).toBe('suspended');
+
+      // Visible again with sound on: it resumes.
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+      sound.__runVisibility();
+      expect(c!.resumes).toBeGreaterThan(resumesBefore);
+      expect(sound.__contextState()).toBe('running');
+    } finally {
+      // Restore the default (jsdom reports hidden=false).
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+    }
+  });
+
+  it('a context created while the tab is hidden is left suspended', () => {
+    sound.setSoundOn(true);
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true });
+    try {
+      sound.lantern();
+      const c = liveContext();
+      expect(c).not.toBeNull();
+      expect(sound.__contextState()).toBe('suspended');
+    } finally {
+      Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+    }
   });
 });
 
@@ -384,7 +484,7 @@ describe('sound — room cues fire once', () => {
 describe('sound — ambience lifecycle', () => {
   it('leaving a room stops the ambience and clears its crackle timers', () => {
     vi.useFakeTimers();
-    sound.setSoundOn(true);
+    sound.setSoundOn(true); // arms sound; jsdom has no userActivation so it creates on demand
     sound.setRoomTag('haunted');
     sound.startAmbience();
 
@@ -409,7 +509,9 @@ describe('sound — ambience lifecycle', () => {
     sound.setSoundOn(true);
     const room = await foyer();
     const { unmount } = render(<Room room={room} rng={identityRng} />);
-    // Room is haunted on mount, so the ambience started.
+    // The room is haunted on mount; arm sound with a gesture so the ambience
+    // actually starts (a fresh visit otherwise waits for the first gesture).
+    window.dispatchEvent(new Event('pointerdown'));
     const c = liveContext();
     expect(c).not.toBeNull();
     expect(c!.sources.length).toBeGreaterThan(0);
@@ -600,8 +702,8 @@ describe('sound — accessibility of the toggle', () => {
 });
 
 // --------------------------------------------------------------------------
-// The gesture gate: when navigator.userActivation reports no gesture yet,
-// ensureContext defers and arms a one-time window listener.
+// The gesture gate: when sound is armed but navigator.userActivation reports no
+// gesture yet, ensureContext defers and arms a one-time window listener.
 // --------------------------------------------------------------------------
 
 describe('sound — user-activation gesture gate', () => {
@@ -682,23 +784,24 @@ describe('sound — user-activation gesture gate', () => {
     }
   });
 
-  it('hasBeenActive=true: the context is created on demand immediately (today\u2019s behaviour)', async () => {
+  it('hasBeenActive=true + armed: the context is created on demand immediately', async () => {
     const ua = withUserActivation(true);
     try {
-      sound.setSoundOn(true);
+      sound.setSoundOn(true); // arm sound (the toggle gesture)
       const room = await foyer();
       render(<Room room={room} rng={identityRng} />);
-      // Activation already true, so the mount ambience created the context now.
+      // Armed and activation already true, so the mount ambience created the
+      // context now.
       expect(contextsCreated).toBe(1);
     } finally {
       ua.restore();
     }
   });
 
-  it('no userActivation (jsdom default): created on demand (today\u2019s behaviour)', async () => {
+  it('no userActivation (jsdom default) + armed: created on demand', async () => {
     const ua = withUserActivation(undefined);
     try {
-      sound.setSoundOn(true);
+      sound.setSoundOn(true); // arm sound
       const room = await foyer();
       render(<Room room={room} rng={identityRng} />);
       expect(contextsCreated).toBe(1);

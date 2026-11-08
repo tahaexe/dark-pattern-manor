@@ -1,24 +1,181 @@
 /* ------------------------------------------------------------------ *
  * The atmosphere layer and the common haunted moments.
  *
- * The atmosphere canvas lives inside the room's aria-hidden `.room` backdrop
- * layer, under the manor frame and every control, so it never covers text or
- * a control. The common moments animate the `.ghost` / `.ghost-wrap` elements
- * every room already renders, driven by the engine's `data-moment` attribute
- * on `.room-scene`. Transforms and opacity only.
+ * The atmosphere lives inside the room's aria-hidden `.room` backdrop layer,
+ * under the manor frame and every control, so it never covers text or a
+ * control. It is light to run: the warm breathing glow is a CSS `opacity`
+ * animation (no per-frame JavaScript); the fog is painted ONCE to a canvas and
+ * drifted by a CSS `transform` (nothing repaints it per frame); only the small
+ * motes canvas costs a paint, and that is woken by a timer at <= 24 fps, paused
+ * while the tab is hidden, and dropped to one still frame once the room is
+ * honest, under reduced motion, or if the opening two seconds show a device
+ * that cannot keep the cadence.
+ *
+ * Cheap for the COMPOSITOR too: headless Chrome composites in software, so a
+ * CSS animation that changes a layer's opacity or transform every display frame
+ * makes the compositor recomposite that layer 60 times a second on the CPU.
+ * Both the glow breath and the fog drift therefore use a `steps(...)` timing,
+ * so the animated value changes only at step boundaries — the compositor
+ * updates the glow opacity about 12 times a second (a slow breath) and the big
+ * fog layer only a couple of times a second, not once per display frame. The
+ * fog layer is also no wider than the scene plus its own drift (not twice the
+ * scene), so each recomposite copies less area. And the glow and fog are
+ * promoted to their own compositor layer (`will-change`) ONLY while they move:
+ * the component sets `data-moving` while the loop animates and clears it when
+ * the room is still, honest or hidden, so an idle/still room does not keep a
+ * large promoted layer that the compositor repaints. The look is unchanged: a
+ * slow breath, a slow drift, dust motes.
+ *
+ * The component sets `data-still` on `.atmosphere` for the still pose (reduced
+ * motion / honest / adaptive still): the glow and fog animations pause and hold
+ * their rest frame. `data-exhale` runs the one-second settle as the room turns
+ * honest (the fog thins, the glow rises) before the still pose holds.
+ * `data-hidden` pauses the glow and fog while the tab is hidden, so a
+ * backgrounded room composites nothing (the motes loop pauses on its own).
+ * `data-moving` promotes the glow and fog layers only while they animate.
+ *
+ * The common moments animate the `.ghost` / `.ghost-wrap` elements every room
+ * already renders, driven by the engine's `data-moment` attribute on
+ * `.room-scene`. Transforms and opacity only.
  * ------------------------------------------------------------------ */
 
-/* The atmosphere canvas fills the `.room` box (which already reserves the full
-   scene), so adding it causes no layout shift. It sits above `.room-wall`'s
-   painted backdrop and below all interface chrome (z-index >= 2). It never
-   receives pointer events. */
-.atmosphere-canvas {
+/* The atmosphere fills the `.room` box (which already reserves the full scene),
+   so adding it causes no layout shift. It sits above `.room-wall`'s painted
+   backdrop and below all interface chrome (z-index >= 2). It never receives
+   pointer events. */
+.atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.atmosphere-glow,
+.atmosphere-fog,
+.atmosphere-motes {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
   pointer-events: none;
+}
+
+/* The warm breathing glow: a CSS radial, no canvas, no per-frame JavaScript.
+   Its opacity breathes between 1 and 0.85 over a 0.5 s period (<= 2 Hz, the
+   flicker limit), centred high on the wall where the backdrop shows (the
+   margins around and above the frame). The `steps(6, jump-none)` timing samples
+   that breath at 6 opacities per half-cycle — about 12 opacity changes a second
+   — so the software compositor updates the layer only ~12 times a second (a
+   slow breath), not once per display frame. The change per step is tiny
+   (0.025 opacity), so it still reads as a slow breath, never a flash. */
+.atmosphere-glow {
+  background:
+    radial-gradient(
+      80% 80% at 50% 42%,
+      color-mix(in srgb, var(--candle) 22%, transparent) 0%,
+      color-mix(in srgb, var(--candle) 10%, transparent) 42%,
+      transparent 72%
+    );
+  opacity: 1;
+  animation: atmosphere-breath 500ms steps(6, jump-none) infinite alternate;
+}
+
+@keyframes atmosphere-breath {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.85;
+  }
+}
+
+/* The fog: a canvas a little wider than the scene, painted once by the
+   component and drifted slowly by a CSS transform. Nothing repaints it per
+   frame — the browser composites the single bitmap. The layer is 118% wide at
+   left: -9%, and drifts translateX(-8% .. 8%) of its own width (+/-9.44% of the
+   scene), which still keeps 0..100% of the scene covered at both extremes, so
+   the fog is continuous with no edge while the moving layer is no wider than the
+   scene plus its drift. The `steps(120)` over 60 s changes the transform about
+   twice a second — imperceptible stepping (the whole drift is only 16% of the
+   layer over a minute) but the compositor touches the big layer ~2x/s, not 60.
+   */
+.atmosphere-fog {
+  width: 118%;
+  left: -9%;
+  animation: atmosphere-fog-drift 60s steps(120) infinite alternate;
+}
+
+@keyframes atmosphere-fog-drift {
+  from {
+    transform: translateX(-8%);
+  }
+  to {
+    transform: translateX(8%);
+  }
+}
+
+/* Layer promotion only WHILE the glow and fog move. Promoting a layer to the
+   compositor (`will-change`) pays off only when it animates: an idle promoted
+   layer still costs the compositor a periodic repaint of its large area. The
+   component sets `data-moving` on the root while the motes loop animates and
+   clears it the moment the room goes still, honest or hidden, so the two big
+   layers are promoted exactly when (and only when) they are drifting/breathing.
+   */
+.atmosphere[data-moving='true'] .atmosphere-glow {
+  will-change: opacity;
+}
+
+.atmosphere[data-moving='true'] .atmosphere-fog {
+  will-change: transform;
+}
+
+/* Hidden: pause the glow breath and the fog drift while the tab is hidden, so a
+   backgrounded room asks the compositor for nothing. The component sets
+   `data-hidden` on visibilitychange and clears it on return (and also clears
+   `data-moving`, dropping the layer promotion); the motes loop pauses itself.
+   This is independent of the still pose, so a hidden honest room stays still and
+   a hidden haunted room pauses then resumes. */
+.atmosphere[data-hidden='true'] .atmosphere-glow,
+.atmosphere[data-hidden='true'] .atmosphere-fog {
+  animation-play-state: paused;
+}
+
+/* The still pose: pause the glow breath (hold it full) and the fog drift (hold
+   one frame). The motes loop is stopped by the component, and `data-moving` is
+   cleared so the layers are no longer promoted. */
+.atmosphere[data-still='true'] .atmosphere-glow {
+  animation: none;
+  opacity: 1;
+}
+
+.atmosphere[data-still='true'] .atmosphere-fog {
+  animation: none;
+}
+
+/* The one-second exhale as the room turns honest: the glow holds full and the
+   fog thins over a second. The component then sets data-still so these hold. */
+.atmosphere[data-exhale='true'] .atmosphere-glow {
+  animation: none;
+  opacity: 1;
+  transition: opacity 1s ease-out;
+}
+
+.atmosphere[data-exhale='true'] .atmosphere-fog {
+  opacity: 0.4;
+  transition: opacity 1s ease-out;
+}
+
+/* Reduced motion: no breath, no drift, one still frame. */
+@media (prefers-reduced-motion: reduce) {
+  .atmosphere-glow {
+    animation: none;
+    opacity: 1;
+  }
+
+  .atmosphere-fog {
+    animation: none;
+  }
 }
 
 /* ------------------------------------------------------------------ *
@@ -116,8 +273,8 @@
 /* ------------------------------------------------------------------ *
  * Reduced motion: no gutter, no head-shake, no unwind and no flee. The ghost
  * simply fades (over ~200 ms, matching the engine's shorter reduced-motion
- * hold) before the honest twin appears. The atmosphere canvas draws a single
- * still frame (handled in the component).
+ * hold) before the honest twin appears. The atmosphere draws a single still
+ * frame (handled in the component).
  * ------------------------------------------------------------------ */
 @media (prefers-reduced-motion: reduce) {
   .room-scene[data-moment='wrong'] .room::after,
@@ -159,6 +316,25 @@
  * itself — never `.ghost-wrap` or the shared flee — and only during this
  * moment, so no other moment (haunted, inspecting, honest, done) changes. */
 .room-scene[data-moment='right'] .possessed {
+  transition: none;
+  animation: none;
+}
+
+/* The named hold, for EVERY control in the live haunted frame — not only the
+ * possessed element. During the shared flee the whole haunted page must be
+ * still, so nothing but the shared unwind/flee on `.ghost-wrap` can be caught
+ * moving. The possessed rule above missed controls that are not the possessed
+ * element: room 6's size buttons (`.cloak-size`) carry `transition: all`, and
+ * the walk caught one transitioning `background-color` mid-hold at 1280x720,
+ * because a size button is not the possessed element. This one shared rule
+ * stills every descendant of the live frame (`.manor-frame`, never a preview
+ * — and during the hold there is no split yet, so only the live frame is
+ * present) EXCEPT `.ghost-wrap` and its descendants, which carry the shared
+ * unwind and single flee. `transition: none` cancels an in-flight hover
+ * transition at once. Scoped to `data-moment='right'` only, so no other moment
+ * is affected; under reduced motion nothing animates anyway, so it is a no-op
+ * there. */
+.room-scene[data-moment='right'] .manor-frame *:not(.ghost-wrap):not(.ghost-wrap *) {
   transition: none;
   animation: none;
 }

@@ -1,22 +1,29 @@
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import {
+  ADAPTIVE_FPS_FLOOR,
+  ADAPTIVE_MEDIAN_FRAME_MS,
+  adaptiveStillEngages,
+  averageFps,
   BREATH_MAX,
   BREATH_MIN,
   FRAME_MS,
-  MAX_DPR,
+  MAX_FPS,
   MAX_MOTES,
   MIN_MOTES,
-  backingScale,
+  MOTES_DPR,
   breath,
   buildFog,
   buildMotes,
   exhaleProgress,
   fogBands,
+  meanLateness,
+  median,
   moteCount,
   moteGlow,
-  renderPlan,
   shouldDraw,
+  stillPose,
+  type AdaptiveSample,
 } from './atmosphere-core';
 
 /** A small deterministic rng for the field builders. */
@@ -31,7 +38,12 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-describe('shouldDraw — the 30 fps cap (P1)', () => {
+describe('shouldDraw — the 24 fps cap (P1)', () => {
+  it('the cap is 24 fps', () => {
+    expect(MAX_FPS).toBe(24);
+    expect(FRAME_MS).toBeCloseTo(1000 / 24, 6);
+  });
+
   it('does not draw just before a frame interval has passed', () => {
     expect(shouldDraw(FRAME_MS - 0.01, 0)).toBe(false);
   });
@@ -41,7 +53,7 @@ describe('shouldDraw — the 30 fps cap (P1)', () => {
     expect(shouldDraw(FRAME_MS * 2, 0)).toBe(true);
   });
 
-  it('never allows a rate above 30 fps for any clock', () => {
+  it('never allows a rate above 24 fps for any clock', () => {
     fc.assert(
       fc.property(fc.double({ min: 0, max: 100000, noNaN: true }), (last) => {
         // A paint at `last + d` with d < FRAME_MS must be refused.
@@ -65,15 +77,11 @@ describe('moteCount and fogBands — bounds (P2)', () => {
 
   it('property: mote count stays within [30, 60] for any viewport', () => {
     fc.assert(
-      fc.property(
-        fc.integer({ min: 0, max: 8000 }),
-        fc.integer({ min: 0, max: 8000 }),
-        (w, h) => {
-          const n = moteCount(w, h);
-          expect(n).toBeGreaterThanOrEqual(MIN_MOTES);
-          expect(n).toBeLessThanOrEqual(MAX_MOTES);
-        },
-      ),
+      fc.property(fc.integer({ min: 0, max: 8000 }), fc.integer({ min: 0, max: 8000 }), (w, h) => {
+        const n = moteCount(w, h);
+        expect(n).toBeGreaterThanOrEqual(MIN_MOTES);
+        expect(n).toBeLessThanOrEqual(MAX_MOTES);
+      }),
     );
   });
 
@@ -93,15 +101,9 @@ describe('moteCount and fogBands — bounds (P2)', () => {
   });
 });
 
-describe('backingScale — device pixel ratio capped at 2 (P2)', () => {
-  it('is min(max(1, dpr), 2)', () => {
-    expect(backingScale(1)).toBe(1);
-    expect(backingScale(1.5)).toBe(1.5);
-    expect(backingScale(2)).toBe(2);
-    expect(backingScale(3)).toBe(MAX_DPR);
-    expect(backingScale(0.5)).toBe(1);
-    expect(backingScale(0)).toBe(1);
-    expect(backingScale(Number.NaN)).toBe(1);
+describe('MOTES_DPR — the motes canvas is drawn at device-pixel-ratio 1 (P2)', () => {
+  it('is exactly 1', () => {
+    expect(MOTES_DPR).toBe(1);
   });
 });
 
@@ -122,10 +124,178 @@ describe('breath — the ≤2 Hz glow between 0.85 and 1 (P3)', () => {
   });
 });
 
-describe('renderPlan — the reduced-motion still-frame decision (P4)', () => {
-  it('draws once under reduced motion and animates otherwise', () => {
-    expect(renderPlan(true)).toBe('draw-once');
-    expect(renderPlan(false)).toBe('animate');
+describe('stillPose — the still-vs-animate decision (P4)', () => {
+  it('animates only when nothing asks for stillness', () => {
+    expect(stillPose({})).toBe('animate');
+    expect(stillPose({ reducedMotion: false, honest: false, adaptiveStill: false })).toBe(
+      'animate',
+    );
+  });
+
+  it('is still under reduced motion', () => {
+    expect(stillPose({ reducedMotion: true })).toBe('still');
+  });
+
+  it('is still once the room is honest', () => {
+    expect(stillPose({ honest: true })).toBe('still');
+  });
+
+  it('is still once adaptive still has engaged', () => {
+    expect(stillPose({ adaptiveStill: true })).toBe('still');
+  });
+
+  it('property: still exactly when any flag is set', () => {
+    fc.assert(
+      fc.property(fc.boolean(), fc.boolean(), fc.boolean(), (rm, honest, adaptive) => {
+        const want = rm || honest || adaptive ? 'still' : 'animate';
+        expect(stillPose({ reducedMotion: rm, honest, adaptiveStill: adaptive })).toBe(want);
+      }),
+    );
+  });
+});
+
+describe('averageFps — frames over a window', () => {
+  it('is frames * 1000 / elapsed', () => {
+    expect(averageFps(48, 2000)).toBeCloseTo(24, 6);
+    expect(averageFps(20, 2000)).toBeCloseTo(10, 6);
+    expect(averageFps(60, 1000)).toBeCloseTo(60, 6);
+  });
+
+  it('is 0 for a non-positive window or bad input', () => {
+    expect(averageFps(10, 0)).toBe(0);
+    expect(averageFps(10, -5)).toBe(0);
+    expect(averageFps(-1, 1000)).toBe(0);
+  });
+});
+
+describe('median — the middle value', () => {
+  it('is 0 for an empty list', () => {
+    expect(median([])).toBe(0);
+  });
+
+  it('is the middle of an odd-length sorted list', () => {
+    expect(median([3, 1, 2])).toBe(2);
+    expect(median([9])).toBe(9);
+  });
+
+  it('is the mean of the two middles of an even-length list', () => {
+    expect(median([1, 2, 3, 4])).toBe(2.5);
+  });
+
+  it('ignores non-finite values', () => {
+    expect(median([Number.NaN, 1, 3])).toBe(2);
+  });
+});
+
+describe('meanLateness — how far ticks overshoot the expected interval', () => {
+  it('is ~0 for ticks that arrive on time', () => {
+    // A healthy loop wakes every ~interval, so lateness is ~0.
+    expect(meanLateness([42, 42, 42, 42], FRAME_MS)).toBeLessThan(1);
+  });
+
+  it('never counts an early or on-time tick as negative', () => {
+    // Gaps shorter than the interval contribute 0, not a negative.
+    expect(meanLateness([10, 10, 10], FRAME_MS)).toBe(0);
+  });
+
+  it('climbs with late ticks', () => {
+    // A congested loop wakes far late: each gap overshoots the interval.
+    const late = meanLateness([120, 130, 140], FRAME_MS);
+    expect(late).toBeGreaterThan(FRAME_MS); // well over half the interval
+  });
+
+  it('is 0 for an empty list', () => {
+    expect(meanLateness([], FRAME_MS)).toBe(0);
+  });
+});
+
+describe('adaptiveStillEngages — measured on the timer ticks, not the capped count (P5)', () => {
+  it('the floor is a measured-on-ticks 12 fps, well under the 24 cap', () => {
+    expect(ADAPTIVE_FPS_FLOOR).toBe(12);
+    expect(ADAPTIVE_MEDIAN_FRAME_MS).toBe(50);
+  });
+
+  it('a fast desktop at the cap does NOT engage (the cap must not trip it)', () => {
+    // The capped loop wakes every ~FRAME_MS and paints in well under a ms, so
+    // ~47 ticks over 2 s (~23.5 fps measured on ticks). None of the three
+    // conditions fire: on-time wakes, sub-ms frames, well above the 12 fps floor.
+    const gaps = Array.from({ length: 46 }, () => FRAME_MS + 0.3);
+    const frameDurations = Array.from({ length: 47 }, () => 0.4);
+    const sample: AdaptiveSample = { gaps, frameDurations, ticks: 47, elapsedMs: 2000 };
+    expect(adaptiveStillEngages(sample)).toBe(false);
+  });
+
+  it('a jittery-but-fine desktop (one slow first frame) does NOT engage', () => {
+    // A single slow frame on page load must not trip it — the bug this fixes.
+    const gaps = Array.from({ length: 46 }, () => FRAME_MS + 0.3);
+    const frameDurations = [120, ...Array.from({ length: 46 }, () => 0.4)];
+    const sample: AdaptiveSample = { gaps, frameDurations, ticks: 47, elapsedMs: 2000 };
+    expect(adaptiveStillEngages(sample)).toBe(false);
+  });
+
+  it('engages when wakes arrive late by more than half the interval', () => {
+    // A throttled event loop: every wake overshoots the interval by ~60 ms,
+    // well over half of ~41.7 ms.
+    const gaps = Array.from({ length: 18 }, () => FRAME_MS + 60);
+    const frameDurations = Array.from({ length: 18 }, () => 2);
+    const sample: AdaptiveSample = { gaps, frameDurations, ticks: 18, elapsedMs: 2000 };
+    expect(adaptiveStillEngages(sample)).toBe(true);
+  });
+
+  it('engages when the median frame takes longer than 50 ms', () => {
+    // 4x CPU: frames are slow even if wakes are roughly on time.
+    const gaps = Array.from({ length: 20 }, () => FRAME_MS + 5);
+    const frameDurations = Array.from({ length: 20 }, () => 70);
+    const sample: AdaptiveSample = { gaps, frameDurations, ticks: 20, elapsedMs: 2000 };
+    expect(adaptiveStillEngages(sample)).toBe(true);
+  });
+
+  it('engages when the measured tick rate falls below 12 fps', () => {
+    // Only ~10 ticks over 2 s = 5 fps measured on the timer's own ticks.
+    const gaps = Array.from({ length: 9 }, () => 200);
+    const frameDurations = Array.from({ length: 10 }, () => 3);
+    const sample: AdaptiveSample = { gaps, frameDurations, ticks: 10, elapsedMs: 2000 };
+    expect(adaptiveStillEngages(sample)).toBe(true);
+  });
+
+  it('does not engage on an empty sample (no evidence of a slow device)', () => {
+    expect(adaptiveStillEngages({ gaps: [], frameDurations: [], ticks: 0, elapsedMs: 0 })).toBe(
+      false,
+    );
+  });
+
+  it('honours custom thresholds', () => {
+    // A healthy tick rate (~45 ticks over 2 s) so the fps floor stays clear;
+    // wakes 10 ms late (< ~20.8 half-interval) and 30 ms frames (< 50 ms).
+    const sample: AdaptiveSample = {
+      gaps: Array.from({ length: 44 }, () => FRAME_MS + 10),
+      frameDurations: Array.from({ length: 45 }, () => 30),
+      ticks: 45,
+      elapsedMs: 2000,
+    };
+    // Default thresholds: nothing crosses, so it does not engage.
+    expect(adaptiveStillEngages(sample)).toBe(false);
+    // A stricter median-frame threshold trips it.
+    expect(adaptiveStillEngages(sample, { medianFrameMs: 20 })).toBe(true);
+    // A stricter lateness factor trips it (10 ms > 0.2 * ~41.7 = ~8.3).
+    expect(adaptiveStillEngages(sample, { lateFactor: 0.2 })).toBe(true);
+  });
+
+  it('property: a desktop-cadence sample never engages', () => {
+    fc.assert(
+      fc.property(
+        fc.double({ min: 0, max: 2, noNaN: true }),
+        fc.double({ min: 0, max: 1.5, noNaN: true }),
+        (jitter, frameMs) => {
+          // Desktop: wakes within ~2 ms of the interval, sub-ms frames,
+          // a healthy ~47-tick / 2 s cadence.
+          const gaps = Array.from({ length: 46 }, () => FRAME_MS + jitter);
+          const frameDurations = Array.from({ length: 47 }, () => frameMs);
+          const ok: AdaptiveSample = { gaps, frameDurations, ticks: 47, elapsedMs: 2000 };
+          expect(adaptiveStillEngages(ok)).toBe(false);
+        },
+      ),
+    );
   });
 });
 

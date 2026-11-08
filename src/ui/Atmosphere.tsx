@@ -1,21 +1,24 @@
 import { useEffect, useRef } from 'preact/hooks';
 import {
-  backingScale,
-  breath,
+  ADAPTIVE_WINDOW_MS,
+  adaptiveStillEngages,
   buildFog,
   buildMotes,
-  exhaleProgress,
+  FRAME_MS,
   fogBands,
   moteCount,
   moteGlow,
-  renderPlan,
+  MOTES_DPR,
   shouldDraw,
+  stillPose,
+  type AdaptiveSample,
   type FogBand,
   type Mote,
 } from './atmosphere-core';
 
 export interface AtmosphereProps {
-  /** True once the room reaches the honest step: the page exhales once. */
+  /** True once the room reaches the honest step: the page exhales once, then
+   *  the whole atmosphere goes still. */
   exhale: boolean;
   /** True when the user asks for reduced motion. */
   reducedMotion: boolean;
@@ -33,118 +36,224 @@ function mulberry32(seed: number): () => number {
   };
 }
 
-/** Warm candle colour (matches --candle), used for glow and motes. */
+/** Warm candle colour (matches --candle), used for the fog-lit motes. */
 const CANDLE = { r: 240, g: 190, b: 119 };
 /** Fog colour (matches the parchment/ghost warm white). */
 const FOG = { r: 244, g: 239, b: 230 };
 
 /**
- * The atmosphere layer: one `<canvas>` on the room's backdrop, behind the
- * manor frame and every control, drawing a slow drifting fog, dust motes
- * caught in candlelight, and a warm glow that breathes on the walls.
+ * A tiny test seam. In jsdom there is no real 2D context, so the component
+ * starts no loop and draws nothing; but the loop's scheduling and still-state
+ * decisions still need proving. The component records, on a module-level
+ * observable keyed by a nonce, what it decided to do (start a loop vs draw
+ * once), how many motes frames it painted, and whether it is paused/stopped, so
+ * a test can drive fake timers and read the result without a canvas.
+ */
+export interface AtmosphereProbe {
+  /** 'animate' when a motes loop started, 'still' when it drew once only. */
+  plan: 'animate' | 'still' | 'none';
+  /** Painted motes frames so far (still pose counts as 1). */
+  frames: number;
+  /** True while the motes timer loop is scheduling wakes. */
+  looping: boolean;
+  /** True once adaptive still engaged for this visit. */
+  adaptiveStill: boolean;
+  /** True while paused because the document is hidden. */
+  pausedHidden: boolean;
+}
+
+let currentProbe: AtmosphereProbe | null = null;
+/** Test-only: read the latest probe (null before the component has mounted). */
+export function __atmosphereProbe(): AtmosphereProbe | null {
+  return currentProbe;
+}
+
+/**
+ * The atmosphere layer: a CSS glow, a CSS-drifted fog image and one small motes
+ * canvas, all on the room's backdrop, behind the manor frame and every control.
  *
- * It is cheap: it starts only after the first paint, paints at most 30 fps,
- * pauses while the tab is hidden, sizes to the device pixel ratio capped at 2,
- * and tears everything down on unmount. Under `prefers-reduced-motion: reduce`
- * it runs no animation at all and draws a single still frame. When the room
- * turns honest it exhales once — the fog thins, the glow rises — then holds
- * calm. The canvas is `aria-hidden` and never takes pointer events, so it
- * never covers any text, card or control.
+ * It is light: the warm breathing glow is a CSS `opacity` animation (no JS per
+ * frame); the fog is painted once to an offscreen canvas and drifted by a CSS
+ * `transform` (nothing repaints it per frame); only the motes cost a paint, and
+ * that canvas is at device-pixel-ratio 1, woken by a timer at most 24 times a
+ * second, paused while the tab is hidden, and dropped to one still frame once
+ * the room turns honest, under `prefers-reduced-motion: reduce`, or if the
+ * opening two seconds show a device that cannot keep the cadence (adaptive
+ * still). Everything is `aria-hidden` and never takes pointer events, so no
+ * text, card or control is covered.
+ *
+ * Cheap for the compositor too: the glow breath and the fog drift are stepped
+ * CSS animations (see atmosphere.css), so the software compositor updates them
+ * only a couple of dozen times a second at most; the two layers are promoted
+ * to their own compositor layer (`will-change`) ONLY while they move, so an
+ * idle/still/honest/hidden room does not pay to recomposite a large promoted
+ * layer; and while the tab is hidden the component sets `data-hidden` on the
+ * root so both CSS animations pause.
  */
 export default function Atmosphere({ exhale, reducedMotion }: AtmosphereProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  // The exhale clock: when `exhale` turns true we record the start so the draw
-  // loop (or the still redraw) can ease the fog/glow over ~1s and then rest.
-  const exhaleStartRef = useRef<number | null>(null);
-  // The latest reduced-motion/exhale values, read inside the loop without
-  // re-subscribing it.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const fogRef = useRef<HTMLCanvasElement>(null);
+  const motesRef = useRef<HTMLCanvasElement>(null);
+  // The latest exhale value, read inside the loop without re-subscribing it.
   const exhaleRef = useRef(exhale);
   exhaleRef.current = exhale;
 
+  // Drive the still pose through a data attribute on the root so the CSS glow
+  // and fog animations pause (and hold their rest frame) without a re-render.
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || typeof canvas.getContext !== 'function') return; // jsdom: inert
+    const root = rootRef.current;
+    if (!root) return;
+    if (exhale) root.setAttribute('data-exhale', 'true');
+    else root.removeAttribute('data-exhale');
+  }, [exhale]);
 
-    const ctx = canvas.getContext('2d');
-    // Inert when there is no real 2D context, including a partial stub (e.g.
-    // jsdom's canvas without node-canvas) that lacks the drawing methods this
-    // layer uses. Guarding on createRadialGradient keeps the component a no-op
-    // in the test environment, as the design requires.
-    if (!ctx || typeof ctx.createRadialGradient !== 'function') return;
+  useEffect(() => {
+    const root = rootRef.current;
+    const motes = motesRef.current;
+    const fog = fogRef.current;
 
+    // The probe starts fresh each mount/reduced-motion change, so a test reads
+    // this run's decisions. Honest and reduced motion start still.
+    const probe: AtmosphereProbe = {
+      plan: 'none',
+      frames: 0,
+      looping: false,
+      adaptiveStill: false,
+      pausedHidden: false,
+    };
+    currentProbe = probe;
+
+    const setStill = (still: boolean) => {
+      if (!root) return;
+      if (still) root.setAttribute('data-still', 'true');
+      else root.removeAttribute('data-still');
+    };
+
+    // Promote the glow and fog to their own compositor layer ONLY while they
+    // actually move; dropping `will-change` when still/hidden/honest means an
+    // idle room does not pay to recomposite a large promoted layer. The CSS
+    // reads `data-moving` to add `will-change` to the glow and fog.
+    const setMoving = (moving: boolean) => {
+      if (!root) return;
+      if (moving) root.setAttribute('data-moving', 'true');
+      else root.removeAttribute('data-moving');
+    };
+
+    // Pause/resume the glow and fog CSS animations while the tab is hidden, so a
+    // backgrounded room composites nothing. Independent of the still pose.
+    const setHidden = (hidden: boolean) => {
+      if (!root) return;
+      if (hidden) root.setAttribute('data-hidden', 'true');
+      else root.removeAttribute('data-hidden');
+    };
+
+    // The honest exhale ends in the still pose; reduced motion is still from the
+    // start. `honest` here means "exhale has begun" — the component exhales once
+    // (the CSS fades the fog / lifts the glow for ~1 s via data-exhale) and then
+    // holds still.
+    const honest = exhaleRef.current;
+    const startStill = stillPose({ reducedMotion, honest }) === 'still';
+
+    // The motes 2D context. Without a real one (jsdom), or honest/reduced, we
+    // never loop; but we still record the plan and draw-once decision so the
+    // test seam and the still CSS are driven correctly.
+    const ctx =
+      motes && typeof motes.getContext === 'function'
+        ? (motes.getContext('2d') as CanvasRenderingContext2D | null)
+        : null;
+    const canDraw = !!ctx && typeof ctx.createRadialGradient === 'function';
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
     let raf = 0;
     let idle: number | ReturnType<typeof setTimeout> | null = null;
-    let running = false;
     let lastDrawn = -Infinity;
     let started = 0;
-    let motes: Mote[] = [];
-    let fog: FogBand[] = [];
+    let adaptiveChecked = false;
+    let field: Mote[] = [];
+    let fogField: FogBand[] = [];
     let cssW = 0;
     let cssH = 0;
-    let scale = 1;
 
-    const measure = () => {
+    // The device cadence, sampled over the opening window off the timer's own
+    // ticks: the gap between successive wakes and the duration of each paint.
+    // Adaptive still reads these (not the capped frame count) so the 24 fps cap
+    // never trips it on a fast desktop.
+    const sample: AdaptiveSample = { gaps: [], frameDurations: [], ticks: 0, elapsedMs: 0 };
+    let lastWakeAt = -1;
+
+    const nowMs = () =>
+      typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+
+    const measure = (canvas: HTMLCanvasElement, dpr: number) => {
       const rect = canvas.getBoundingClientRect();
       cssW = Math.max(1, Math.round(rect.width || canvas.clientWidth || 0));
       cssH = Math.max(1, Math.round(rect.height || canvas.clientHeight || 0));
-      const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-      scale = backingScale(dpr);
-      canvas.width = Math.round(cssW * scale);
-      canvas.height = Math.round(cssH * scale);
-      ctx.setTransform(scale, 0, 0, scale, 0, 0);
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
     };
 
-    const paint = (now: number) => {
-      // Exhale easing: thin the fog and lift the glow over ~1s, then hold.
-      let fogScale = 1;
-      let glowLift = 0;
-      if (exhaleRef.current) {
-        if (exhaleStartRef.current === null) exhaleStartRef.current = now;
-        const p = exhaleProgress(now - exhaleStartRef.current);
-        fogScale = 1 - 0.6 * p; // fog thins to 40%
-        glowLift = 0.08 * p; // glow rises a touch
-      } else {
-        exhaleStartRef.current = null;
-      }
-
-      ctx.clearRect(0, 0, cssW, cssH);
-
-      // The breathing warm glow: a soft radial centred high on the wall, lifted
-      // so the candlelight clearly warms the room (the backdrop mostly shows in
-      // the margins around and above the frame, where this glow lives).
-      const b = (reducedMotion ? 1 : breath(now - started)) + glowLift;
-      const cx = cssW * 0.5;
-      const cy = cssH * 0.42;
-      const rad = Math.max(cssW, cssH) * 0.8;
-      const grd = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
-      const g = Math.min(1, b);
-      grd.addColorStop(0, `rgba(${CANDLE.r},${CANDLE.g},${CANDLE.b},${0.22 * g})`);
-      grd.addColorStop(0.55, `rgba(${CANDLE.r},${CANDLE.g},${CANDLE.b},${0.1 * g})`);
-      grd.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = grd;
-      ctx.fillRect(0, 0, cssW, cssH);
-
-      // The drifting fog bands.
-      for (const band of fog) {
-        const drift = reducedMotion ? 0 : ((now - started) / 1000) * band.speed;
-        const x = ((band.phase + drift) % (cssW + band.h)) - band.h;
-        const fg = ctx.createLinearGradient(0, band.y, 0, band.y + band.h);
-        const a = band.a * fogScale;
+    // Paint the fog ONCE to its own canvas; CSS drifts it with a transform.
+    const paintFogOnce = () => {
+      if (!fog || typeof fog.getContext !== 'function') return;
+      const fctx = fog.getContext('2d') as CanvasRenderingContext2D | null;
+      if (!fctx || typeof fctx.createLinearGradient !== 'function') return;
+      // The fog canvas is a little wider than the scene (see atmosphere.css:
+      // width 118%) so the CSS drift never shows an edge; it is drawn at DPR 1
+      // (soft gradients hide the lack of density).
+      const rect = fog.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width || fog.clientWidth || cssW || 1));
+      const h = Math.max(1, Math.round(rect.height || fog.clientHeight || cssH || 1));
+      fog.width = w;
+      fog.height = h;
+      fctx.clearRect(0, 0, w, h);
+      // Lay the pre-built bands across the layer's two halves so either side of
+      // the drift shows continuous fog.
+      for (const band of fogField) {
+        const fg = fctx.createLinearGradient(0, band.y, 0, band.y + band.h);
         fg.addColorStop(0, `rgba(${FOG.r},${FOG.g},${FOG.b},0)`);
-        fg.addColorStop(0.5, `rgba(${FOG.r},${FOG.g},${FOG.b},${a})`);
+        fg.addColorStop(0.5, `rgba(${FOG.r},${FOG.g},${FOG.b},${band.a})`);
         fg.addColorStop(1, `rgba(${FOG.r},${FOG.g},${FOG.b},0)`);
-        ctx.fillStyle = fg;
-        // Two soft overlapping blobs so the band is not a hard rectangle.
-        ctx.beginPath();
-        ctx.ellipse(x + cssW * 0.3, band.y + band.h / 2, cssW * 0.5, band.h / 2, 0, 0, Math.PI * 2);
-        ctx.ellipse(x + cssW * 0.7, band.y + band.h / 2, cssW * 0.45, band.h / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
+        fctx.fillStyle = fg;
+        const half = w / 2;
+        for (const baseX of [band.phase % half, (band.phase % half) + half]) {
+          fctx.beginPath();
+          fctx.ellipse(
+            baseX + half * 0.3,
+            band.y + band.h / 2,
+            half * 0.5,
+            band.h / 2,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          fctx.ellipse(
+            baseX + half * 0.7,
+            band.y + band.h / 2,
+            half * 0.45,
+            band.h / 2,
+            0,
+            0,
+            Math.PI * 2,
+          );
+          fctx.fill();
+        }
       }
+    };
 
-      // The dust motes caught in the candlelight: brighter where the glow is.
-      for (const m of motes) {
-        if (!reducedMotion) {
-          const dt = 1 / 30;
+    // The glow centre/radius the motes use for their candlelight weighting.
+    const glowGeom = () => ({
+      cx: cssW * 0.5,
+      cy: cssH * 0.42,
+      rad: Math.max(cssW, cssH) * 0.8,
+    });
+
+    const paintMotes = (advance: boolean) => {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, cssW, cssH);
+      const { cx, cy, rad } = glowGeom();
+      for (const m of field) {
+        if (advance) {
+          const dt = FRAME_MS / 1000;
           m.x += m.vx * dt;
           m.y += m.vy * dt;
           if (m.y < -2) {
@@ -161,49 +270,140 @@ export default function Atmosphere({ exhale, reducedMotion }: AtmosphereProps) {
         ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
         ctx.fill();
       }
-
-      lastDrawn = now;
+      probe.frames += 1;
     };
 
-    const nowMs = () =>
-      typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+    const stopLoop = () => {
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+      probe.looping = false;
+    };
 
-    const loop = () => {
-      raf = requestAnimationFrame(loop);
-      if (typeof document !== 'undefined' && document.hidden) return; // paused while hidden
-      const now = nowMs();
-      if (shouldDraw(now, lastDrawn)) paint(now);
+    const goStill = () => {
+      stopLoop();
+      setStill(true);
+      // Still: the glow and fog no longer move, so drop their layer promotion.
+      setMoving(false);
+      if (canDraw)
+        paintMotes(false); // one calm frame
+      else probe.frames += 1;
+      probe.plan = 'still';
+    };
+
+    // One timer wake: if visible and due, request a single rAF to paint; then
+    // schedule the next wake. This is the whole cost of an idle room — at most
+    // 24 frame requests a second, not the display's 60.
+    const wake = () => {
+      timer = null;
+      const wokeAt = nowMs();
+      // Record the cadence (the gap since the last wake) over the opening
+      // window, skipping the pauses while hidden so a backgrounded room does
+      // not read as a slow device.
+      if (typeof document !== 'undefined' && document.hidden) {
+        probe.pausedHidden = true;
+        // Pause the glow and fog CSS too while hidden.
+        setHidden(true);
+        lastWakeAt = -1; // reset the cadence clock across the hidden gap
+        // Re-arm so we resume promptly when visible again; visibilitychange
+        // also re-arms, but this keeps the loop alive if that event is missed.
+        timer = setTimeout(wake, FRAME_MS);
+        return;
+      }
+      probe.pausedHidden = false;
+      setHidden(false);
+      if (!adaptiveChecked) {
+        if (lastWakeAt >= 0) sample.gaps.push(wokeAt - lastWakeAt);
+        lastWakeAt = wokeAt;
+        sample.ticks += 1;
+      }
+      const now = wokeAt;
+      if (shouldDraw(now, lastDrawn)) {
+        const doPaint = () => {
+          raf = 0;
+          const paintStart = nowMs();
+          if (canDraw) paintMotes(true);
+          else probe.frames += 1;
+          if (!adaptiveChecked) sample.frameDurations.push(nowMs() - paintStart);
+          lastDrawn = now;
+          // Adaptive still: after the opening window, if the device could not
+          // keep the cadence (late wakes or slow frames, measured on the
+          // timer's own ticks — not the capped frame count), hold the still
+          // pose for the rest of this visit.
+          if (!adaptiveChecked && now - started >= ADAPTIVE_WINDOW_MS) {
+            adaptiveChecked = true;
+            sample.elapsedMs = now - started;
+            if (adaptiveStillEngages(sample)) {
+              probe.adaptiveStill = true;
+              goStill();
+              return;
+            }
+          }
+        };
+        if (typeof requestAnimationFrame === 'function') raf = requestAnimationFrame(doPaint);
+        else doPaint();
+      }
+      if (timer === null && probe.looping) timer = setTimeout(wake, FRAME_MS);
     };
 
     const onVisibility = () => {
-      // On returning to a visible tab, reset the frame clock so no catch-up
-      // burst occurs; the next tick paints one fresh frame.
-      if (typeof document !== 'undefined' && !document.hidden) lastDrawn = -Infinity;
+      if (typeof document === 'undefined') return;
+      if (document.hidden) {
+        // Pause the glow and fog CSS immediately on hide; the motes loop sees
+        // document.hidden on its next wake.
+        probe.pausedHidden = true;
+        setHidden(true);
+        lastWakeAt = -1; // the cadence clock resets across the hidden gap
+        return;
+      }
+      // On returning, resume the CSS layers and reset the frame clock so no
+      // catch-up burst occurs.
+      setHidden(false);
+      lastDrawn = -Infinity;
+      probe.pausedHidden = false;
+      if (probe.looping && timer === null) timer = setTimeout(wake, 0);
     };
 
     const start = () => {
       idle = null;
-      measure();
+      const dpr = MOTES_DPR; // motes canvas is always 1×
+      if (motes) measure(motes, dpr);
       const rng = mulberry32(0x9e3779b9);
-      motes = buildMotes(moteCount(cssW, cssH), cssW, cssH, rng);
-      fog = buildFog(fogBands(cssW, cssH), cssW, cssH, rng);
+      field = buildMotes(moteCount(cssW, cssH), cssW, cssH, rng);
+      fogField = buildFog(fogBands(cssW, cssH), cssW, cssH, rng);
+      paintFogOnce();
       started = nowMs();
 
-      if (renderPlan(reducedMotion) === 'draw-once') {
-        // One still frame of fog and glow, no loop.
-        paint(started);
+      if (startStill) {
+        goStill();
         return;
       }
 
-      running = true;
+      setStill(false);
+      // Moving: promote the glow and fog to their own layer while they animate.
+      setMoving(true);
+      probe.plan = 'animate';
+      probe.looping = true;
       if (typeof document !== 'undefined') {
         document.addEventListener('visibilitychange', onVisibility);
+        // Honour the current visibility at once (a room mounted in a hidden tab
+        // starts paused).
+        if (document.hidden) setHidden(true);
       }
-      raf = requestAnimationFrame(loop);
+      // Paint the first frame immediately, then schedule the timer loop.
+      if (canDraw) paintMotes(false);
+      else probe.frames += 1;
+      lastDrawn = nowMs();
+      timer = setTimeout(wake, FRAME_MS);
     };
 
-    // Start only after the first paint so the largest contentful paint is
-    // never delayed.
+    // Start only after the first paint so the largest contentful paint is never
+    // delayed.
     type IdleWindow = Window & {
       requestIdleCallback?: (cb: () => void) => number;
       cancelIdleCallback?: (handle: number) => void;
@@ -216,7 +416,7 @@ export default function Atmosphere({ exhale, reducedMotion }: AtmosphereProps) {
     }
 
     return () => {
-      if (raf) cancelAnimationFrame(raf);
+      stopLoop();
       if (idle !== null) {
         if (w && typeof w.cancelIdleCallback === 'function' && typeof idle === 'number') {
           w.cancelIdleCallback(idle);
@@ -224,13 +424,24 @@ export default function Atmosphere({ exhale, reducedMotion }: AtmosphereProps) {
           clearTimeout(idle as ReturnType<typeof setTimeout>);
         }
       }
-      if (running && typeof document !== 'undefined') {
+      if (typeof document !== 'undefined') {
         document.removeEventListener('visibilitychange', onVisibility);
       }
+      if (root) {
+        root.removeAttribute('data-hidden');
+        root.removeAttribute('data-moving');
+      }
+      if (currentProbe === probe) currentProbe = null;
     };
-    // Re-run when reduced motion changes (animate ⇄ still). The exhale is read
-    // live through a ref, so it does not restart the loop.
-  }, [reducedMotion]);
+    // Re-run when reduced motion or the honest/exhale flag changes (animate ⇄
+    // still). Exhale flips the room to its calm, still pose.
+  }, [reducedMotion, exhale]);
 
-  return <canvas class="atmosphere-canvas" aria-hidden="true" ref={canvasRef}></canvas>;
+  return (
+    <div class="atmosphere" aria-hidden="true" ref={rootRef}>
+      <div class="atmosphere-glow"></div>
+      <canvas class="atmosphere-fog" aria-hidden="true" ref={fogRef}></canvas>
+      <canvas class="atmosphere-motes" aria-hidden="true" ref={motesRef}></canvas>
+    </div>
+  );
 }

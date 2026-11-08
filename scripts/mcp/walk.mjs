@@ -43,6 +43,13 @@
 // readiness read (which waits for a title other than the previous room's) would
 // never see a change and would time out on a room that is actually there.
 //
+// Idle (no frames): once a room is honest (the comparison shown and the task
+// done), the atmosphere drops to its still pose — the glow and fog CSS
+// animations pause and the motes loop stops — so the page should request NO
+// animation frames. The walk resets the in-page rAF counter, waits ~2 s, reads
+// it, and fails the room if any frame was requested (via the pure
+// idleWithinWindow rule). This proves an honest room is genuinely calm.
+//
 // Motion QA, named-hold QA, label QA and divider QA are unchanged (see below).
 
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -52,6 +59,7 @@ import {
   wantsReducedMotion,
   clsWithinLimit,
   animationsAtRest,
+  idleWithinWindow,
   labelWithinClip,
   heldMotionOffenders,
 } from './motion.mjs';
@@ -69,6 +77,8 @@ import { buttonFullyInViewport } from './title.mjs';
 const ROOM_READY_TIMEOUT_MS = 15000;
 const ROOM_POLL_MS = 100;
 const ROOM_SETTLE_MS = 1500;
+/** How long an honest room is watched for any requested animation frame. */
+const IDLE_WINDOW_MS = 2000;
 
 /** The room name shown in the instruction card, or null when no room renders. */
 const ROOM_TITLE = "(document.querySelector('.room-instructions-name') || {}).textContent || null";
@@ -693,6 +703,25 @@ async function completeHonestTask(cdp, r, byKeyboard, width) {
   return done;
 }
 
+/**
+ * Once the room is honest (the comparison shown and the task done), the
+ * atmosphere drops to its still pose — the glow and fog CSS animations pause
+ * and the motes loop stops — so the page should request NO animation frames.
+ * Reset the in-page rAF counter, wait ~2 s, read it, record it, and fail the
+ * room if any frame was requested (via the pure idleWithinWindow rule).
+ */
+async function checkIdleWhenHonest(cdp, r, check) {
+  await cdp.ev('window.__rafReset && window.__rafReset()');
+  await sleep(IDLE_WINDOW_MS);
+  const raw = await cdp.ev('window.__rafCount');
+  const frames = typeof raw === 'number' ? raw : Number(raw) || 0;
+  r.checks['idle frames (2s)'] = frames;
+  check('honest room requests no animation frames', idleWithinWindow(frames), true);
+  if (!idleWithinWindow(frames)) {
+    r.fail.push(`honest room requested ${frames} animation frame(s) in ${IDLE_WINDOW_MS} ms`);
+  }
+}
+
 /** Walk one room fully, including the slider, layers, task and guide checks. */
 async function walkRoom(cdp, baseUrl, n, reducedMotion = false, width = 1280, height = 720) {
   const { r, check } = await freeRoom(cdp, baseUrl, n, reducedMotion, width, height);
@@ -749,9 +778,6 @@ async function walkRoom(cdp, baseUrl, n, reducedMotion = false, width = 1280, he
   const done = await completeHonestTask(cdp, r, byKeyboard, width);
   check('task completes', done, true);
 
-  // The continue link now sits directly under the slider, above the Ghost Guide
-  // card. Confirm its placement (its DOM position precedes the guide card) and
-  // that it is visible.
   check('continue link visible', await cdp.ev("__vis('.room-continue')"));
   check(
     'continue link above the guide',
@@ -781,6 +807,14 @@ async function walkRoom(cdp, baseUrl, n, reducedMotion = false, width = 1280, he
     r.checks['animation states'] = Array.isArray(states)
       ? states.join(',') || '(none)'
       : String(states);
+  }
+
+  // The honest page must be still: with the comparison shown and the task done,
+  // the atmosphere requests no animation frames. (Not asserted under reduced
+  // motion, where nothing animated in the first place; the animations-at-rest
+  // check above already covers that case.)
+  if (!reducedMotion) {
+    await checkIdleWhenHonest(cdp, r, check);
   }
 
   const cls = await cdp.ev('window.__cls');

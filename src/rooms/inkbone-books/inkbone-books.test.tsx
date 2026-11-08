@@ -136,16 +136,23 @@ describe('The Library — the ghost\u2019s act (traces the double negative)', ()
     expect(css).toMatch(/\.trick-not::after\s*\{[^}]*content:\s*''/);
   });
 
-  it('the act names the trick through motion: the two "not"s glow and trace in sequence over a >= 4 s cycle', () => {
+  it('the act names the trick through motion: the two "not"s glow and trace in sequence over a >= 4 s cycle, transform/opacity only', () => {
     // The second "not" lights after the first (an animation-delay on
-    // .trick-not-2 and its ::after), and both the glow and the trace run on a
-    // 6 s cycle (>= 4 s). The trace is an ink stroke under each "not".
+    // .trick-not-2 and its pseudo-elements), and both the glow and the trace
+    // run on a 6 s cycle (>= 4 s). The glow is a soft candle halo BEHIND the
+    // word — a ::before radial driven by OPACITY (no animated text-shadow) — so
+    // the pulse composites cheaply; the trace is an ink stroke under each word.
     expect(css).toMatch(/\.trick-not-2[^{]*\{[^}]*animation-delay/);
     expect(css).toMatch(/@keyframes library-not-glow/);
     expect(css).toMatch(/@keyframes library-trace/);
-    expect(css).toMatch(/\.trick-not\s*\{[^}]*animation:\s*library-not-glow\s+6s/);
+    expect(css).toMatch(/\.trick-not::before\s*\{[^}]*animation:\s*library-not-glow\s+6s/);
     expect(css).toMatch(/\.trick-not::after\s*\{[^}]*animation:\s*library-trace\s+6s/);
-    // The stroke sits under the glyphs so it never covers the word's text.
+    // The glow keyframe animates OPACITY, not text-shadow or any paint property.
+    expect(css).toMatch(/@keyframes library-not-glow\s*\{[^@]*opacity/);
+    expect(css).not.toMatch(/@keyframes library-not-glow\s*\{[^@]*text-shadow/);
+    // Both the glow halo and the trace stroke sit under the glyphs (z-index -1)
+    // so they never cover the word's text.
+    expect(css).toMatch(/\.trick-not::before\s*\{[^}]*z-index:\s*-1/);
     expect(css).toMatch(/\.trick-not::after\s*\{[^}]*z-index:\s*-1/);
   });
 
@@ -348,11 +355,17 @@ describe('The Library — reduced motion static indicator', () => {
     expect(screen.getByText('Something stirs here')).toBeDefined();
     // The tracing stroke (a ::after on each "not") is hidden under reduced
     // motion; the two "not"s are still present as the still pose, underlined in
-    // ink by the reduced-motion rule, and their glow animation is turned off.
+    // ink by the reduced-motion rule, and the glow halo (::before) is turned off.
     expect(container.querySelectorAll('.trick-not').length).toBe(2);
-    expect(css).toMatch(/\.newsletter-line\.reduced-motion\s+\.trick-not::after\s*\{[^}]*display:\s*none/);
-    expect(css).toMatch(/\.newsletter-line\.reduced-motion\s+\.trick-not[^:{]*\{[^}]*text-decoration:\s*underline/);
-    expect(css).toMatch(/\.newsletter-line\.reduced-motion\s+\.trick-not[^:{]*\{[^}]*animation:\s*none/);
+    expect(css).toMatch(
+      /\.newsletter-line\.reduced-motion\s+\.trick-not::after\s*\{[^}]*display:\s*none/,
+    );
+    expect(css).toMatch(
+      /\.newsletter-line\.reduced-motion\s+\.trick-not\s*\{[^}]*text-decoration:\s*underline/,
+    );
+    expect(css).toMatch(
+      /\.newsletter-line\.reduced-motion\s+\.trick-not::before\s*\{[^}]*animation:\s*none/,
+    );
   });
 
   it('a wrong spell card under reduced motion shows the static indicator, no flicker animation', async () => {

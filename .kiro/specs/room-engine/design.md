@@ -244,7 +244,19 @@ Unchanged. Monotonic, in-memory fallback, no cookies, no network.
 
 ## The atmosphere layer and the common moments
 
-Unchanged from the atmosphere spec. The engine wires `<Atmosphere exhale={showSplit} reducedMotion={…} />` and sets `data-moment`/`data-moment-key`/`data-fleeing` on `.room-scene` from the state it already holds.
+The engine wires `<Atmosphere exhale={showSplit} reducedMotion={…} />` inside the `aria-hidden` `.room` backdrop and sets `data-moment`/`data-moment-key`/`data-fleeing` on `.room-scene` from the state it already holds. The common moments are shared CSS on `.ghost`/`.ghost-wrap`/`.room::after`, transforms and opacity only (a wrong pick guttters the candles and shakes the ghost's head; the right pick unwinds the ghost before the one shared 600 ms flee).
+
+The atmosphere is **light to run** (see the atmosphere spec, which this revision made explicit):
+
+- The breathing warm **glow** is a CSS `opacity` animation (`@keyframes atmosphere-breath`, 0.5 s, between 1 and 0.85) — no per-frame JavaScript.
+- The **fog** is painted **once** to an offscreen canvas and drifted across the backdrop by a CSS `transform` animation; nothing repaints it per frame.
+- Only a small **motes** canvas costs a paint, sized at device-pixel-ratio 1, woken by a timer at most **24 fps** (no idle 60 Hz `requestAnimationFrame` loop), paused while the tab is hidden.
+- When the room turns **honest** the `exhale` prop runs a one-second settle (fog thins, glow rises) and then every atmosphere animation stops (CSS paused via `data-still`, the motes loop stopped), so the honest page is calm and requests **no** animation frames.
+- An **adaptive still mode**: if the motes' first ~2 s average below 20 fps, the atmosphere drops to its still pose for that visit (the same pose as reduced motion), silently.
+- The ghost signs and each room's act animate `transform`/`opacity` only — no animated `filter`, `box-shadow`, `text-shadow` or layout property.
+- The `AudioContext` is created only once sound is armed by a gesture (the Sound toggle or the first pointer/key), and is suspended while sound is off or the tab is hidden, so an idle room with the sound untouched holds no audio engine.
+
+`manor-qa`'s `walk_rooms` additionally asserts an honest room requests no animation frames over ~2 s (the pure `idleWithinWindow` rule) and keeps its CLS, reduced-motion and named-hold checks.
 
 ## Data Models
 
@@ -302,7 +314,7 @@ Render one room in each of the six states and assert zero axe violations in ever
 
 ### Per-room tests, the room-data validation script, the bundle-size gate, and manor-qa
 
-Unchanged in intent; manor-qa's `walk_rooms` adds a pointer path for odd rooms (tap the possessed element straight away, no lantern), a first-sight check, a target-size check for the engine's controls, and records (does not fail on) the time from clicking the continue link to the next room's instruction. Its text checks use the new step lines.
+Unchanged in intent; manor-qa's `walk_rooms` adds a pointer path for odd rooms (tap the possessed element straight away, no lantern), a first-sight check, a target-size check for the engine's controls, an honest-room idle (no-frames) check, and records (does not fail on) the time from clicking the continue link to the next room's instruction. Its text checks use the new step lines.
 
 ### Test commands
 
