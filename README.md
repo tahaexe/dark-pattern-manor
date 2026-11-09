@@ -16,6 +16,27 @@ Each room is a web page with one trick in it — a real dark pattern. The loop i
 
 There is no fail state and nothing to install. The first room is a short tutorial, and the title screen shows the three steps before you enter.
 
+## The Ghost Lantern
+
+The Ghost Lantern carries the manor's lesson to the real web. It is a bookmarklet — one link you keep on your bookmarks bar. On any page, one click lights it: it reads the page in your browser, outlines the parts that show a clear sign of a dark pattern in the manor's candle style, and opens a small panel naming each one, the sign it saw, and a link to the manor room that teaches it. One more click, or Escape, puts it out and removes everything it added. It gives hints, not verdicts.
+
+**The four promises:**
+
+- **Local only, nothing sent.** The whole program is inside the bookmarklet. It loads no script, style, font or image from anywhere; it never calls the network (`fetch`, `XMLHttpRequest`, `sendBeacon`, `WebSocket`, `EventSource`) and never opens a window; the only link it adds is the plain "Learn it in the manor" anchor you choose to click, carrying only a room number. It uses no cookies, no `localStorage`, no `sessionStorage` and no IndexedDB.
+- **Hints, not verdicts.** Every label reads "Possible: &lt;pattern&gt;". The panel opens with plain words: these are hints, not proof — the lantern reads only what is on the screen and it can be wrong, so look for yourself before you decide. There is no score, no grade, and no word like "illegal" or "scam".
+- **Runs only when asked.** Nothing runs before you click. When you put it out, no node, listener, timer or observer it added is left behind, and your keyboard focus returns to where it was.
+- **No real company shown marked.** Every demo, test and text uses the fictional practice page or the manor's own pages, never a real site.
+
+**What it marks (v1):** the seven clear signs — Preselection, Visual interference, Fake urgency, Fake scarcity, Fake social proof, Confirmshaming and Trick wording. Five patterns that only show in a flow — sneaking, hidden costs, hidden subscription, nagging and hard to cancel — are not marked; the panel says so when it finds nothing.
+
+**How to install:** finish the manor (or open the ending at `#/end`) and drag the "Ghost Lantern" link to your bookmarks bar, then click it on any page. There is a safe practice page at `#/lantern-practice` — a made-up shop, "Hollowmere Goods", with every trick planted once beside its honest twin — and a "Try the lantern here" button that runs the same bundle.
+
+**Its limits (measured on the build in headless Chrome):**
+
+- **Strict security policies.** On a page served with a strict Content Security Policy (`require-trusted-types-for 'script'`, no inline script), the lantern still renders: it builds every node with `createElement`/`textContent` (no `innerHTML`) and puts its styles into a closed shadow root through a constructed stylesheet, with a `<style>` fallback. Measured under `default-src 'self'; script-src 'self'; style-src 'self'; require-trusted-types-for 'script'`, the marks kept their dashed candle outline and the panel kept its parchment background, with no console error. A policy that also forbids the bookmarklet's own `javascript:` navigation would stop the lantern from starting at all — there is nothing a bookmarklet can do about that.
+- **Cross-origin frames.** The lantern reads only the page it runs in. It cannot read inside a cross-origin iframe (an embedded checkout or consent frame from another site), so a trick living only in such a frame is not marked.
+- **Other languages.** The phrase lists are English in v1, so a page in another language may show no marks even where a trick is present.
+
 ## Run it locally
 
 ```bash
@@ -24,6 +45,8 @@ npm run dev
 npm test
 npm run build
 ```
+
+`npm run build` builds the app and, as a second step, the lantern bookmarklet bundle `dist/lantern.js`. `npm run check:lantern` checks that bundle: it exists, is small (at most 30 KB minified), contains none of the network or storage calls above, and the bookmarklet string stays well under the browser URL limit.
 
 ## How it is built with Kiro
 
@@ -35,13 +58,14 @@ This project is built with Kiro, an AI-powered development environment. Steering
 
 ## Real-browser QA (manor-qa)
 
-`scripts/mcp/manor-qa.mjs` is a Model Context Protocol server (stdio, JSON-RPC 2.0, no new dependency) that gives Kiro a real headless-browser check of the game while it builds rooms. A test DOM has no layout, stacking or pixels, so faults a sighted, keyboard player would meet — a whisper painted under the backdrop, a slider that reveals nothing, ink text on a dark gradient — slip past jsdom and axe-on-jsdom. The server serves the built site from `dist/` to a locally launched Chrome (`CHROME_PATH`, else the usual install path) and exposes three tools:
+`scripts/mcp/manor-qa.mjs` is a Model Context Protocol server (stdio, JSON-RPC 2.0, no new dependency) that gives Kiro a real headless-browser check of the game while it builds rooms. A test DOM has no layout, stacking or pixels, so faults a sighted, keyboard player would meet — a whisper painted under the backdrop, a slider that reveals nothing, ink text on a dark gradient — slip past jsdom and axe-on-jsdom. The server serves the built site from `dist/` to a locally launched Chrome (`CHROME_PATH`, else the usual install path) and exposes four tools:
 
 - **check_rooms** — runs the room-data checks (the same validation as `npm run check:rooms`) and returns one line per room plus the overall result. No browser needed.
 - **walk_rooms** `{ rooms: "1-12", width: 1280, height: 720 }` — walks each room by keyboard: the instruction, the lantern, the possessed element reachable by Tab, the three cards and each wrong card's whisper, the right card, the comparison box, the slider really changing what is on top, every point haunted at 0 and honest at 100, the focused honest control, the one-press task, the Ghost Guide and the continue link; for room 1 it also checks the tutorial coach marks are visible, do not cover their target, and that "Skip the tips" hides them; then the ending's twelve checklist lines. Returns JSON of the checks and any console errors.
 - **contrast_scan** `{ rooms: "1-12", width: 1280, height: 720 }` — for each room's comparison at 0 (haunted) and 100 (honest), screenshots the comparison box, reads its pixels from a canvas, and reports the WCAG contrast (70th percentile over each text box) of every visible text node, flagging anything below 4.5:1 (3:1 for large text). Returns JSON flags.
+- **walk_lantern** `{ width: 1280, height: 720 }` — runs the Ghost Lantern on the practice page (`#/lantern-practice`): runs the built bundle as the "Try the lantern here" button does, confirms the panel opens with the planted count, every mark sits over its element, Escape closes, focus returns and no lantern node remains; then serves the same page under a strict CSP and reports whether the marks and panel still got their styles and whether any console error appeared. Returns JSON.
 
-Build first (`npm run build`), then Kiro calls the tools through the `manor-qa` entry in `.kiro/settings/mcp.json`. The server speaks only to `127.0.0.1`, writes no file, and sends no project data anywhere. Its protocol and contrast maths are tested by `npm run test:qa` (part of `npm test`). `npm run qa:full` runs both browser tools over all twelve rooms, with and without reduced motion, and fails on any problem.
+Build first (`npm run build`), then Kiro calls the tools through the `manor-qa` entry in `.kiro/settings/mcp.json`. The server speaks only to `127.0.0.1`, writes no file, and sends no project data anywhere. Its protocol and contrast maths are tested by `npm run test:qa` (part of `npm test`). `npm run qa:full` runs all the browser tools over all twelve rooms, with and without reduced motion, plus the Ghost Lantern step and the strict-CSP measurement, and fails on any problem.
 
 ## Custom agents
 

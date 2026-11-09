@@ -8,7 +8,7 @@ import type { RoomData } from '../engine/types';
 import SoundToggle from '../audio/SoundToggle';
 import { loadProgress } from '../engine/progress';
 
-type Route = 'title' | 'room' | 'look' | 'end' | 'teach';
+type Route = 'title' | 'room' | 'look' | 'end' | 'teach' | 'practice';
 
 /** Room number → slug, in product order. Only built rooms resolve. */
 const ROOM_ORDER = roomSlugs();
@@ -20,6 +20,7 @@ export function parseHash(raw: string): { route: Route; room: number } | null {
   if (hash === '/look') return { route: 'look', room: 1 };
   if (hash === '/end') return { route: 'end', room: 1 };
   if (hash === '/teach') return { route: 'teach', room: 1 };
+  if (hash === '/lantern-practice') return { route: 'practice', room: 1 };
   if (hash.startsWith('/room/')) {
     const n = parseInt(hash.split('/')[2], 10);
     if (!isNaN(n) && n >= 1 && n <= 12) return { route: 'room', room: n };
@@ -45,6 +46,7 @@ export default function App() {
   const [loadError, setLoadError] = useState(false);
   const [Ending, setEnding] = useState<ComponentType | null>(null);
   const [Classroom, setClassroom] = useState<ComponentType | null>(null);
+  const [Practice, setPractice] = useState<ComponentType | null>(null);
   // The freed set, read from progress and refreshed on each room entry so the
   // bar's dots reflect the latest completions.
   const [freed, setFreed] = useState<Set<number>>(() => freedRoomNumbers());
@@ -118,6 +120,22 @@ export default function App() {
     };
   }, [route]);
 
+  useEffect(() => {
+    if (route !== 'practice') return;
+    let active = true;
+    setLoadError(false);
+    import('./LanternPractice')
+      .then((mod) => {
+        if (active) setPractice(() => mod.default);
+      })
+      .catch(() => {
+        if (active) setLoadError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [route]);
+
   // Focus the title heading when returning to the title screen (not on first load).
   const firstRoute = useRef(true);
   useEffect(() => {
@@ -139,6 +157,24 @@ export default function App() {
   // it moves into the compact bar.
   const showFloatingSound = route !== 'room';
 
+  const pendingPage = (
+    <div class="room-scene room-scene-pending">
+      <div class="room" aria-hidden="true">
+        <div class="room-wall"></div>
+      </div>
+      {loadError ? (
+        <div class="room-load-error" role="alert">
+          <h1 tabindex={-1}>The manor resists</h1>
+          <p>This page could not be summoned. Try again in a moment.</p>
+        </div>
+      ) : (
+        <div class="room-loading" role="status">
+          <h1 tabindex={-1}>Lighting the candles…</h1>
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <div class="app">
       {showFloatingSound ? <SoundToggle /> : null}
@@ -151,41 +187,19 @@ export default function App() {
         Classroom ? (
           <Classroom />
         ) : (
-          <div class="room-scene room-scene-pending">
-            <div class="room" aria-hidden="true">
-              <div class="room-wall"></div>
-            </div>
-            {loadError ? (
-              <div class="room-load-error" role="alert">
-                <h1 tabindex={-1}>The manor resists</h1>
-                <p>This page could not be summoned. Try again in a moment.</p>
-              </div>
-            ) : (
-              <div class="room-loading" role="status">
-                <h1 tabindex={-1}>Lighting the candles…</h1>
-              </div>
-            )}
-          </div>
+          pendingPage
+        )
+      ) : route === 'practice' ? (
+        Practice ? (
+          <Practice />
+        ) : (
+          pendingPage
         )
       ) : route === 'end' ? (
         Ending ? (
           <Ending />
         ) : (
-          <div class="room-scene room-scene-pending">
-            <div class="room" aria-hidden="true">
-              <div class="room-wall"></div>
-            </div>
-            {loadError ? (
-              <div class="room-load-error" role="alert">
-                <h1 tabindex={-1}>The manor resists</h1>
-                <p>This page could not be summoned. Try again in a moment.</p>
-              </div>
-            ) : (
-              <div class="room-loading" role="status">
-                <h1 tabindex={-1}>Lighting the candles…</h1>
-              </div>
-            )}
-          </div>
+          pendingPage
         )
       ) : (
         <div class="room-route">

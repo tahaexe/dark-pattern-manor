@@ -203,3 +203,64 @@
     transition: none;
   }
 }
+
+/* The "Take the lantern with you" block: the install note and the draggable
+   bookmarklet link, in the manor's look. The link reads as a candle-lit chip a
+   player drags to their bookmarks bar. */
+.ending-para {
+  color: var(--ink);
+  line-height: var(--line-height-normal);
+  margin: 0 0 var(--spacing-md);
+}
+
+.ending-lantern-grab {
+  margin: 0 0 var(--spacing-sm);
+}
+
+.ending-lantern-link {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--font-size-xl);
+  padding: var(--spacing-sm) var(--spacing-xl);
+  text-decoration: none;
+  cursor: grab;
+}
+
+.ending-lantern-link[aria-disabled='true'] {
+  background: var(--parchment-2);
+  color: var(--ink-soft);
+  cursor: default;
+  font-size: var(--font-size-lg);
+}
+
+.ending-lantern-link:focus-visible,
+.ending-lantern-link:focus {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.ending-lantern-note {
+  color: var(--ink);
+  margin: 0 0 var(--spacing-sm);
+}
+
+.ending-lantern-practice {
+  color: var(--ink);
+  margin: 0;
+}
+
+.ending-lantern-practice-link {
+  color: var(--ink);
+  text-decoration: underline;
+  border-bottom: 1px solid var(--ink);
+}
+
+.ending-lantern-practice-link:hover,
+.ending-lantern-practice-link:focus {
+  color: var(--bronze);
+}

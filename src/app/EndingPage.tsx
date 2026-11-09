@@ -1,16 +1,89 @@
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { doneCount } from '../engine/progress';
 import { quiet } from '../audio/sound';
 import ShareCard from './ShareCard';
 import { CHECKLIST, WANDERING } from './checklist';
+import { bookmarkletFor, fetchBundle } from './runBundle';
 import './ending.css';
+
+/**
+ * The "Take the lantern with you" block: a draggable "Ghost Lantern" link the
+ * player drags to their bookmarks bar, the one-line install note, and a link to
+ * the practice page.
+ *
+ * A framework may refuse a `javascript:` href in JSX, so the link's href is set
+ * through a ref with setAttribute once the bundle has been fetched from our own
+ * site. Until then the link reads "Preparing the lantern…", carries no href,
+ * and is not draggable. The lantern bundle itself makes no request; this one
+ * same-origin fetch is the app fetching its own `./lantern.js`.
+ */
+function TakeTheLantern() {
+  const linkRef = useRef<HTMLAnchorElement>(null);
+  const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchBundle()
+      .then((source) => {
+        if (!active) return;
+        const link = linkRef.current;
+        if (link) {
+          // setAttribute, not a JSX prop, so the framework does not strip it.
+          link.setAttribute('href', bookmarkletFor(source));
+          setReady(true);
+        }
+      })
+      .catch(() => {
+        if (active) setFailed(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <section class="ending-section ending-lantern" aria-labelledby="ending-lantern-heading">
+      <h2 id="ending-lantern-heading" class="ending-heading">
+        Take the lantern with you
+      </h2>
+      <p class="ending-para">
+        The Ghost Lantern is a bookmarklet. On any page, one click lights it: it marks the parts
+        that show a possible dark pattern and names each one. It reads only what is on your screen,
+        sends nothing anywhere, and leaves no trace when you put it out.
+      </p>
+      <p class="ending-lantern-grab">
+        <a
+          ref={linkRef}
+          class="ending-lantern-link"
+          draggable={ready}
+          aria-disabled={ready ? undefined : 'true'}
+        >
+          {ready
+            ? 'Ghost Lantern'
+            : failed
+              ? 'The lantern could not be prepared'
+              : 'Preparing the lantern…'}
+        </a>
+      </p>
+      <p class="ending-lantern-note">Drag this to your bookmarks bar, then click it on any page.</p>
+      <p class="ending-lantern-practice">
+        Or{' '}
+        <a class="ending-lantern-practice-link" href="#/lantern-practice">
+          try the lantern on a practice page
+        </a>{' '}
+        first.
+      </p>
+    </section>
+  );
+}
 
 /**
  * The ending, reached at `#/end`. Before all twelve rooms are complete it is
  * gated: a short line and a way back, never the checklist. Once twelve are
  * complete it shows the closing heading, the "Ghost hunt in your own browser"
- * checklist (each line linking to its room), the six wandering ghosts, and the
- * privacy-respecting share card.
+ * checklist (each line linking to its room), the six wandering ghosts, the
+ * "Take the lantern with you" block, and the privacy-respecting share card.
  *
  * The checklist lines and the six wandering ghosts come from the shared
  * `./checklist` module, so this page and the teaching page (`ClassroomPage`)
@@ -94,6 +167,8 @@ export default function EndingPage() {
             ))}
           </ul>
         </section>
+
+        <TakeTheLantern />
 
         <ShareCard />
         <p class="ending-back">

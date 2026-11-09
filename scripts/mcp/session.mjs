@@ -16,6 +16,15 @@ export const DIST_DIR = join(REPO_ROOT, 'dist');
 export const NO_DIST_MESSAGE =
   'dist/ is missing or has no index.html. Run `npm run build` first, then try again.';
 
+/**
+ * The strict Content Security Policy used by the lantern's strict-page
+ * measurement: it forbids inline script and requires Trusted Types for script,
+ * the hardest common case the lantern must still render under. Injected (as a
+ * response header, via the devtools protocol) only when a session asks for it.
+ */
+export const STRICT_CSP =
+  "default-src 'self'; script-src 'self'; style-src 'self'; require-trusted-types-for 'script'";
+
 /** True when a usable build exists. */
 export function distReady() {
   return existsSync(join(DIST_DIR, 'index.html'));
@@ -197,10 +206,10 @@ window.__heldMotion = () => {
 
 /**
  * Open a browser session serving dist/.
- * @param {{ width: number, height: number, reducedMotion?: boolean }} opts
+ * @param {{ width: number, height: number, reducedMotion?: boolean, strictCsp?: boolean }} opts
  * @returns {Promise<{ server, chrome, cdp, baseUrl, errors: string[], teardown: () => Promise<void> }>}
  */
-export async function openSession({ width, height, reducedMotion = false }) {
+export async function openSession({ width, height, reducedMotion = false, strictCsp = false }) {
   const server = await startStatic({ distDir: DIST_DIR });
   const chrome = await launchChrome({ width, height });
   const cdp = await connectCdp(chrome.debugPort);
@@ -218,6 +227,16 @@ export async function openSession({ width, height, reducedMotion = false }) {
 
   await cdp.send('Runtime.enable');
   await cdp.send('Page.enable');
+  // The strict-page measurement (lantern only): add a strict CSP response
+  // header to every request through the Network domain, BEFORE any navigation,
+  // so the served page behaves like one that forbids inline script and requires
+  // Trusted Types. This is a test-only path used by the lantern's strict step.
+  if (strictCsp) {
+    await cdp.send('Network.enable');
+    await cdp.send('Network.setExtraHTTPHeaders', {
+      headers: { 'Content-Security-Policy': STRICT_CSP },
+    });
+  }
   await cdp.send('Emulation.setDeviceMetricsOverride', {
     width,
     height,

@@ -1,9 +1,11 @@
 // The full manor-qa run: spawn the manor-qa MCP server over stdio and call
-// walk_rooms and contrast_scan for the given rooms (default 1-12), at the
-// desktop (1280x720) and phone (412x915) sizes, each without and with
-// reducedMotion. Prints a compact per-room summary (pass/fail, CLS,
-// reduced-motion checks, static-label clipping, named-hold motion, divider
-// offsets, contrast flags) and exits non-zero on any failure.
+// walk_rooms, contrast_scan and walk_lantern for the given rooms (default
+// 1-12), at the desktop (1280x720) and phone (412x915) sizes, each without and
+// with reducedMotion for the room tools. Prints a compact per-room summary
+// (pass/fail, CLS, reduced-motion checks, static-label clipping, named-hold
+// motion, divider offsets, contrast flags), the Ghost Lantern step, the
+// real-browser room step and the strict-CSP measurement, and exits non-zero on
+// any failure.
 // Not part of npm test (it needs Chrome and a build): run it before a release
 // and in non-interactive agent runs, where MCP tool calls cannot be approved.
 //
@@ -84,31 +86,40 @@ function summariseWalk(label, text) {
         );
         continue;
       }
-      if (r.ending !== undefined) console.log(`ending: ${r.checklistItems} items (twelve=${r.twelve})`);
+      if (r.ending !== undefined)
+        console.log(`ending: ${r.checklistItems} items (twelve=${r.twelve})`);
       continue;
     }
     const bad = r.fail && r.fail.length ? ` FAIL: ${r.fail.join(' | ')}` : '';
     if (r.fail && r.fail.length) fails += r.fail.length;
-    const rm = r.checks && r.checks['animations at rest'] !== undefined
-      ? ` animRest=${r.checks['animations at rest']} stirs=${r.checks['stirs label visible']}`
-      : '';
-    const lbl = r.checks && r.checks['static labels not clipped'] !== undefined
-      ? ` labels=${r.checks['static labels']}/clipOk=${r.checks['static labels not clipped']}`
-      : '';
+    const rm =
+      r.checks && r.checks['animations at rest'] !== undefined
+        ? ` animRest=${r.checks['animations at rest']} stirs=${r.checks['stirs label visible']}`
+        : '';
+    const lbl =
+      r.checks && r.checks['static labels not clipped'] !== undefined
+        ? ` labels=${r.checks['static labels']}/clipOk=${r.checks['static labels not clipped']}`
+        : '';
     // The named-hold motion: how many animations were still running in the
     // frame during the hold (with motion on), and whether the hold was clean.
-    const hold = r.checks && r.checks['named hold: only the shared flee moves'] !== undefined
-      ? ` hold=${r.checks['held-hold animations']}/clean=${r.checks['named hold: only the shared flee moves']}`
-      : '';
+    const hold =
+      r.checks && r.checks['named hold: only the shared flee moves'] !== undefined
+        ? ` hold=${r.checks['held-hold animations']}/clean=${r.checks['named hold: only the shared flee moves']}`
+        : '';
     // Divider offsets per split, as edge/grip pixels from the ideal position.
-    const div = Array.isArray(r.dividerOffsets) && r.dividerOffsets.length
-      ? ` divider(edge/grip px)=[${r.dividerOffsets
-          .map((d) => `${d.split}:${d.edgeOff}/${d.gripOff}`)
-          .join(' ')}]`
-      : '';
-    console.log(`room ${r.room}: ready=${r.readyMs}ms cls=${r.checks?.cls}${rm}${lbl}${hold}${div}${bad || ' ok'}`);
+    const div =
+      Array.isArray(r.dividerOffsets) && r.dividerOffsets.length
+        ? ` divider(edge/grip px)=[${r.dividerOffsets
+            .map((d) => `${d.split}:${d.edgeOff}/${d.gripOff}`)
+            .join(' ')}]`
+        : '';
+    console.log(
+      `room ${r.room}: ready=${r.readyMs}ms cls=${r.checks?.cls}${rm}${lbl}${hold}${div}${bad || ' ok'}`,
+    );
   }
-  console.log(`console errors: ${parsed.errors?.length ?? 0}; reducedMotion=${parsed.reducedMotion}`);
+  console.log(
+    `console errors: ${parsed.errors?.length ?? 0}; reducedMotion=${parsed.reducedMotion}`,
+  );
   return fails + (parsed.errors?.length ?? 0);
 }
 
@@ -127,6 +138,46 @@ function summariseScan(label, text) {
     console.log(`  room ${f.room}/${f.state} "${f.text}" ${f.ratio}:1 (<${f.threshold})`);
   }
   return flags.length;
+}
+
+function summariseLantern(label, text) {
+  console.log(`\n--- walk_lantern ${label} ---`);
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    console.log(text.slice(0, 500));
+    return 0;
+  }
+  let fails = 0;
+  for (const r of parsed.reports || []) {
+    const bad = r.fail && r.fail.length ? ` FAIL: ${r.fail.join(' | ')}` : '';
+    if (r.fail && r.fail.length) fails += r.fail.length;
+    const isRoomStep = typeof r.title === 'string' && r.title.startsWith('lantern rooms');
+    const strict = r.checks && r.checks['styles under strict CSP'] !== undefined;
+    if (isRoomStep) {
+      // The real-browser room step: one line per covered room, plus the title.
+      console.log(`${r.title}:`);
+      for (const [name, val] of Object.entries(r.checks || {})) {
+        console.log(`  ${name}: ${val}`);
+      }
+      if (bad) console.log(` ${bad.trim()}`);
+      else console.log('  ok');
+    } else if (strict) {
+      console.log(
+        `${r.title}: stylesUnderCSP=${r.checks['styles under strict CSP']}` +
+          ` panelBg=${r.checks['panel background']} markOutline=${r.checks['mark outline']}` +
+          ` consoleErrors=${r.checks['console errors']}${bad || ' (report only)'}`,
+      );
+    } else {
+      console.log(
+        `${r.title}: count=${r.checks?.['panel count']} panelBg=${r.checks?.['panel background']}` +
+          ` markOutline=${r.checks?.['mark outline']}${bad || ' ok'}`,
+      );
+    }
+  }
+  console.log(`lantern console errors: ${parsed.errors?.length ?? 0}`);
+  return fails + (parsed.errors?.length ?? 0);
 }
 
 async function main() {
@@ -171,9 +222,20 @@ async function main() {
         }),
       ),
     );
+    problems += summariseLantern(
+      `@ ${label}`,
+      textOf(
+        await request('tools/call', {
+          name: 'walk_lantern',
+          arguments: { width, height },
+        }),
+      ),
+    );
   }
 
-  console.log(`\n=== manor-qa-full: ${problems === 0 ? 'ALL CLEAR' : problems + ' problem(s)'} ===`);
+  console.log(
+    `\n=== manor-qa-full: ${problems === 0 ? 'ALL CLEAR' : problems + ' problem(s)'} ===`,
+  );
   return problems;
 }
 

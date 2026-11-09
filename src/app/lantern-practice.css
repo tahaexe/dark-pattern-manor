@@ -1,0 +1,167 @@
+/* The Ghost Lantern practice page: a made-up shop in the manor's look, with
+   each v1 pattern beside its honest twin. Frame, tokens and fonts only — no new
+   raster image. It travels in the lazily-loaded practice chunk, out of the
+   app's initial bundle. All text meets WCAG AA in the manor palette. */
+
+.lantern-practice .practice-card {
+  max-width: 900px;
+}
+
+.practice-title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-3xl);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 var(--spacing-sm);
+  line-height: var(--line-height-tight);
+}
+
+.practice-lead {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-lg);
+  color: var(--ink);
+  margin: 0 0 var(--spacing-lg);
+  line-height: var(--line-height-normal);
+}
+
+.practice-actions {
+  margin: 0 0 var(--spacing-xl);
+}
+
+.practice-try {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: 2px solid var(--bronze);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  padding: var(--spacing-md) var(--spacing-2xl);
+  cursor: pointer;
+  min-height: 44px;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.practice-try:hover,
+.practice-try:focus {
+  transform: translateY(-2px);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.practice-back {
+  color: var(--ink);
+  text-decoration: underline;
+  border-bottom: 1px solid var(--ink);
+  margin-left: var(--spacing-md);
+}
+
+.practice-back:hover,
+.practice-back:focus {
+  color: var(--bronze);
+}
+
+.practice-pattern {
+  border-top: 1px solid var(--bronze);
+  margin: var(--spacing-lg) 0;
+  padding-top: var(--spacing-md);
+}
+
+.practice-pattern-name {
+  font-family: var(--font-display);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0 0 var(--spacing-sm);
+  line-height: var(--line-height-tight);
+}
+
+.practice-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+}
+
+.practice-side {
+  background: var(--parchment-2);
+  border: 1px solid var(--parchment-edge);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  color: var(--ink);
+}
+
+.practice-tag {
+  font-family: var(--font-ui);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 var(--spacing-sm);
+}
+
+.practice-check {
+  display: block;
+  color: var(--ink);
+  line-height: var(--line-height-normal);
+}
+
+.practice-cookie {
+  color: var(--ink);
+}
+
+.practice-cookie p {
+  margin: 0 0 var(--spacing-sm);
+}
+
+.practice-cookie-accept {
+  background: var(--candle);
+  color: var(--ink);
+  border: 1px solid var(--bronze);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 40px;
+}
+
+.practice-cookie-reject {
+  color: var(--ink-soft);
+  font-size: var(--font-size-sm);
+  text-decoration: underline;
+}
+
+.practice-urgency,
+.practice-stock,
+.practice-watchers {
+  color: var(--ink);
+  margin: 0;
+  font-weight: 700;
+}
+
+.practice-countdown {
+  font-variant-numeric: tabular-nums;
+}
+
+.practice-decline {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--bronze);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  cursor: pointer;
+  min-height: 40px;
+}
+
+@media (max-width: 600px) {
+  .practice-pair {
+    grid-template-columns: 1fr;
+  }
+  .lantern-practice .practice-card {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .practice-try {
+    transition: none;
+  }
+}

@@ -92,10 +92,10 @@ test('initialize without a protocolVersion answers with the default', async () =
   assert.ok(reply.result.protocolVersion.length > 0);
 });
 
-test('tools/list lists exactly the three tools, each with an object JSON Schema', async () => {
+test('tools/list lists exactly the four tools, each with an object JSON Schema', async () => {
   const reply = await client.request(3, 'tools/list', {});
   const names = reply.result.tools.map((t) => t.name).sort();
-  assert.deepEqual(names, ['check_rooms', 'contrast_scan', 'walk_rooms']);
+  assert.deepEqual(names, ['check_rooms', 'contrast_scan', 'walk_lantern', 'walk_rooms']);
   for (const tool of reply.result.tools) {
     assert.ok(typeof tool.description === 'string' && tool.description.length > 0);
     assert.equal(tool.inputSchema.type, 'object');
