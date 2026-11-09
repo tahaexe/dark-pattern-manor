@@ -491,14 +491,23 @@
  * relative). Anchored to the element's bottom-left and wrapping within its
  * width, so the label never hangs off an edge and is never cut by the frame or
  * the viewport, at 1280x720 or 412x915. Transforms/opacity only elsewhere.
+ *
+ * 9 Nov (finding 4): the label now sits fully below the possessed element with
+ * a clear gap from its dashed outline (outline-offset 3px) — 8px on desktop,
+ * 12px on the phone — so it never crosses the element's box edge. Its own dark
+ * backing + padding keep it readable over the page, keep it off other text, and
+ * give the text an inner margin even where it is flush with the element's left
+ * edge.
  * ------------------------------------------------------------------ */
 .stirs-label,
 .act-caption {
   position: absolute;
   left: 0;
-  top: 100%;
-  margin-top: 6px;
+  top: calc(100% + 8px);
   max-width: 100%;
+  padding: 4px var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--manor-night) 88%, transparent);
   font-size: 0.75rem;
   line-height: 1.3;
   color: var(--candle);
@@ -506,9 +515,27 @@
   z-index: 3;
 }
 
-/* Room 1 shows both: the caption sits just below the stirs label. */
+/* Room 1 shows both: the caption sits below the stirs label, clear of its
+   backing. */
 .act-caption {
-  top: calc(100% + 1.6em);
+  top: calc(100% + 8px + 2em);
+}
+
+@media (max-width: 600px) {
+  /* 9 Nov (K50 follow-up): on the phone the 12px label text needs >= 8px of
+     inner space on every side, so the backing gets full --spacing-sm (8px)
+     padding all round (was 4px top/bottom). The label box is now its line
+     height plus 16px of padding, so the caption drops to clear the stirs
+     label's taller backing by at least 4px where both show (room 1). */
+  .stirs-label,
+  .act-caption {
+    top: calc(100% + 12px);
+    padding: var(--spacing-sm);
+  }
+
+  .act-caption {
+    top: calc(100% + 12px + 48px);
+  }
 }
 
 /* ------------------------------------------------------------------ *

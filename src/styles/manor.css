@@ -304,7 +304,13 @@
   background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
   border: 1px solid var(--manor-line);
   border-radius: var(--radius-md);
-  padding: var(--spacing-xs) var(--spacing-lg);
+  /* 9 Nov: at least 6 px inner space top and bottom on desktop so the first
+     meta line ("The Foyer · Your task: …") and the last step line never sit
+     within a third of their font size of the card's top and bottom edges. The
+     phone override below raises this to 8 px. Horizontal padding unchanged, so
+     the same two lines render in every room and state and the card's reserved
+     height is unchanged (no layout shift). */
+  padding: 6px var(--spacing-lg);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   position: relative;
   z-index: 2;
@@ -586,7 +592,12 @@
   .room-instructions {
     grid-template-columns: 1fr auto;
     gap: var(--spacing-sm);
-    padding: var(--spacing-xs) var(--spacing-md);
+    /* 9 Nov: 8 px inner space top and bottom on the phone so the meta line and
+       the last step line keep a third-of-font-size margin from the card's
+       edges (the step line's 5.2 px gap was under the 8 px minimum). The same
+       two lines render in every room and state, so the reserved height is
+       unchanged (no layout shift). */
+    padding: var(--spacing-sm) var(--spacing-md);
   }
 
   .room-step {
@@ -596,10 +607,13 @@
   }
 
   /* On the phone the lantern is a compact square beside the step line; its
-     "hint" sub-label is dropped to keep the card short. */
+     "hint" sub-label is dropped to keep the card short. 9 Nov: the button is
+     widened to 66 px and given 8 px padding so the 12 px "Lantern" label keeps
+     at least 8 px clear of every edge; it stays a >= 44 px touch target and
+     fits beside the step line inside the instruction card. */
   .lantern-button {
-    min-width: 44px;
-    padding: var(--spacing-xs);
+    min-width: 66px;
+    padding: var(--spacing-sm);
     gap: 0;
   }
 
@@ -1291,6 +1305,14 @@
 
   .comparison-cell {
     padding: var(--spacing-md);
+  }
+
+  /* 9 Nov: on the phone the "Honest" / "Haunted" tags (12 px text) gain 8 px
+     vertical inner space so their line box keeps a third-of-font-size margin
+     from the tag's top and bottom edges (it was 4.4 px). Desktop keeps the
+     base 0.15rem, which already passes. Horizontal padding unchanged. */
+  .comparison-tag {
+    padding: var(--spacing-sm) 0.5rem;
   }
 }
 
