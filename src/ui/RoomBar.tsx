@@ -77,7 +77,7 @@ export default function RoomBar({ roomNum, total, freed }: RoomBarProps) {
   return (
     <div class="room-bar">
       <button type="button" class="room-bar-manor" onClick={onManor}>
-        &lsaquo; Manor
+        <span aria-hidden="true">&lsaquo;</span> <span class="room-bar-manor-word">Manor</span>
       </button>
 
       <span class="room-bar-counter">
