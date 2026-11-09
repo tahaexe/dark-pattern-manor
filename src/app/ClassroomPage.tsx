@@ -6,13 +6,12 @@ import './classroom.css';
  * The teaching page, reached at `#/teach`. A plain document for teachers who
  * want to use Dark Pattern Manor in a lesson: what the game is, who it is for,
  * why it matters, a 45-minute lesson plan, six discussion questions, the
- * printable twelve-rule checklist, the six wandering ghosts, and a sources
- * list.
+ * printable fourteen-rule checklist, the wandering ghosts, and a sources list.
  *
  * It is reachable without finishing the game (it is for the teacher, who may
- * not play all twelve rooms first), so it is never gated on progress. The
- * checklist lines and the six wandering ghosts come from the shared
- * `./checklist` module, the same data the ending uses, so the two never drift.
+ * not play all fourteen rooms first), so it is never gated on progress. The
+ * checklist lines and the wandering ghosts come from the shared `./checklist`
+ * module, the same data the ending uses, so the two never drift.
  *
  * A "Print this page" button calls `window.print()`; the print stylesheet in
  * `classroom.css` turns the page to ink on white with no backdrop, candles or
@@ -105,7 +104,7 @@ const LESSON: ReadonlyArray<LessonRow> = [
   {
     time: '10 min',
     lead: 'Name it.',
-    rest: 'Pairs choose one room and explain to another pair: the trick, its name, and what the honest page did differently. Write the twelve names on the board as they come up.',
+    rest: 'Pairs choose one room and explain to another pair: the trick, its name, and what the honest page did differently. Write the fourteen names on the board as they come up.',
   },
   {
     time: '10 min',
@@ -141,7 +140,7 @@ export default function ClassroomPage() {
         </button>
 
         <p class="classroom-lead">
-          <strong>A free browser game for one class period.</strong> Twelve haunted rooms, each a
+          <strong>A free browser game for one class period.</strong> Fourteen haunted rooms, each a
           familiar web page with one ghost in it: a real dark pattern. Students spot the trick, name
           it, and set the page free — the page turns honest beside its haunted twin, and they finish
           the task on the honest page. Stuck on a room? The lantern lights the trick. No sign-up, no
@@ -219,7 +218,7 @@ export default function ClassroomPage() {
           aria-labelledby="classroom-checklist-heading"
         >
           <h2 id="classroom-checklist-heading" class="classroom-heading">
-            Twelve rules for the real web (printable)
+            Fourteen rules for the real web (printable)
           </h2>
           <p class="classroom-sub">
             <em>The same checklist players earn at the end of the manor. One line per room.</em>
@@ -235,7 +234,7 @@ export default function ClassroomPage() {
             ))}
           </ol>
           <p class="classroom-para">
-            <strong>Six more ghosts to watch for:</strong> {wanderingLine}.
+            <strong>More ghosts to watch for:</strong> {wanderingLine}.
           </p>
         </section>
 

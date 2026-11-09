@@ -2,22 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/preact';
 import axe from 'axe-core';
 import App from './App';
+import { roomSlugs, ROOM_COUNT } from '../engine/registry';
 import { __resetForTests, completeRoom } from '../engine/progress';
 
-const ALL_SLUGS = [
-  'gravemoor-gazette',
-  'inkbone-books',
-  'grimsupper',
-  'gloamline',
-  'hollowpost',
-  'shroudery',
-  'lanternstay',
-  'mothmilk',
-  'mildew',
-  'wanderwick',
-  'rookery',
-  'bramblegate',
-];
+// Every registered room slug, in order; completing all of them opens the
+// ending. Read from the registry so adding a room needs no change here.
+const ALL_SLUGS = roomSlugs();
 
 describe('App', () => {
   let originalHash: string;
@@ -123,12 +113,12 @@ describe('App', () => {
     setHashAndTrigger('#/end');
     render(<App />);
     await waitFor(() => {
-      expect(screen.queryByText('Name all twelve ghosts first.')).not.toBeNull();
+      expect(screen.queryByText('Name all fourteen ghosts first.')).not.toBeNull();
     }, { timeout: 1000 });
     expect(screen.queryByText('Ghost hunt in your own browser')).toBeNull();
   });
 
-  it('opening #/end after completing all twelve shows the ending', async () => {
+  it('opening #/end after completing every room shows the ending', async () => {
     for (const slug of ALL_SLUGS) completeRoom(slug);
     setHashAndTrigger('#/end');
     render(<App />);
@@ -146,13 +136,13 @@ describe('App', () => {
     }, { timeout: 1000 });
   });
 
-  it('shows the "The manor is quiet" link on the title only once all twelve rooms are complete', () => {
+  it('shows the "The manor is quiet" link on the title only once every room is complete', () => {
     render(<App />);
     expect(screen.queryByText('The manor is quiet')).toBeNull();
     expect(screen.getByText('Enter the manor')).toBeDefined();
   });
 
-  it('shows the title end link when all twelve are complete', () => {
+  it('shows the title end link when every room is complete', () => {
     for (const slug of ALL_SLUGS) completeRoom(slug);
     render(<App />);
     const link = screen.getByText('The manor is quiet') as HTMLAnchorElement;
@@ -186,8 +176,10 @@ describe('parseHash', () => {
     expect(parseHash('#/end')).toEqual({ route: 'end', room: 1 });
     expect(parseHash('#/teach')).toEqual({ route: 'teach', room: 1 });
     expect(parseHash('#/room/1')).toEqual({ route: 'room', room: 1 });
-    expect(parseHash('#/room/12')).toEqual({ route: 'room', room: 12 });
-    expect(parseHash('#/room/13')).toBeNull();
+    // The last registered room resolves; one past it does not. The bound is the
+    // registry's room count, so adding a room needs no change here.
+    expect(parseHash(`#/room/${ROOM_COUNT}`)).toEqual({ route: 'room', room: ROOM_COUNT });
+    expect(parseHash(`#/room/${ROOM_COUNT + 1}`)).toBeNull();
     expect(parseHash('#/nowhere')).toBeNull();
   });
 });

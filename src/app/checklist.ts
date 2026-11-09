@@ -1,9 +1,9 @@
 /**
- * The one source of the end-of-manor checklist and the six wandering ghosts.
+ * The one source of the end-of-manor checklist and the wandering ghosts.
  *
  * Both the ending (`EndingPage`) and the teaching page (`ClassroomPage`) import
  * these arrays, so the two pages can never drift: the line texts, the room
- * each line recaps, and the six wandering ghosts are defined exactly once here.
+ * each line recaps, and the wandering ghosts are defined exactly once here.
  *
  * The line texts are product copy, carried word for word. Each checklist item
  * also names the room's dark pattern, so the teaching page can print the
@@ -96,20 +96,27 @@ export const CHECKLIST: ReadonlyArray<ChecklistItem> = [
     title: 'The Cellar',
     pattern: 'hard to cancel',
   },
+  {
+    line: 'A top-10 list that never says how it ranks is an ad until proven otherwise.',
+    room: 13,
+    title: 'The Map Room',
+    pattern: 'disguised ads',
+  },
+  {
+    line: "If a free download wants an account, look for 'Continue as guest' first.",
+    room: 14,
+    title: 'The Music Room',
+    pattern: 'forced action',
+  },
 ];
 
-/** The six patterns that only ever lived in the Guide. Name and one line. */
+/** The patterns that only ever live in the Guide. Name and one line. */
 export interface WanderingGhost {
   name: string;
   desc: string;
 }
 
 export const WANDERING: ReadonlyArray<WanderingGhost> = [
-  { name: 'Disguised ads', desc: 'ads dressed as news, reviews or neutral rankings.' },
-  {
-    name: 'Forced action',
-    desc: 'you must create an account or share data to finish a simple task.',
-  },
   { name: 'Obstruction', desc: 'the path you want is made long and tiring on purpose.' },
   {
     name: 'Comparison prevention',

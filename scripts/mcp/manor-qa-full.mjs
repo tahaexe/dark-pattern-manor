@@ -1,11 +1,11 @@
 // The full manor-qa run: spawn the manor-qa MCP server over stdio and call
-// walk_rooms, contrast_scan and walk_lantern for the given rooms (default
-// 1-12), at the desktop (1280x720) and phone (412x915) sizes, each without and
-// with reducedMotion for the room tools. Prints a compact per-room summary
-// (pass/fail, CLS, reduced-motion checks, static-label clipping, named-hold
-// motion, divider offsets, contrast flags), the Ghost Lantern step, the
-// real-browser room step and the strict-CSP measurement, and exits non-zero on
-// any failure.
+// walk_rooms, contrast_scan and walk_lantern for the given rooms (default:
+// every registered room, read from the registry), at the desktop (1280x720) and
+// phone (412x915) sizes, each without and with reducedMotion for the room
+// tools. Prints a compact per-room summary (pass/fail, CLS, reduced-motion
+// checks, static-label clipping, named-hold motion, divider offsets, contrast
+// flags), the Ghost Lantern step, the real-browser room step and the strict-CSP
+// measurement, and exits non-zero on any failure.
 // Not part of npm test (it needs Chrome and a build): run it before a release
 // and in non-interactive agent runs, where MCP tool calls cannot be approved.
 //
@@ -16,10 +16,13 @@ import { spawn } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { defaultRoomsSpec } from './rooms.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SERVER = resolve(HERE, 'manor-qa.mjs');
-const ROOMS = process.argv[2] || '1-12';
+// Default to every registered room (e.g. "1-14"), read from the registry, so a
+// full run walks exactly the rooms the game ships.
+const ROOMS = process.argv[2] || defaultRoomsSpec();
 
 // The two sizes every room must hold at: desktop and a phone.
 const SIZES = [
@@ -86,8 +89,16 @@ function summariseWalk(label, text) {
         );
         continue;
       }
-      if (r.ending !== undefined)
-        console.log(`ending: ${r.checklistItems} items (twelve=${r.twelve})`);
+      if (r.ending !== undefined) {
+        // The ending shows one checklist line per registered room. A count that
+        // does not match the registry's room count is a problem.
+        const ok = r.complete === true;
+        if (!ok) fails += 1;
+        console.log(
+          `ending: ${r.checklistItems} items (expected=${r.expected}, complete=${r.complete})` +
+            (ok ? '' : ' FAIL'),
+        );
+      }
       continue;
     }
     const bad = r.fail && r.fail.length ? ` FAIL: ${r.fail.join(' | ')}` : '';

@@ -2,7 +2,7 @@ import { useState } from 'preact/hooks';
 
 /** The share sentence and title. Product copy, carried word for word. */
 const SHARE_TITLE = 'Dark Pattern Manor';
-const SHARE_TEXT = 'I named all twelve ghosts of Dark Pattern Manor.';
+const SHARE_TEXT = 'I named all fourteen ghosts of Dark Pattern Manor.';
 
 /**
  * The game's own address: the page's origin joined with the application base

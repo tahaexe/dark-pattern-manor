@@ -19,6 +19,8 @@ export const rooms: Record<string, () => Promise<{ default: RoomData }>> = {
   wanderwick: () => import('../rooms/wanderwick/room'),
   rookery: () => import('../rooms/rookery/room'),
   bramblegate: () => import('../rooms/bramblegate/room'),
+  'fogmarsh-finds': () => import('../rooms/fogmarsh-finds/room'),
+  dirgewell: () => import('../rooms/dirgewell/room'),
 };
 
 /**
@@ -40,7 +42,17 @@ export const ROOM_NAMES: readonly string[] = [
   'The Nursery',
   'The Attic',
   'The Cellar',
+  'The Map Room',
+  'The Music Room',
 ];
+
+/**
+ * The number of rooms in the manor, derived from the registry so adding a room
+ * here is the only change the count needs. Every "how many rooms" decision —
+ * the room route's upper bound, the ending's completion gate, the title's
+ * "all done" state — reads this, never a hard-coded literal.
+ */
+export const ROOM_COUNT: number = Object.keys(rooms).length;
 
 /**
  * One cached promise per slug, so a prefetch on reaching the honest step and

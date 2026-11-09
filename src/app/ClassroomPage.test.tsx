@@ -9,7 +9,7 @@ const HEADINGS_IN_ORDER = [
   { level: 1, name: 'Teaching with Dark Pattern Manor' },
   { level: 2, name: 'A 45-minute lesson' },
   { level: 2, name: 'Six questions for discussion' },
-  { level: 2, name: 'Twelve rules for the real web (printable)' },
+  { level: 2, name: 'Fourteen rules for the real web (printable)' },
   { level: 2, name: 'Sources and further reading' },
 ];
 
@@ -35,10 +35,10 @@ describe('ClassroomPage', () => {
     });
   });
 
-  it('prints the twelve checklist lines from the shared data, each with its room and pattern', () => {
+  it('prints every checklist line from the shared data, each with its room and pattern', () => {
     const { container } = render(<ClassroomPage />);
     const items = container.querySelectorAll('.classroom-checklist-item');
-    expect(items).toHaveLength(12);
+    expect(items).toHaveLength(CHECKLIST.length);
     CHECKLIST.forEach((item, i) => {
       const text = (items[i].textContent ?? '').replace(/\s+/g, ' ').trim();
       // The product line, word for word.
@@ -48,9 +48,9 @@ describe('ClassroomPage', () => {
     });
   });
 
-  it("the twelve printable lines equal EndingPage's twelve lines (one shared source)", () => {
+  it("the printable lines equal EndingPage's lines (one shared source)", () => {
     // Both pages read CHECKLIST from ./checklist; this proves the classroom
-    // page renders exactly those twelve lines, so the two can never drift.
+    // page renders exactly those lines, so the two can never drift.
     const { container } = render(<ClassroomPage />);
     const items = container.querySelectorAll('.classroom-checklist-item');
     const rendered = Array.from(items).map((el) => {

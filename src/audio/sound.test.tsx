@@ -531,11 +531,12 @@ describe('sound — ambience lifecycle', () => {
 // --------------------------------------------------------------------------
 
 describe('soundscape — the voice table', () => {
-  it('covers exactly the twelve room slugs and nothing else', () => {
+  it('covers exactly the registered room slugs and nothing else', () => {
     const voices = [...sound.VOICE_SLUGS].sort();
     const slugs = [...roomSlugs()].sort();
     expect(voices).toEqual(slugs);
-    expect(voices.length).toBe(12);
+    // The count comes from the registry, so adding a room needs no change here.
+    expect(voices.length).toBe(roomSlugs().length);
   });
 
   it('plays a voice layer for each room slug without throwing', () => {

@@ -869,6 +869,73 @@ const buildDrip: VoiceBuilder = (c, amb) => {
   });
 };
 
+/**
+ * The Map Room — a printing press far below: an occasional soft, low wooden
+ * stamp (a band-passed thud) as the review pages are struck off. Quieter and
+ * slower than the Library's page turn, and lower in pitch than the Study's pen.
+ */
+const buildPress: VoiceBuilder = (c, amb) => {
+  const { out, peak } = voiceOut(c, amb, 0.35);
+  everyFew(amb, 6000, 12000, () => {
+    if (!ctx) return;
+    // The stamp: a low muffled thud.
+    grain(ctx, amb, out, peak, { type: 'lowpass', freq: 220, q: 0.8, dur: 0.14, attack: 0.004 });
+    // A fainter paper rustle just after, half the time.
+    if (Math.random() < 0.5)
+      amb.timers.push(
+        setTimeout(() => {
+          if (ctx)
+            grain(ctx, amb, out, peak * 0.5, {
+              type: 'highpass',
+              freq: 2400,
+              q: 0.7,
+              dur: 0.12,
+              attack: 0.02,
+            });
+        }, 140),
+      );
+  });
+};
+
+/**
+ * The Music Room — a reed organ breathing: a soft sustained low chord (two
+ * sine partials) with a slow level swell, so it sighs like a pedal harmonium
+ * left running. Quiet and slowly varying; it never settles and never swells
+ * loud.
+ */
+const buildReed: VoiceBuilder = (c, amb) => {
+  const t = now(c);
+  const { out, peak } = voiceOut(c, amb, 0.3);
+  const lp = c.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 700;
+  lp.connect(out);
+  amb.nodes.push(lp);
+  // Two low partials a fifth apart, each a touch detuned.
+  for (const base of [196, 294]) {
+    const osc = c.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = base * (1 + (Math.random() * 0.01 - 0.005));
+    const g = c.createGain();
+    g.gain.setValueAtTime(peak * 0.4, t);
+    osc.connect(g);
+    g.connect(lp);
+    safeStart(osc, t);
+    amb.nodes.push(osc, g);
+    // Slow swell and recede so the reed breathes.
+    const drift = () => {
+      if (amb.stopped || !ctx) return;
+      try {
+        g.gain.linearRampToValueAtTime(peak * (0.25 + Math.random() * 0.5), ctx.currentTime + 4);
+      } catch {
+        /* ignore */
+      }
+      amb.timers.push(setTimeout(drift, 4000));
+    };
+    amb.timers.push(setTimeout(drift, 4000));
+  }
+};
+
 /** The voice table: one builder per room slug. */
 const VOICES: Record<string, VoiceBuilder> = {
   'gravemoor-gazette': buildDraught,
@@ -883,9 +950,11 @@ const VOICES: Record<string, VoiceBuilder> = {
   wanderwick: buildMusicBox,
   rookery: buildRain,
   bramblegate: buildDrip,
+  'fogmarsh-finds': buildPress,
+  dirgewell: buildReed,
 };
 
-/** The twelve slugs the voice table covers (for tests). */
+/** The room slugs the voice table covers (for tests). */
 export const VOICE_SLUGS: readonly string[] = Object.keys(VOICES);
 
 // --------------------------------------------------------------------------

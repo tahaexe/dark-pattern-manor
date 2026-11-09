@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/preact';
 import type { HauntedProps, HonestProps, RoomData } from '../engine/types';
-import { loadAllRooms } from '../engine/registry';
+import { loadAllRooms, ROOM_COUNT } from '../engine/registry';
 import type { ControlStyle, Measure, Style } from './types';
 import detectPreselection from './detectors/preselection';
 import { detectVisualInterferenceWith } from './detectors/visual-interference';
@@ -83,9 +83,10 @@ let rooms: RoomData[] = [];
 describe('the lantern agrees with the manor rooms', () => {
   afterEach(() => cleanup());
 
-  it('loads all twelve rooms', async () => {
+  it('loads every registered room', async () => {
     rooms = await loadAllRooms();
-    expect(rooms).toHaveLength(12);
+    // The count comes from the registry, so adding a room needs no change here.
+    expect(rooms).toHaveLength(ROOM_COUNT);
   });
 
   it('marks each of the seven v1 rooms haunted page for its pattern', async () => {
@@ -104,7 +105,7 @@ describe('the lantern agrees with the manor rooms', () => {
     }
   });
 
-  it('marks no honest twin, across all twelve rooms', async () => {
+  it('marks no honest twin, across every room', async () => {
     rooms = rooms.length ? rooms : await loadAllRooms();
     for (const room of rooms) {
       const { container } = render(<room.Honest {...honestProps} />);

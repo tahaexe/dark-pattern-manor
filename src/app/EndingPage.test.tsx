@@ -2,87 +2,44 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/preact';
 import axe from 'axe-core';
 import EndingPage from './EndingPage';
+import { roomSlugs, ROOM_COUNT } from '../engine/registry';
+import { CHECKLIST, WANDERING } from './checklist';
 import { __resetForTests, completeRoom } from '../engine/progress';
 
-/** The twelve room slugs, in order; completing all of them opens the ending. */
-const ALL_SLUGS = [
-  'gravemoor-gazette',
-  'inkbone-books',
-  'grimsupper',
-  'gloamline',
-  'hollowpost',
-  'shroudery',
-  'lanternstay',
-  'mothmilk',
-  'mildew',
-  'wanderwick',
-  'rookery',
-  'bramblegate',
-];
+/** Every registered room slug, in order; completing all opens the ending. */
+const ALL_SLUGS = roomSlugs();
 
 function completeAll() {
   for (const slug of ALL_SLUGS) completeRoom(slug);
 }
 
-/** The twelve checklist lines, word for word, in order. */
-const CHECKLIST_LINES = [
-  'On a cookie banner, find "Reject all" before you click anything.',
-  'Read every checkbox sentence twice: what happens if I leave it alone?',
-  'When the "no" button insults you, click it anyway.',
-  'Before a free trial: the price after, the start date, the way to cancel.',
-  'A countdown that resets is a costume. Reload and see.',
-  '"Only 1 left" on everything means nothing.',
-  'Trust dated, verified reviews; ignore "people are looking".',
-  'Read the basket line by line before paying.',
-  'Compare final totals, never "from" prices.',
-  'Find "Don\'t ask again", or switch the prompt off in settings.',
-  "Untick every box you didn't tick.",
-  'Find the cancel path before you subscribe; keep the confirmation.',
-];
+/** The checklist lines, word for word, in order — the one shared source. */
+const CHECKLIST_LINES = CHECKLIST.map((c) => c.line);
 
-const ROOM_TITLES = [
-  'The Foyer',
-  'The Library',
-  'The Dining Room',
-  'The Parlour',
-  'The Conservatory',
-  'The Ballroom',
-  'The Portrait Gallery',
-  'The Pantry',
-  'The Study',
-  'The Nursery',
-  'The Attic',
-  'The Cellar',
-];
+/** The room titles, in order — the one shared source. */
+const ROOM_TITLES = CHECKLIST.map((c) => c.title);
 
-/** The six wandering-ghost lines, word for word. */
-const WANDERING_LINES = [
-  'Disguised ads: ads dressed as news, reviews or neutral rankings.',
-  'Forced action: you must create an account or share data to finish a simple task.',
-  'Obstruction: the path you want is made long and tiring on purpose.',
-  'Comparison prevention: bundles, odd units or per-week prices that make prices hard to compare.',
-  'Addictive design: endless feeds, autoplay and streaks that keep you there.',
-  'Currency confusion: gems and coins that hide the real price.',
-];
+/** The wandering-ghost lines, word for word — the one shared source. */
+const WANDERING_LINES = WANDERING.map((g) => `${g.name}: ${g.desc}`);
 
 describe('EndingPage — the gate before completion', () => {
   beforeEach(() => {
     __resetForTests();
   });
 
-  it('shows "Name all twelve ghosts first" and not the checklist when fewer than twelve are done', () => {
+  it('shows "Name all fourteen ghosts first" and not the checklist when fewer than every room is done', () => {
     render(<EndingPage />);
-    expect(screen.getByText('Name all twelve ghosts first.')).toBeDefined();
+    expect(screen.getByText('Name all fourteen ghosts first.')).toBeDefined();
     // The checklist heading must not appear.
     expect(screen.queryByText('Ghost hunt in your own browser')).toBeNull();
     // Nor any checklist line.
     expect(screen.queryByText(CHECKLIST_LINES[0])).toBeNull();
   });
 
-  it('still gates when only eleven of twelve are done', () => {
-    for (const slug of ALL_SLUGS.slice(0, 11)) completeRoom(slug);
+  it('still gates when only one short of every room is done', () => {
+    for (const slug of ALL_SLUGS.slice(0, ROOM_COUNT - 1)) completeRoom(slug);
     render(<EndingPage />);
-    expect(screen.getByText('Name all twelve ghosts first.')).toBeDefined();
+    expect(screen.getByText('Name all fourteen ghosts first.')).toBeDefined();
     expect(screen.queryByText('Ghost hunt in your own browser')).toBeNull();
   });
 });
@@ -98,13 +55,13 @@ describe('EndingPage — the completed ending', () => {
     const headings = screen.getAllByRole('heading', { level: 1 });
     expect(headings).toHaveLength(1);
     expect(headings[0].textContent).toBe('The manor is quiet');
-    expect(screen.getByText('You named all twelve ghosts.')).toBeDefined();
+    expect(screen.getByText('You named all fourteen ghosts.')).toBeDefined();
   });
 
-  it('renders the twelve checklist lines word for word, in order', () => {
+  it('renders every checklist line word for word, in order', () => {
     const { container } = render(<EndingPage />);
     const items = container.querySelectorAll('.ending-checklist-line');
-    expect(items).toHaveLength(12);
+    expect(items).toHaveLength(CHECKLIST_LINES.length);
     CHECKLIST_LINES.forEach((line, i) => {
       expect(items[i].textContent).toBe(line);
     });
@@ -113,7 +70,7 @@ describe('EndingPage — the completed ending', () => {
   it('links each checklist line to its room, named by the room title', () => {
     const { container } = render(<EndingPage />);
     const links = container.querySelectorAll('.ending-room-link');
-    expect(links).toHaveLength(12);
+    expect(links).toHaveLength(CHECKLIST.length);
     links.forEach((link, i) => {
       expect(link.getAttribute('href')).toBe(`#/room/${i + 1}`);
       const label = link.getAttribute('aria-label') ?? '';
@@ -123,10 +80,10 @@ describe('EndingPage — the completed ending', () => {
     });
   });
 
-  it('renders the six wandering-ghost lines word for word', () => {
+  it('renders the wandering-ghost lines word for word', () => {
     const { container } = render(<EndingPage />);
     const items = container.querySelectorAll('.ending-wandering-item');
-    expect(items).toHaveLength(6);
+    expect(items).toHaveLength(WANDERING_LINES.length);
     WANDERING_LINES.forEach((line, i) => {
       // Collapse whitespace so the "name: desc" text compares cleanly.
       const text = (items[i].textContent ?? '').replace(/\s+/g, ' ').trim();
@@ -134,12 +91,19 @@ describe('EndingPage — the completed ending', () => {
     });
   });
 
+  it('now has four wandering ghosts (Disguised ads and Forced action became rooms)', () => {
+    expect(WANDERING).toHaveLength(4);
+    const names = WANDERING.map((g) => g.name);
+    expect(names).not.toContain('Disguised ads');
+    expect(names).not.toContain('Forced action');
+  });
+
   it('keeps a clean heading outline with exactly one h1', () => {
     render(<EndingPage />);
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     // The section headings are present at level 2.
     expect(screen.getByRole('heading', { level: 2, name: 'Ghost hunt in your own browser' })).toBeDefined();
-    expect(screen.getByRole('heading', { level: 2, name: 'Six ghosts still wander' })).toBeDefined();
+    expect(screen.getByRole('heading', { level: 2, name: 'Four ghosts still wander' })).toBeDefined();
   });
 
   it('reports zero axe-core violations', async () => {

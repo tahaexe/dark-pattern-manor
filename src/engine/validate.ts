@@ -2,7 +2,7 @@ import type { RoomData, SpellCard } from './types';
 import { isPattern } from './patterns';
 import { areRelatives } from './relatives';
 
-/** The 12 approved fictional brands (one per room). */
+/** The approved fictional brands (one per room). */
 export const APPROVED_BRANDS: readonly string[] = Object.freeze([
   'The Gravemoor Gazette',
   'Inkbone Books',
@@ -16,9 +16,11 @@ export const APPROVED_BRANDS: readonly string[] = Object.freeze([
   'Wanderwick',
   'Rookery Air',
   'Bramblegate Fitness',
+  'Fogmarsh Finds',
+  'Dirgewell',
 ]);
 
-/** The 12 room patterns, each used by exactly one room. */
+/** The room patterns, each used by exactly one room. */
 export const ROOM_PATTERNS: readonly string[] = Object.freeze([
   'Visual interference',
   'Trick wording',
@@ -32,6 +34,8 @@ export const ROOM_PATTERNS: readonly string[] = Object.freeze([
   'Nagging',
   'Preselection',
   'Hard to cancel',
+  'Disguised ads',
+  'Forced action',
 ]);
 
 /** Primary-source allowlist for Ghost Guide links. */
@@ -39,6 +43,7 @@ export const SOURCE_ALLOWLIST: readonly string[] = Object.freeze([
   'ftc.gov',
   'eur-lex.europa.eu',
   'edpb.europa.eu',
+  'ecfr.gov',
 ]);
 
 const KEBAB = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -86,7 +91,7 @@ export function validateRoom(room: RoomData): string[] {
 
   // Brand and address.
   if (!APPROVED_BRANDS.includes(room.brand)) {
-    errors.push(`brand "${room.brand}" is not one of the 12 approved fictional brands`);
+    errors.push(`brand "${room.brand}" is not an approved fictional brand`);
   }
   if (!room.domain.endsWith('.manor')) {
     errors.push(`domain "${room.domain}" must use the .manor pseudo-domain`);

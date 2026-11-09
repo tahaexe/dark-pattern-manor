@@ -13,20 +13,9 @@
 import { createServer } from 'vite';
 import { JSDOM } from 'jsdom';
 
-const ROOM_PATTERNS = [
-  'Visual interference',
-  'Trick wording',
-  'Confirmshaming',
-  'Hidden subscription',
-  'Fake urgency',
-  'Fake scarcity',
-  'Fake social proof',
-  'Sneaking',
-  'Hidden costs',
-  'Nagging',
-  'Preselection',
-  'Hard to cancel',
-];
+// The canonical list of room patterns lives in src/engine/validate.ts and is
+// loaded through Vite's SSR loader in main(); adding a room pattern there is
+// the only change the count needs here.
 
 /** Set up a jsdom global environment so Preact can render. */
 function installDom() {
@@ -75,7 +64,7 @@ async function main() {
 
   try {
     const { loadAllRooms } = await server.ssrLoadModule('/src/engine/registry.ts');
-    const { validateRoom, isAllowlistedUrl, wordCount, APPROVED_BRANDS } =
+    const { validateRoom, isAllowlistedUrl, wordCount, APPROVED_BRANDS, ROOM_PATTERNS } =
       await server.ssrLoadModule('/src/engine/validate.ts');
     const preact = await server.ssrLoadModule('/node_modules/preact/dist/preact.module.js');
     const { render, h } = preact;
@@ -93,7 +82,7 @@ async function main() {
     }
     for (const r of rooms) {
       if (!ROOM_PATTERNS.includes(r.pattern)) {
-        fail(r.name, `pattern "${r.pattern}" is not one of the 12 room patterns`, r.id);
+        fail(r.name, `pattern "${r.pattern}" is not one of the ${ROOM_PATTERNS.length} room patterns`, r.id);
       }
     }
 

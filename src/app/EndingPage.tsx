@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { doneCount } from '../engine/progress';
+import { ROOM_COUNT } from '../engine/registry';
 import { quiet } from '../audio/sound';
 import ShareCard from './ShareCard';
 import { CHECKLIST, WANDERING } from './checklist';
@@ -79,19 +80,20 @@ function TakeTheLantern() {
 }
 
 /**
- * The ending, reached at `#/end`. Before all twelve rooms are complete it is
- * gated: a short line and a way back, never the checklist. Once twelve are
- * complete it shows the closing heading, the "Ghost hunt in your own browser"
- * checklist (each line linking to its room), the six wandering ghosts, the
- * "Take the lantern with you" block, and the privacy-respecting share card.
+ * The ending, reached at `#/end`. Before every room is complete it is gated: a
+ * short line and a way back, never the checklist. Once all rooms are complete it
+ * shows the closing heading, the "Ghost hunt in your own browser" checklist
+ * (each line linking to its room), the four wandering ghosts, the "Take the
+ * lantern with you" block, and the privacy-respecting share card.
  *
- * The checklist lines and the six wandering ghosts come from the shared
- * `./checklist` module, so this page and the teaching page (`ClassroomPage`)
- * can never drift.
+ * The completion threshold is the registry's room count, so adding a room needs
+ * no change here. The checklist lines and the wandering ghosts come from the
+ * shared `./checklist` module, so this page and the teaching page
+ * (`ClassroomPage`) can never drift.
  */
 export default function EndingPage() {
   const headingRef = useRef<HTMLHeadingElement>(null);
-  const complete = doneCount() >= 12;
+  const complete = doneCount() >= ROOM_COUNT;
 
   // Move focus to the page heading on entry, matching the room pattern.
   useEffect(() => {
@@ -99,7 +101,7 @@ export default function EndingPage() {
   }, []);
 
   // The gentle three-note descending chime, once, when the ending opens with
-  // all twelve named. A no-op when sound is off or there is no audio.
+  // every ghost named. A no-op when sound is off or there is no audio.
   useEffect(() => {
     if (complete) quiet();
   }, [complete]);
@@ -114,7 +116,7 @@ export default function EndingPage() {
           <h1 class="ending-title" tabIndex={-1} ref={headingRef}>
             The manor waits
           </h1>
-          <p class="ending-lead">Name all twelve ghosts first.</p>
+          <p class="ending-lead">Name all fourteen ghosts first.</p>
           <p class="ending-back">
             <a href="#/">Back to the door</a>
           </p>
@@ -133,7 +135,7 @@ export default function EndingPage() {
         <h1 class="ending-title" tabIndex={-1} ref={headingRef}>
           The manor is quiet
         </h1>
-        <p class="ending-lead">You named all twelve ghosts.</p>
+        <p class="ending-lead">You named all fourteen ghosts.</p>
 
         <section class="ending-section" aria-labelledby="ending-checklist-heading">
           <h2 id="ending-checklist-heading" class="ending-heading">
@@ -157,7 +159,7 @@ export default function EndingPage() {
 
         <section class="ending-section" aria-labelledby="ending-wandering-heading">
           <h2 id="ending-wandering-heading" class="ending-heading">
-            Six ghosts still wander
+            Four ghosts still wander
           </h2>
           <ul class="ending-wandering">
             {WANDERING.map((ghost) => (

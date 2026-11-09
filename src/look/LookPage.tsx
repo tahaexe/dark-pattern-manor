@@ -239,8 +239,8 @@ export default function LookPage() {
         </div>
       )}
 
-      <div class="candles" role="status" aria-label="Progress: 0 of 12 rooms completed">
-        {Array.from({ length: 12 }).map((_, i) => (
+      <div class="candles" role="status" aria-label="Progress: 0 of 14 rooms completed">
+        {Array.from({ length: 14 }).map((_, i) => (
           <svg key={i} class="candle-svg" viewBox="0 0 24 48" xmlns="http://www.w3.org/2000/svg">
             {/* Wax body */}
             <rect x="7" y="16" width="10" height="28" rx="2" fill="none" stroke="var(--parchment-2)" strokeWidth="1.5"/>

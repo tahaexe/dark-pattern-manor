@@ -1,23 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, waitFor, cleanup } from '@testing-library/preact';
 import EndingPage from './EndingPage';
+import { roomSlugs } from '../engine/registry';
 import { __resetForTests, completeRoom } from '../engine/progress';
 import { __resetBundleCacheForTests } from './runBundle';
 
-const ALL_SLUGS = [
-  'gravemoor-gazette',
-  'inkbone-books',
-  'grimsupper',
-  'gloamline',
-  'hollowpost',
-  'shroudery',
-  'lanternstay',
-  'mothmilk',
-  'mildew',
-  'wanderwick',
-  'rookery',
-  'bramblegate',
-];
+// Every registered room slug; completing all of them opens the ending (and so
+// the lantern block). Read from the registry so adding a room needs no change.
+const ALL_SLUGS = roomSlugs();
 
 /** A fake bundle the ending-page link turns into a javascript: href. */
 const FAKE_BUNDLE = '(function(){/* lantern */})();';

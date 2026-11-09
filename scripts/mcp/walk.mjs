@@ -1,7 +1,7 @@
 // The walk_rooms tool: walk each requested room in headless Chrome against the
-// real engine selectors, then open the ending and count its twelve checklist
-// lines. Returns JSON text: per room the checks and any failures, plus any
-// console errors. Writes nothing to disk.
+// real engine selectors, then open the ending and count its checklist lines
+// (one per registered room). Returns JSON text: per room the checks and any
+// failures, plus any console errors. Writes nothing to disk.
 //
 // Two input paths, so both are proven: EVEN rooms are walked by keyboard (light
 // the lantern with L, Tab to the ringed possessed element, Enter), and ODD
@@ -53,7 +53,7 @@
 // Motion QA, named-hold QA, label QA and divider QA are unchanged (see below).
 
 import { setTimeout as sleep } from 'node:timers/promises';
-import { parseRooms, roomReadiness } from './rooms.mjs';
+import { parseRooms, roomReadiness, roomCount, defaultRoomsSpec } from './rooms.mjs';
 import { openSession, distReady, NO_DIST_MESSAGE } from './session.mjs';
 import {
   wantsReducedMotion,
@@ -856,7 +856,9 @@ async function walkRoom(cdp, baseUrl, n, reducedMotion = false, width = 1280, he
  * @returns {Promise<string>} JSON text
  */
 export async function runWalk(args = {}) {
-  const rooms = parseRooms(args.rooms ?? '1-12');
+  // Default to every registered room, read from the registry, so the walk
+  // covers exactly the rooms the game ships — adding a room needs no change.
+  const rooms = parseRooms(args.rooms ?? defaultRoomsSpec());
   const width = Number(args.width ?? 1280);
   const height = Number(args.height ?? 720);
   const reducedMotion = wantsReducedMotion(args);
@@ -881,10 +883,14 @@ export async function runWalk(args = {}) {
     const endItems = await session.cdp.ev(
       "document.querySelectorAll('ol.ending-checklist li, ol li').length",
     );
+    // The ending shows one checklist line per registered room; the expected
+    // count comes from the registry so adding a room needs no change here.
+    const expected = roomCount();
     report.push({
       ending: endHead,
       checklistItems: endItems,
-      twelve: endItems === 12,
+      expected,
+      complete: endItems === expected,
     });
 
     return JSON.stringify(

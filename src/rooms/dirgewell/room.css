@@ -1,0 +1,550 @@
+@import '../../styles/tokens.css';
+
+/* ------------------------------------------------------------------ *
+ * Dirgewell — Room 14, The Music Room
+ * Reuses the manor look (tokens, frame) and the ghost / mist / flicker
+ * approach from Rooms 1-13. Confines all cracks and mist to the possessed
+ * "Sign up and download" button; the frame, the rest of the gate and the
+ * honest twin stay whole. The trick is the gate, never low contrast: every
+ * text meets WCAG AA in both states. The gate is kept compact so the possessed
+ * button lands within the first screen at 1280x720 and 412x915.
+ * ------------------------------------------------------------------ */
+
+.dirgewell {
+  position: relative;
+  z-index: 1;
+}
+
+/* Masthead — compact so the gate reaches the first screen. */
+.dirgewell-header {
+  text-align: center;
+  margin-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: var(--spacing-sm);
+}
+
+.dirgewell-address {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin-bottom: var(--spacing-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.dirgewell-masthead {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  line-height: 1.1;
+}
+
+/* The song, in one compact line. */
+.dirgewell-song {
+  font-size: 0.9375rem;
+  color: var(--ink-soft);
+  margin: 0 0 var(--spacing-sm);
+}
+
+.dirgewell-song-title {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------ *
+ * The gate (haunted). Dark wood card so the trick lives in the gate itself,
+ * never in low contrast. Compact spacing keeps the possessed button on screen.
+ * ------------------------------------------------------------------ */
+.dirgewell-gate {
+  background: linear-gradient(to bottom, var(--manor-wood), var(--manor-wood-2));
+  border: 1px solid var(--manor-line);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.dirgewell-gate-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--candle);
+  margin: 0;
+}
+
+/* The three fields sit side by side on wide screens (one row), stacking on a
+   phone — so the gate stays short and the possessed button is in first sight. */
+.dirgewell-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm) var(--spacing-md);
+}
+
+.dirgewell-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+.dirgewell-label {
+  font-size: 0.875rem;
+  font-weight: 700;
+  /* Bright on the dark card — WCAG AA. */
+  color: var(--ghost);
+}
+
+.dirgewell-input {
+  background: #fbfaf7;
+  color: var(--ink);
+  border: 1px solid var(--parchment-2);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-family: var(--font-ui);
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dirgewell-input:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.dirgewell-contacts {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.dirgewell-contacts-box {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--candle);
+}
+
+.dirgewell-contacts-text {
+  font-size: 0.9375rem;
+  /* Parchment on the dark card — WCAG AA. */
+  color: var(--parchment);
+}
+
+/* The gate's actions: the possessed primary and the quiet "Close". */
+.dirgewell-gate-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+
+/* The possessed "Sign up and download" button: a bright primary, the heart of
+   the forced action. It carries the ghost signs. */
+.dirgewell-signup {
+  background: linear-gradient(135deg, var(--candle), var(--gold));
+  color: var(--ink);
+  border: none;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1.0625rem;
+  cursor: pointer;
+  position: relative;
+  overflow: visible;
+  transition: outline-color var(--duration-hover) var(--easing);
+}
+
+.dirgewell-signup:hover,
+.dirgewell-signup:focus {
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+.dirgewell-signup-label {
+  position: relative;
+  z-index: 3;
+}
+
+/* The only other way out: a quiet "Close" that gets no sheet. */
+.dirgewell-close {
+  background: transparent;
+  color: var(--parchment-2);
+  border: none;
+  padding: 0;
+  font-size: 0.875rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.dirgewell-close:hover,
+.dirgewell-close:focus {
+  color: var(--parchment);
+  outline: 3px solid var(--candle);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost — hero of the haunted room. Anchored to the possessed button,
+ * peeking over its top-right corner without covering its text.
+ * ------------------------------------------------------------------ */
+.ghost-signs {
+  position: absolute;
+  left: 100%;
+  top: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.ghost-wrap {
+  position: absolute;
+  left: -30px;
+  bottom: 0;
+  width: 120px;
+  height: 140px;
+  z-index: 1;
+  transform-origin: 50% 100%;
+  animation: ghost-bob 4s ease-in-out infinite;
+}
+
+.ghost {
+  width: 120px;
+  height: 140px;
+  display: block;
+  filter: drop-shadow(0 0 10px rgba(244, 239, 230, 0.35));
+}
+
+.ghost-body {
+  fill: color-mix(in srgb, var(--ghost) 18%, transparent);
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-eye {
+  fill: color-mix(in srgb, var(--ghost) 90%, transparent);
+}
+
+.ghost-mouth {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ghost) 90%, transparent);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+@keyframes ghost-bob {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-6px) rotate(1deg); }
+}
+
+/* Flicker on the possessed button's label — opacity 1 -> 0.85, at most twice a
+   second. Never on readability. */
+.dirgewell-signup.signs-active .dirgewell-signup-label {
+  animation: dirgewell-flicker 0.6s steps(1) infinite;
+}
+
+@keyframes dirgewell-flicker {
+  0%, 60%, 100% { opacity: 1; }
+  70%, 90% { opacity: 0.85; }
+}
+
+/* Mist drifting around the ghost, never over text. Softness baked into the
+   gradient (no animated filter). */
+.mist {
+  position: absolute;
+  width: 140px;
+  height: 70px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(244, 239, 230, 0.16) 0%,
+    rgba(244, 239, 230, 0.08) 42%,
+    transparent 72%
+  );
+  pointer-events: none;
+  animation: mist-drift 10s ease-in-out infinite alternate;
+}
+
+.mist-left {
+  left: -40px;
+  top: 20px;
+}
+
+.mist-above {
+  left: 0;
+  top: -50px;
+}
+
+.mist-below {
+  left: -20px;
+  top: 90px;
+}
+
+@keyframes mist-drift {
+  0% { opacity: 0.3; transform: translate(0, 0); }
+  50% { opacity: 0.5; transform: translate(6px, -4px); }
+  100% { opacity: 0.3; transform: translate(-4px, 2px); }
+}
+
+/* ------------------------------------------------------------------ *
+ * The ghost's act — Forced action performed. The ghost snaps a padlock onto
+ * the download (.act-lock, a small ink shackle that drops and clicks shut) and
+ * drags the contacts box to ticked (.act-tick, a check stroke that sweeps in).
+ * Both are decorative overlays inside the already-sized ghost wrap: only their
+ * transform/opacity change, so there is no layout shift and nothing real moves.
+ * They sit beside the button, never over its text or focus ring, are
+ * aria-hidden and pointer-events: none (never block input).
+ * ------------------------------------------------------------------ */
+.act-lock {
+  position: absolute;
+  left: 44px;
+  top: 84px;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-18px) scale(0.8);
+  transform-origin: 50% 0;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ghost) 70%, transparent);
+  box-shadow: 0 0 6px rgba(244, 239, 230, 0.4);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.7;
+  animation: dirgewell-lock 5s ease-in-out infinite;
+}
+
+@keyframes dirgewell-lock {
+  0%, 100% { transform: translateY(-18px) scale(0.8); opacity: 0.4; }
+  45% { transform: translateY(0) scale(1); opacity: 0.9; }
+  60% { transform: translateY(0) scale(1); opacity: 0.9; }
+}
+
+.act-tick {
+  position: absolute;
+  left: 30px;
+  top: 108px;
+  width: 26px;
+  height: 14px;
+  transform: scaleX(0.1);
+  transform-origin: 0 50%;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--candle) 85%, transparent);
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.7;
+  animation: dirgewell-tick 5s ease-in-out infinite;
+}
+
+@keyframes dirgewell-tick {
+  0%, 100% { transform: scaleX(0.1); opacity: 0.4; }
+  50% { transform: scaleX(1); opacity: 0.9; }
+}
+
+/* ------------------------------------------------------------------ *
+ * Reduced motion: static dashed candle outline + label, no animation.
+ * ------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .ghost-wrap,
+  .mist,
+  .act-lock,
+  .act-tick,
+  .dirgewell-signup.signs-active .dirgewell-signup-label {
+    animation: none !important;
+  }
+}
+
+.dirgewell-signup.reduced-motion.signs-active {
+  outline: 2px dashed var(--candle);
+  outline-offset: 3px;
+}
+
+.dirgewell-signup.reduced-motion .ghost-wrap,
+.dirgewell-signup.reduced-motion .mist,
+.dirgewell-signup.reduced-motion .act-lock,
+.dirgewell-signup.reduced-motion .act-tick {
+  animation: none !important;
+}
+
+.dirgewell-signup.reduced-motion .act-lock {
+  transform: translateY(0) scale(1);
+  opacity: 0.6;
+}
+
+.dirgewell-signup.reduced-motion .act-tick {
+  transform: scaleX(1);
+  opacity: 0.6;
+}
+
+/* The reduced-motion static labels, anchored to the possessed button's
+   bottom-left, wrapping within a sensible width so they never hang off an edge. */
+.stirs-label,
+.act-caption {
+  position: absolute;
+  left: 0;
+  top: 100%;
+  margin-top: 6px;
+  max-width: 220px;
+  font-size: 0.75rem;
+  line-height: 1.3;
+  color: var(--candle);
+  white-space: normal;
+  z-index: 3;
+}
+
+.act-caption {
+  top: calc(100% + 1.6em);
+}
+
+/* ------------------------------------------------------------------ *
+ * Named hold: freeze this room's signs so only the shared flee moves.
+ * ------------------------------------------------------------------ */
+.room-scene[data-moment='right'] .dirgewell-signup-label,
+.room-scene[data-moment='right'] .mist,
+.room-scene[data-moment='right'] .act-lock,
+.room-scene[data-moment='right'] .act-tick {
+  animation: none;
+}
+
+.room-scene[data-moment='wrong'] .act-lock,
+.room-scene[data-moment='wrong'] .act-tick {
+  animation: none;
+}
+
+/* ------------------------------------------------------------------ *
+ * Honest twin — the download happens at once, the account is a quiet optional
+ * extra (real best practice, no Forced action). Light parchment, ink text.
+ * ------------------------------------------------------------------ */
+.dirgewell-honest .dirgewell-header {
+  color: var(--ink);
+}
+
+.dirgewell-download-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.dirgewell-download {
+  background: var(--ink);
+  color: var(--parchment);
+  border: 1px solid var(--ink);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.dirgewell-download:hover,
+.dirgewell-download:focus {
+  background: var(--parchment);
+  color: var(--ink);
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* The optional account control: quiet, plainly optional, never a gate. */
+.dirgewell-optional {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--parchment-edge);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all var(--duration-hover) var(--easing);
+}
+
+.dirgewell-optional:hover,
+.dirgewell-optional:focus {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Narrow screens: keep everything inside the frame at 412px; the three fields
+ * stack, and the ghost rises from a strip reserved under the possessed button.
+ * ------------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .dirgewell-masthead {
+    font-size: 1.75rem;
+    line-height: 1.1;
+  }
+
+  .dirgewell-field {
+    flex: 1 1 100%;
+  }
+
+  .dirgewell-signup {
+    width: 100%;
+    text-align: center;
+    padding-bottom: 92px;
+  }
+
+  .dirgewell-gate-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-md);
+  }
+
+  .ghost-signs {
+    left: auto;
+    right: 0;
+    bottom: 0;
+  }
+
+  .ghost-wrap {
+    left: auto;
+    right: 0;
+    bottom: 0;
+    width: 72px;
+    height: 84px;
+  }
+
+  .ghost {
+    width: 72px;
+    height: 84px;
+  }
+
+  .act-lock {
+    left: 26px;
+    top: 50px;
+    width: 14px;
+    height: 14px;
+  }
+
+  .act-tick {
+    left: 18px;
+    top: 66px;
+    width: 18px;
+    height: 10px;
+  }
+
+  .mist {
+    width: 90px;
+    height: 44px;
+  }
+
+  .mist-left {
+    left: auto;
+    right: 48px;
+    top: -30px;
+  }
+
+  .mist-above {
+    left: auto;
+    right: 8px;
+    top: -54px;
+  }
+
+  .mist-below {
+    left: auto;
+    right: 20px;
+    top: -14px;
+  }
+}

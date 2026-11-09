@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/preact';
 import axe from 'axe-core';
 import TitleScreen from './TitleScreen';
 import { __resetForTests, completeRoom } from '../engine/progress';
-import { roomSlugs } from '../engine/registry';
+import { roomSlugs, ROOM_COUNT } from '../engine/registry';
 import { TITLE_STEPS } from './howToPlay';
 
 const SLUGS = roomSlugs();
@@ -23,9 +23,11 @@ describe('TitleScreen', () => {
     expect(
       screen.getByText('Every trick is a ghost. Name it to set the page free.'),
     ).toBeDefined();
+    // The room count in the facts line comes from the registry, so adding a
+    // room needs no change here.
     expect(
       screen.getByText(
-        '12 haunted rooms · No account, nothing tracked · Plays by keyboard and screen reader',
+        `${ROOM_COUNT} haunted rooms · No account, nothing tracked · Plays by keyboard and screen reader`,
       ),
     ).toBeDefined();
   });
@@ -50,8 +52,8 @@ describe('TitleScreen', () => {
     expect(secondary.getAttribute('href')).toBe('#/room/1');
   });
 
-  it('with all 12 done: primary "The manor is quiet" → #/end, secondary "Walk the rooms again" → #/room/1', () => {
-    complete(12);
+  it('with every room done: primary "The manor is quiet" → #/end, secondary "Walk the rooms again" → #/room/1', () => {
+    complete(ROOM_COUNT);
     render(<TitleScreen />);
     const primary = screen.getByText('The manor is quiet') as HTMLAnchorElement;
     expect(primary.tagName).toBe('A');
@@ -152,7 +154,7 @@ describe('TitleScreen', () => {
     });
 
     it('the steps still show in the complete state without removing the controls', () => {
-      complete(12);
+      complete(ROOM_COUNT);
       const { container } = render(<TitleScreen />);
       expect(container.querySelectorAll('.title-step').length).toBe(3);
       expect(screen.getByText('The manor is quiet')).toBeDefined();
@@ -181,8 +183,8 @@ describe('TitleScreen', () => {
     await expectNoViolations(container);
   });
 
-  it('axe-core: zero violations with all 12 done', async () => {
-    complete(12);
+  it('axe-core: zero violations with every room done', async () => {
+    complete(ROOM_COUNT);
     const { container } = render(<TitleScreen />);
     await expectNoViolations(container);
   });

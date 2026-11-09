@@ -17,8 +17,9 @@ function patternOf(roomNum: number): string {
 }
 
 /**
- * The Rooms-of-the-manor dialog: a native modal <dialog> listing all twelve
- * rooms in order as links to #/room/N. Freed rooms also show the pattern they
+ * The Rooms-of-the-manor dialog: a native modal <dialog> listing every room in
+ * order as links to #/room/N (the list comes from the registry's ROOM_NAMES, so
+ * adding a room needs no change here). Freed rooms also show the pattern they
  * taught; the current room is marked aria-current="page". Any room is reachable
  * in any order. Esc closes (native), a Close button closes, and the caller
  * returns focus to the "Rooms" button.

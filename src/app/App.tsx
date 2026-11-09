@@ -3,7 +3,7 @@ import type { ComponentType } from 'preact';
 import LookPage from '../look/LookPage';
 import Room from '../engine/Room';
 import TitleScreen from './TitleScreen';
-import { loadRoom, roomSlugs, ROOM_NAMES } from '../engine/registry';
+import { loadRoom, roomSlugs, ROOM_NAMES, ROOM_COUNT } from '../engine/registry';
 import type { RoomData } from '../engine/types';
 import SoundToggle from '../audio/SoundToggle';
 import { loadProgress } from '../engine/progress';
@@ -23,7 +23,9 @@ export function parseHash(raw: string): { route: Route; room: number } | null {
   if (hash === '/lantern-practice') return { route: 'practice', room: 1 };
   if (hash.startsWith('/room/')) {
     const n = parseInt(hash.split('/')[2], 10);
-    if (!isNaN(n) && n >= 1 && n <= 12) return { route: 'room', room: n };
+    // The upper bound is the number of rooms the registry lists, so adding a
+    // room to the registry is the only change the route needs.
+    if (!isNaN(n) && n >= 1 && n <= ROOM_COUNT) return { route: 'room', room: n };
   }
   return null;
 }
@@ -150,8 +152,10 @@ export default function App() {
 
   const nextSlug = ROOM_ORDER[roomNum] ?? undefined;
   const nextName = ROOM_NAMES[roomNum] ?? undefined;
-  // Rooms 1–11 reach the next room, room 12 reaches the ending.
-  const nextHash = roomNum >= 12 ? '#/end' : `#/room/${roomNum + 1}`;
+  // Every room but the last reaches the next room; the last room reaches the
+  // ending. The threshold is the registry's room count, so adding a room needs
+  // no change here.
+  const nextHash = roomNum >= ROOM_COUNT ? '#/end' : `#/room/${roomNum + 1}`;
 
   // The floating Sound toggle shows on every page EXCEPT the room route, where
   // it moves into the compact bar.

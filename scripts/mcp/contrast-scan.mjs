@@ -13,7 +13,7 @@
 // measures pixels, not motion); the flag is echoed in the result.
 
 import { setTimeout as sleep } from 'node:timers/promises';
-import { parseRooms } from './rooms.mjs';
+import { parseRooms, defaultRoomsSpec } from './rooms.mjs';
 import { openSession, distReady, NO_DIST_MESSAGE } from './session.mjs';
 import { freeRoom } from './walk.mjs';
 import { parseColor, contrastOfBox } from './contrast.mjs';
@@ -322,7 +322,8 @@ async function setSlider(cdp, end) {
  * @returns {Promise<string>} JSON text
  */
 export async function runContrastScan(args = {}) {
-  const rooms = parseRooms(args.rooms ?? '1-12');
+  // Default to every registered room, read from the registry.
+  const rooms = parseRooms(args.rooms ?? defaultRoomsSpec());
   const width = Number(args.width ?? 1280);
   const height = Number(args.height ?? 720);
   const reducedMotion = wantsReducedMotion(args);

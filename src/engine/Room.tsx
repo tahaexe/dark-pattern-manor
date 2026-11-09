@@ -4,7 +4,7 @@ import type { CoachStep, RoomData, SpellCard } from './types';
 import { initialState, reduce, stepLine } from './machine';
 import type { RoomEvent, RoomState } from './machine';
 import { areTipsSkipped, completeRoom, loadProgress, skipTips } from './progress';
-import { prefetch } from './registry';
+import { prefetch, ROOM_COUNT } from './registry';
 import RoomBar from '../ui/RoomBar';
 import RoomInstructions from '../ui/RoomInstructions';
 import SpellPicker from '../ui/SpellPicker';
@@ -38,7 +38,8 @@ export interface RoomProps {
   nextName?: string;
   /**
    * Hash of the next destination, offered from the honest step the way every
-   * room reaches the next: `#/room/N+1` for rooms 1–11, `#/end` for room 12.
+   * room reaches the next: `#/room/N+1` for every room but the last, `#/end`
+   * for the last room.
    */
   nextHash?: string;
   /** Optional rng so tests can fix the spell-card order. */
@@ -479,7 +480,7 @@ export default function Room({
         {Atmosphere ? <Atmosphere exhale={showSplit} reducedMotion={reducedMotion} /> : null}
       </div>
 
-      <RoomBar roomNum={roomNum} total={12} freed={freedSet} />
+      <RoomBar roomNum={roomNum} total={ROOM_COUNT} freed={freedSet} />
 
       <RoomInstructions
         name={room.name}

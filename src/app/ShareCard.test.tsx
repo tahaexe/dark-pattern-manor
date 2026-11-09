@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/preact';
 import ShareCard from './ShareCard';
 
-const SHARE_TEXT = 'I named all twelve ghosts of Dark Pattern Manor.';
+const SHARE_TEXT = 'I named all fourteen ghosts of Dark Pattern Manor.';
 
 describe('ShareCard', () => {
   afterEach(() => {

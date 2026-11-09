@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/preact';
 import Room from './Room';
-import { loadRoom, roomSlugs } from './registry';
+import { loadRoom, roomSlugs, ROOM_COUNT } from './registry';
 import { __resetForTests, doneCount } from './progress';
 import type { RoomData } from './types';
 
@@ -141,14 +141,16 @@ describe('Room component — the step line and the bar', () => {
     );
   });
 
-  it('the bar reads "Room N of 12, M freed" and renders twelve dots', async () => {
+  it('the bar reads "Room N of <total>, M freed" and renders one dot per room', async () => {
     const room = await foyer();
     const freed = new Set([1, 2]);
     const { container } = render(<Room room={room} roomNum={3} freed={freed} rng={identityRng} />);
+    // The total comes from the registry's room count, so adding a room needs no
+    // change here.
     expect(container.querySelector('.room-bar-counter')?.textContent).toMatch(
-      /Room 3 of 12, 2 freed/,
+      new RegExp(`Room 3 of ${ROOM_COUNT}, 2 freed`),
     );
-    expect(container.querySelectorAll('.room-bar-dot')).toHaveLength(12);
+    expect(container.querySelectorAll('.room-bar-dot')).toHaveLength(ROOM_COUNT);
     expect(container.querySelectorAll('.room-bar-dot.is-freed')).toHaveLength(2);
     expect(container.querySelectorAll('.room-bar-dot.is-current')).toHaveLength(1);
   });
@@ -222,7 +224,7 @@ describe('Room component — the Rooms dialog', () => {
     }
   });
 
-  it('lists twelve room links, freed rooms show their pattern, and closes with focus return', async () => {
+  it('lists one link per room, freed rooms show their pattern, and closes with focus return', async () => {
     const room = await foyer();
     const freed = new Set([1]);
     render(<Room room={room} roomNum={1} freed={freed} rng={identityRng} />);
@@ -234,7 +236,7 @@ describe('Room component — the Rooms dialog', () => {
     const roomLinks = links.filter((l) =>
       (l as HTMLAnchorElement).getAttribute('href')?.startsWith('#/room/'),
     );
-    expect(roomLinks).toHaveLength(12);
+    expect(roomLinks).toHaveLength(ROOM_COUNT);
     expect(screen.getByText(/freed: visual interference/i)).toBeDefined();
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
@@ -324,7 +326,7 @@ describe('Room component — the continue affordance', () => {
     return container;
   }
 
-  it('reads "Next room: <name>" for rooms 1–11 once done', async () => {
+  it('reads "Next room: <name>" for a room before the last once done', async () => {
     await reachDone('#/room/2', 'The Library');
     const link = screen.getByRole('link', {
       name: 'Next room: The Library',

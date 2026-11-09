@@ -6,13 +6,13 @@ import HowToPlay from './HowToPlay';
 export interface RoomBarProps {
   /** 1-based room number. */
   roomNum: number;
-  /** Total rooms (always 12). */
+  /** Total rooms (the registry's room count, passed by the engine). */
   total: number;
   /** The set of freed room numbers (1-based), for the dots and the counter. */
   freed: ReadonlySet<number>;
 }
 
-/** The twelve dots: filled for freed, a ring for current, hollow for the rest. */
+/** One dot per room: filled for freed, a ring for current, hollow for the rest. */
 function Dots({
   roomNum,
   total,
@@ -52,10 +52,11 @@ function RoomsIcon() {
 
 /**
  * The one compact bar along the top of the room route. Left: a quiet "‹ Manor"
- * text button back to the title. Middle: "Room N of 12" with twelve dots
- * (aria-hidden; a visually hidden span reads "Room N of 12, M freed"). Right: a
- * "Rooms" button (the room list dialog), a "?" button (how to play), and the
- * Sound toggle. Every control is at least 44 x 44.
+ * text button back to the title. Middle: "Room N of <total>" with one dot per
+ * room (aria-hidden; a visually hidden span reads "Room N of <total>, M
+ * freed"). Right: a "Rooms" button (the room list dialog), a "?" button (how to
+ * play), and the Sound toggle. Every control is at least 44 x 44. The `total`
+ * comes from the registry's room count, so adding a room needs no change here.
  *
  * Below 600 px (phone) the whole bar stays one row at most 56 px tall: "Rooms",
  * "?" and the Sound toggle become 44 x 44 icon buttons — each keeps its

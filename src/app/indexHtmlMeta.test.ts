@@ -38,7 +38,7 @@ describe('index.html link-preview metadata', () => {
   it('has the Open Graph title, description, and type', () => {
     expect(metaContent(html, 'property', 'og:title')).toBe('Dark Pattern Manor');
     expect(metaContent(html, 'property', 'og:description')).toBe(
-      'Twelve haunted web pages, one dark pattern each: name the ghost, free the honest twin.',
+      'Fourteen haunted web pages, one dark pattern each: name the ghost, free the honest twin.',
     );
     expect(metaContent(html, 'property', 'og:type')).toBe('website');
   });

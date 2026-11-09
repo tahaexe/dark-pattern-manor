@@ -20,9 +20,14 @@ import { runCheckRooms } from './checks.mjs';
 import { runWalk } from './walk.mjs';
 import { runContrastScan } from './contrast-scan.mjs';
 import { runLanternWalk } from './lantern-walk.mjs';
+import { defaultRoomsSpec } from './rooms.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(HERE, '..', '..');
+
+// The default room range covering every registered room, e.g. "1-14", so the
+// tools cover exactly the rooms the game ships. Read from the registry.
+const DEFAULT_ROOMS = defaultRoomsSpec();
 
 function readVersion() {
   try {
@@ -43,8 +48,8 @@ const roomsSchema = {
   properties: {
     rooms: {
       type: 'string',
-      description: 'Rooms to cover: a range ("1-12"), a single ("3") or a list ("1,4,7").',
-      default: '1-12',
+      description: `Rooms to cover: a range ("${DEFAULT_ROOMS}"), a single ("3") or a list ("1,4,7").`,
+      default: DEFAULT_ROOMS,
     },
     width: { type: 'integer', description: 'Viewport width in px.', default: 1280 },
     height: { type: 'integer', description: 'Viewport height in px.', default: 720 },
@@ -78,7 +83,7 @@ const tools = [
   {
     name: 'walk_rooms',
     description:
-      'Walk each room by keyboard in headless Chrome against the built site in dist/: the instruction, the lantern, the possessed element reachable by Tab, the three cards and each wrong card\'s whisper, the right card, the comparison box, the slider really changing what is on top, every point haunted at 0 and honest at 100, the focused honest control, the one-press task, the Ghost Guide and the continue link; then the ending\'s twelve checklist lines. Reports each room\'s cumulative layout shift and fails a room above 0.01. With reducedMotion true it also checks the static "Something stirs here" label and that no animation runs. Returns JSON. Run `npm run build` first.',
+      'Walk each room by keyboard in headless Chrome against the built site in dist/: the instruction, the lantern, the possessed element reachable by Tab, the three cards and each wrong card\'s whisper, the right card, the comparison box, the slider really changing what is on top, every point haunted at 0 and honest at 100, the focused honest control, the one-press task, the Ghost Guide and the continue link; then the ending\'s checklist lines (one per registered room). Reports each room\'s cumulative layout shift and fails a room above 0.01. With reducedMotion true it also checks the static "Something stirs here" label and that no animation runs. Returns JSON. Run `npm run build` first.',
     inputSchema: roomsSchema,
     run: (args) => runWalk(args),
   },
