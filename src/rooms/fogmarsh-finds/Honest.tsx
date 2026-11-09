@@ -43,12 +43,18 @@ export default function Honest({ onCompleteTask }: HonestProps) {
       </aside>
 
       <h3 class="fogmarsh-list-title">Top night lanterns</h3>
-      <p class="fogmarsh-criteria">ranked by 1,240 verified owner reviews; no brand pays for a place</p>
+      <p class="fogmarsh-criteria">
+        ranked by 1,240 verified owner reviews; no brand pays for a place
+      </p>
 
       <ol class="fogmarsh-list fogmarsh-list-honest">
         <li class="fogmarsh-item">
           {/* The genuine top-rated lantern — the one-click task. */}
-          <button class="fogmarsh-card fogmarsh-card-honest-top" type="button" onClick={() => onCompleteTask()}>
+          <button
+            class="fogmarsh-card fogmarsh-card-honest-top"
+            type="button"
+            onClick={() => onCompleteTask()}
+          >
             <span class="fogmarsh-card-body">
               <span class="fogmarsh-rank">1</span>
               <span class="fogmarsh-name">Marshglow Hand Lantern</span>

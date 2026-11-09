@@ -39,10 +39,25 @@ interface Pick {
 
 /** The runner-up editorial picks (ranks 2–5), plain cards with no ghost. */
 const RUNNERS_UP: Pick[] = [
-  { rank: 2, name: 'Marshglow Hand Lantern', price: '£28', blurb: 'Warm, steady beam; light to carry.' },
-  { rank: 3, name: 'Hollow Oak Storm Lamp', price: '£24', blurb: 'Weatherproof; good in wind off the fen.' },
+  {
+    rank: 2,
+    name: 'Marshglow Hand Lantern',
+    price: '£28',
+    blurb: 'Warm, steady beam; light to carry.',
+  },
+  {
+    rank: 3,
+    name: 'Hollow Oak Storm Lamp',
+    price: '£24',
+    blurb: 'Weatherproof; good in wind off the fen.',
+  },
   { rank: 4, name: 'Reedlight Clip Beacon', price: '£16', blurb: 'Clips to a coat; handy spare.' },
-  { rank: 5, name: 'Tallow & Tin Classic', price: '£19', blurb: 'Old-fashioned glow; shorter runtime.' },
+  {
+    rank: 5,
+    name: 'Tallow & Tin Classic',
+    price: '£19',
+    blurb: 'Old-fashioned glow; shorter runtime.',
+  },
 ];
 
 export default function Haunted({

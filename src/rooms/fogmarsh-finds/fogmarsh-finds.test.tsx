@@ -126,9 +126,9 @@ describe('The Map Room — pattern rule (passes on honest, fails on haunted)', (
     // The ranking states its criterion.
     const criteria = container.querySelector('.fogmarsh-criteria');
     expect(criteria).not.toBeNull();
-    expect(/verified owner reviews; no brand pays for a place/i.test(criteria!.textContent || '')).toBe(
-      true,
-    );
+    expect(
+      /verified owner reviews; no brand pays for a place/i.test(criteria!.textContent || ''),
+    ).toBe(true);
     // There is no possessed paid-placement-in-the-ranking on the honest side.
     expect(container.querySelector('#maproom-top-pick')).toBeNull();
   });
